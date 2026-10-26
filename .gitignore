@@ -1,0 +1,36 @@
+# env / secrets
+.env
+.env.*
+!.env.prod.example
+infra/docker/secrets/*
+!infra/docker/secrets/.gitkeep
+
+# .NET
+bin/
+obj/
+*.user
+TestResults/
+
+# Node / Nuxt
+node_modules/
+.nuxt/
+.output/
+dist/
+
+# Flutter
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Python
+__pycache__/
+.venv/
+
+# Weblium export binaries (JSON stays in git)
+migration/media/
+
+# misc
+.DS_Store
+Thumbs.db
+.claude/

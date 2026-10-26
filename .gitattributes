@@ -1,0 +1,12 @@
+# LF everywhere: deploy.sh and nginx/compose files are rsynced to a Linux VPS as-is.
+* text=auto eol=lf
+*.sh text eol=lf
+*.conf text eol=lf
+*.template text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.pdf binary
+*.woff binary
+*.woff2 binary

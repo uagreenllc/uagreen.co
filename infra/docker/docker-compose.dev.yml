@@ -1,0 +1,11 @@
+# Local-dev override: publish Postgres and MinIO on localhost so the API,
+# Nuxt and Flutter can run outside Docker.
+#   docker compose -f docker-compose.prod.yml -f docker-compose.dev.yml up -d postgres minio minio-init
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+  minio:
+    ports:
+      - "9000:9000"
+      - "9001:9001"

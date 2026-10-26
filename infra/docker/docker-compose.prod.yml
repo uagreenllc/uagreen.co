@@ -1,0 +1,141 @@
+# Explicit Compose project name: the Gospodar and TTApp stacks also live in an
+# ".../infra/docker/" dir with services named postgres/api/nginx/minio, so
+# without this they would collide on the shared VPS.
+name: uagreen_site
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: uagreen_site_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-uagreen_site}
+      POSTGRES_USER: ${POSTGRES_USER:-uagreen_site}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-uagreen_site}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: uagreen_site_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      # The admin app on ADMIN_BASE_URL PUTs presigned uploads to PUBLIC_BASE_URL/media/…
+      MINIO_API_CORS_ALLOW_ORIGIN: ${ADMIN_BASE_URL},${PUBLIC_BASE_URL}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # One-shot: create the media bucket and make it world-readable (product
+  # photos, blog covers, vacancy files are public). Idempotent.
+  minio-init:
+    image: minio/mc:latest
+    container_name: uagreen_site_minio_init
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\" &&
+      mc mb --ignore-existing local/\"$$S3_BUCKET\" &&
+      mc anonymous set download local/\"$$S3_BUCKET\""
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET:-media}
+
+  api:
+    build:
+      context: ../../backend
+      dockerfile: src/UaGreen.Site.Api/Dockerfile
+    container_name: uagreen_site_api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-uagreen_site};Username=${POSTGRES_USER:-uagreen_site};Password=${POSTGRES_PASSWORD}"
+      # JWT — MUST match Gospodar's values byte-for-byte (Gospodar is the IdP).
+      Jwt__SigningKey: ${JWT_SIGNING_KEY}
+      Jwt__Issuer: ${JWT_ISSUER:-UaGreenApi}
+      Jwt__Audience: ${JWT_AUDIENCE:-UaGreenApp}
+      Gospodar__BaseUrl: ${GOSPODAR_BASE_URL}
+      App__PublicBaseUrl: ${PUBLIC_BASE_URL}
+      Cors__AllowedOrigins__0: ${ADMIN_BASE_URL}
+      Smtp__Host: ${SMTP_HOST}
+      Smtp__User: ${SMTP_USER}
+      Smtp__Password: ${SMTP_PASSWORD}
+      Smtp__From: ${SMTP_FROM}
+      Notifications__OrderEmail: ${ORDER_EMAIL}
+      LiqPay__PublicKey: ${LIQPAY_PUBLIC_KEY}
+      LiqPay__PrivateKey: ${LIQPAY_PRIVATE_KEY}
+      LiqPay__Sandbox: ${LIQPAY_SANDBOX:-true}
+      # Storage → local MinIO via S3 driver. Presigned URLs are signed for the
+      # public origin and proxied to minio by uagreen_site_nginx (location /media/
+      # — the bucket name). http://minio:9000 stays for internal data-plane calls.
+      Storage__Driver: S3
+      Storage__S3Bucket: ${S3_BUCKET:-media}
+      Storage__S3Region: ${S3_REGION:-us-east-1}
+      Storage__S3AccessKey: ${MINIO_ROOT_USER}
+      Storage__S3SecretKey: ${MINIO_ROOT_PASSWORD}
+      Storage__S3ServiceUrl: "http://minio:9000"
+      Storage__S3PublicServiceUrl: ${PUBLIC_BASE_URL}
+      Storage__S3ForcePathStyle: "true"
+      # One-time Weblium import: set IMPORT_DIR=/import in .env, `up -d api`,
+      # then unset it. The export is mounted read-only from ../../migration.
+      Import__Dir: ${IMPORT_DIR:-}
+    volumes:
+      - ../../migration:/import:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  # Nuxt 3 SSR (public site). Server-side fetches go straight to the API
+  # container; the browser talks to /api on the same origin.
+  web:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: uagreen_site_web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NITRO_PORT: "3000"
+      NUXT_PUBLIC_SITE_URL: ${PUBLIC_BASE_URL}
+      NUXT_API_BASE: "http://api:8080"
+      NUXT_PUBLIC_API_BASE: "/api"
+    depends_on:
+      - api
+
+  nginx:
+    build:
+      context: ../..
+      dockerfile: infra/nginx/Dockerfile
+    container_name: uagreen_site_nginx
+    restart: unless-stopped
+    ports:
+      # Port 8083 blocked externally via UFW — only the shared OberigAI nginx
+      # reaches it via the Docker host bridge (infra/nginx/vhost.conf.template).
+      - "8083:80"
+    depends_on:
+      - web
+      - api
+      - minio
+
+volumes:
+  postgres_data:
+  minio_data:
