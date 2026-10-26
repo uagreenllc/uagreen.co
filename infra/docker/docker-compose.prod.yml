@@ -1,6 +1,6 @@
 # Explicit Compose project name: the Gospodar and TTApp stacks also live in an
-# ".../infra/docker/" dir with services named postgres/api/nginx/minio, so
-# without this they would collide on the shared VPS.
+# ".../infra/docker/" dir with services named postgres/api/nginx, so without
+# this they would collide on the shared VPS.
 name: uagreen_site
 
 services:
@@ -19,46 +19,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  minio:
-    image: minio/minio:latest
-    container_name: uagreen_site_minio
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      # The admin app on ADMIN_BASE_URL PUTs presigned uploads to PUBLIC_BASE_URL/media/…
-      MINIO_API_CORS_ALLOW_ORIGIN: ${ADMIN_BASE_URL},${PUBLIC_BASE_URL}
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # One-shot: create the media bucket and make it world-readable (product
-  # photos, blog covers, vacancy files are public), plus a private bucket for
-  # job-application CVs (admin reads them via short presigned URLs). Idempotent.
-  minio-init:
-    image: minio/mc:latest
-    container_name: uagreen_site_minio_init
-    restart: "no"
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set local http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\" &&
-      mc mb --ignore-existing local/\"$$S3_BUCKET\" &&
-      mc anonymous set download local/\"$$S3_BUCKET\" &&
-      mc mb --ignore-existing local/\"$$S3_PRIVATE_BUCKET\""
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      S3_BUCKET: ${S3_BUCKET:-media}
-      S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-private}
 
   api:
     build:
@@ -85,28 +45,20 @@ services:
       LiqPay__PublicKey: ${LIQPAY_PUBLIC_KEY}
       LiqPay__PrivateKey: ${LIQPAY_PRIVATE_KEY}
       LiqPay__Sandbox: ${LIQPAY_SANDBOX:-true}
-      # Storage → local MinIO via S3 driver. Presigned URLs are signed for the
-      # public origin and proxied to minio by uagreen_site_nginx (location /media/
-      # — the bucket name). http://minio:9000 stays for internal data-plane calls.
-      Storage__Driver: S3
-      Storage__S3Bucket: ${S3_BUCKET:-media}
-      Storage__S3PrivateBucket: ${S3_PRIVATE_BUCKET:-private}
-      Storage__S3Region: ${S3_REGION:-us-east-1}
-      Storage__S3AccessKey: ${MINIO_ROOT_USER}
-      Storage__S3SecretKey: ${MINIO_ROOT_PASSWORD}
-      Storage__S3ServiceUrl: "http://minio:9000"
-      Storage__S3PublicServiceUrl: ${PUBLIC_BASE_URL}
-      Storage__S3ForcePathStyle: "true"
+      # Media are plain files on two volumes: public (served by nginx as /media/)
+      # and private (job-application CVs, streamed through the API).
+      Storage__Root: /data/media
+      Storage__PrivateRoot: /data/private
       # One-time Weblium import: set IMPORT_DIR=/import in .env, `up -d api`,
       # then unset it. The export is mounted read-only from ../../migration.
       Import__Dir: ${IMPORT_DIR:-}
     volumes:
+      - media_data:/data/media
+      - private_data:/data/private
       - ../../migration:/import:ro
     depends_on:
       postgres:
         condition: service_healthy
-      minio:
-        condition: service_started
 
   # Nuxt 3 SSR (public site). Server-side fetches go straight to the API
   # container; the browser talks to /api on the same origin.
@@ -135,11 +87,13 @@ services:
       # Port 8083 blocked externally via UFW — only the shared OberigAI nginx
       # reaches it via the Docker host bridge (infra/nginx/vhost.conf.template).
       - "8083:80"
+    volumes:
+      - media_data:/usr/share/nginx/html/media:ro
     depends_on:
       - web
       - api
-      - minio
 
 volumes:
   postgres_data:
-  minio_data:
+  media_data:
+  private_data:

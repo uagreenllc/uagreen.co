@@ -49,10 +49,9 @@ public static class FormsEndpoints
             {
                 if (cv.Length > MaxCvBytes) throw ProblemException.BadRequest("CV must be under 10 MB");
                 if (!FileStorage.DocumentTypes.Contains(cv.ContentType)) throw ProblemException.BadRequest("CV must be PDF or Word");
-                a.CvKey = FileStorage.NewKey("cv", cv.ContentType);
                 a.CvFileName = Path.GetFileName(cv.FileName);
                 await using var s = cv.OpenReadStream();
-                await storage.PutPrivateAsync(a.CvKey, s, cv.ContentType, ct);
+                a.CvKey = await storage.SavePrivateAsync("cv", cv.ContentType, s, ct);
             }
 
             db.Applications.Add(a);

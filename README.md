@@ -16,10 +16,11 @@ infra/      docker compose, nginx, deploy script
 
 ```bash
 cp infra/docker/.env.prod.example infra/docker/.env   # fill in dev values
-docker compose -f infra/docker/docker-compose.prod.yml -f infra/docker/docker-compose.dev.yml --env-file infra/docker/.env up -d postgres minio minio-init
+docker compose -f infra/docker/docker-compose.prod.yml -f infra/docker/docker-compose.dev.yml --env-file infra/docker/.env up -d postgres
+cd backend && dotnet run --project src/UaGreen.Site.Api      # http://localhost:5000, migrates on boot
 ```
 
-Postgres → `localhost:5432`, MinIO → `localhost:9000` (console `:9001`), bucket `media`, public-read.
+Postgres → `localhost:5433` (5432 is taken by the native PostgreSQL on the dev box). Media are written to `backend/src/UaGreen.Site.Api/data/` in dev.
 
 ## Contracts between the parts
 
@@ -32,7 +33,9 @@ Postgres → `localhost:5432`, MinIO → `localhost:9000` (console `:9001`), buc
 - Flutter admin is built with `flutter build web --release --pwa-strategy=none
   --dart-define=API_HOST=https://admin.uagreen.co` and served as static files on
   `admin.uagreen.co` (`/api/` proxied on the same host).
-- Media: MinIO bucket `media`, public URL `PUBLIC_BASE_URL/media/<key>`.
+- Media: plain files on the `media_data` volume (`Storage__Root`), served by nginx as
+  `/media/<key>`; the admin uploads with `POST /api/admin/media` (multipart `file` + `folder`).
+  CVs go to the `private_data` volume and are streamed via `GET /api/admin/applications/{id}/cv`.
 - Weblium export JSON contract: see `tools/scrape_weblium.py` / `docs/PLAN.md`.
 
 ## Deploy

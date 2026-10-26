@@ -10,6 +10,8 @@ bin/
 obj/
 *.user
 TestResults/
+# local media uploads (dev)
+backend/src/UaGreen.Site.Api/data/
 
 # Node / Nuxt
 node_modules/

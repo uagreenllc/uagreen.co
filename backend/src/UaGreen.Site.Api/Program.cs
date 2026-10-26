@@ -91,7 +91,7 @@ builder.Services.AddAppRateLimiting(builder.Configuration);
 builder.Services.AddOutputCache(o =>
     o.AddPolicy("public", p => p.Expire(TimeSpan.FromSeconds(60)).SetVaryByQuery("*").Tag(AdminCommon.PublicCacheTag)));
 
-FileStorage.Register(builder.Services);
+builder.Services.AddSingleton<FileStorage>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddSingleton<LiqPayService>();
 builder.Services.AddHostedService<ImportRunner>();

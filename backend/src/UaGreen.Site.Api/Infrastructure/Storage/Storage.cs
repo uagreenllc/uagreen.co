@@ -1,34 +1,21 @@
-using Amazon.Runtime;
-using Amazon.S3;
-using Amazon.S3.Model;
 using Microsoft.Extensions.Options;
+using UaGreen.Site.Api.Common;
 
 namespace UaGreen.Site.Api.Infrastructure.Storage;
 
 public sealed class FileStorageOptions
 {
-    public string Driver { get; set; } = "S3";
-    public string S3Bucket { get; set; } = "media";
-    /// Not world-readable: CVs from job applications. Read via short presigned GETs only.
-    public string S3PrivateBucket { get; set; } = "private";
-    public string S3Region { get; set; } = "us-east-1";
-    public string S3AccessKey { get; set; } = "";
-    public string S3SecretKey { get; set; } = "";
-    public string? S3ServiceUrl { get; set; }
-    /// Browser-reachable endpoint used ONLY for presigned URLs (the public origin;
-    /// nginx proxies /<bucket>/ to MinIO with the Host header preserved).
-    public string? S3PublicServiceUrl { get; set; }
-    public bool S3ForcePathStyle { get; set; } = true;
+    /// Public media root; nginx serves it as `/media/<key>` (a Docker volume in prod).
+    public string Root { get; set; } = "data/media";
+    /// Job-application CVs. Never served by nginx; streamed to HR through the API.
+    public string PrivateRoot { get; set; } = "data/private";
 }
 
-public sealed record PresignUploadResult(string UploadUrl, string Key, string Url);
-
-/// MinIO/S3 object store. Keys are public: the bucket is world-readable and nginx
-/// serves `/media/<key>` — so `Url(key)` is just that relative path.
-public sealed class FileStorage(IOptions<FileStorageOptions> opts, IAmazonS3 s3, FileStorage.PresignClient presign)
+/// Plain files on disk. ponytail: MinIO/S3 dropped — the images are no longer
+/// publicly pullable and a site with a few hundred photos does not need object
+/// storage. Swap this class for an S3 driver if the media ever outgrows one volume.
+public sealed class FileStorage
 {
-    public sealed record PresignClient(IAmazonS3 Client);
-
     private static readonly Dictionary<string, string> Ext = new(StringComparer.OrdinalIgnoreCase)
     {
         ["image/jpeg"] = ".jpg", ["image/png"] = ".png", ["image/webp"] = ".webp", ["image/gif"] = ".gif",
@@ -36,102 +23,88 @@ public sealed class FileStorage(IOptions<FileStorageOptions> opts, IAmazonS3 s3,
         ["application/msword"] = ".doc",
         ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"] = ".docx",
     };
+    private static readonly Dictionary<string, string> TypeByExt =
+        Ext.ToDictionary(kv => kv.Value, kv => kv.Key, StringComparer.OrdinalIgnoreCase);
 
     public static readonly HashSet<string> ImageTypes = new(StringComparer.OrdinalIgnoreCase)
         { "image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml" };
     public static readonly HashSet<string> DocumentTypes = new(StringComparer.OrdinalIgnoreCase)
         { "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
 
-    private readonly FileStorageOptions _opts = opts.Value;
+    private readonly string _root;
+    private readonly string _private;
+
+    public FileStorage(IOptions<FileStorageOptions> opts, IHostEnvironment env)
+    {
+        _root = Path.GetFullPath(opts.Value.Root, env.ContentRootPath);
+        _private = Path.GetFullPath(opts.Value.PrivateRoot, env.ContentRootPath);
+        Directory.CreateDirectory(_root);
+        Directory.CreateDirectory(_private);
+    }
 
     public static string Url(string key) => "/media/" + key;
 
     public static string NewKey(string folder, string contentType)
         => $"{folder}/{Guid.NewGuid():N}{(Ext.TryGetValue(contentType, out var e) ? e : "")}";
 
-    public async Task<PresignUploadResult> PresignUploadAsync(string folder, string contentType, TimeSpan expiry)
+    public static string ContentTypeFor(string key)
+        => TypeByExt.TryGetValue(Path.GetExtension(key), out var t) ? t : "application/octet-stream";
+
+    // ── Public media ──
+    public async Task<string> SaveAsync(string folder, string contentType, Stream content, CancellationToken ct)
     {
         var key = NewKey(folder, contentType);
-        var url = await presign.Client.GetPreSignedURLAsync(new GetPreSignedUrlRequest
-        {
-            BucketName = _opts.S3Bucket,
-            Key = key,
-            Expires = DateTime.UtcNow.Add(expiry),
-            Verb = HttpVerb.PUT,
-            ContentType = contentType,
-        });
-        return new PresignUploadResult(url, key, Url(key));
+        await PutAsync(key, content, contentType, ct);
+        return key;
     }
 
+    /// Write at an exact key (the Weblium import keeps the original file names).
     public async Task PutAsync(string key, Stream content, string contentType, CancellationToken ct)
+        => await WriteAsync(Resolve(_root, key), content, ct);
+
+    public Task<bool> ExistsAsync(string key, CancellationToken ct) => Task.FromResult(File.Exists(Resolve(_root, key)));
+
+    public void Delete(string key)
     {
-        await s3.PutObjectAsync(new PutObjectRequest
-        {
-            BucketName = _opts.S3Bucket,
-            Key = key,
-            InputStream = content,
-            ContentType = contentType,
-        }, ct);
+        var path = Resolve(_root, key);
+        if (File.Exists(path)) File.Delete(path);
     }
 
-    public async Task<bool> ExistsAsync(string key, CancellationToken ct)
+    // ── Private files (CVs) ──
+    public async Task<string> SavePrivateAsync(string folder, string contentType, Stream content, CancellationToken ct)
     {
-        try
-        {
-            await s3.GetObjectMetadataAsync(_opts.S3Bucket, key, ct);
-            return true;
-        }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return false;
-        }
+        var key = NewKey(folder, contentType);
+        await WriteAsync(Resolve(_private, key), content, ct);
+        return key;
     }
 
-    public Task DeleteAsync(string key, CancellationToken ct) => s3.DeleteObjectAsync(_opts.S3Bucket, key, ct);
-
-    // ── Private bucket (job-application CVs) ──
-    public async Task PutPrivateAsync(string key, Stream content, string contentType, CancellationToken ct)
+    public Stream? OpenPrivate(string key)
     {
-        await s3.PutObjectAsync(new PutObjectRequest
-        {
-            BucketName = _opts.S3PrivateBucket,
-            Key = key,
-            InputStream = content,
-            ContentType = contentType,
-        }, ct);
+        var path = Resolve(_private, key);
+        return File.Exists(path) ? File.OpenRead(path) : null;
     }
 
-    public Task<string> PresignPrivateDownloadAsync(string key, TimeSpan expiry)
-        => presign.Client.GetPreSignedURLAsync(new GetPreSignedUrlRequest
-        {
-            BucketName = _opts.S3PrivateBucket,
-            Key = key,
-            Expires = DateTime.UtcNow.Add(expiry),
-            Verb = HttpVerb.GET,
-        });
-
-    public static void Register(IServiceCollection services)
+    public void DeletePrivate(string key)
     {
-        services.AddSingleton<IAmazonS3>(sp =>
-        {
-            var o = sp.GetRequiredService<IOptions<FileStorageOptions>>().Value;
-            return CreateClient(o, o.S3ServiceUrl);
-        });
-        services.AddSingleton(sp =>
-        {
-            var o = sp.GetRequiredService<IOptions<FileStorageOptions>>().Value;
-            return new PresignClient(string.IsNullOrEmpty(o.S3PublicServiceUrl)
-                ? sp.GetRequiredService<IAmazonS3>()
-                : CreateClient(o, o.S3PublicServiceUrl));
-        });
-        services.AddSingleton<FileStorage>();
+        var path = Resolve(_private, key);
+        if (File.Exists(path)) File.Delete(path);
     }
 
-    private static AmazonS3Client CreateClient(FileStorageOptions o, string? serviceUrl)
+    private static async Task WriteAsync(string path, Stream content, CancellationToken ct)
     {
-        var cfg = new AmazonS3Config { ForcePathStyle = o.S3ForcePathStyle };
-        if (!string.IsNullOrEmpty(serviceUrl)) cfg.ServiceURL = serviceUrl;
-        else cfg.RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(o.S3Region);
-        return new AmazonS3Client(new BasicAWSCredentials(o.S3AccessKey, o.S3SecretKey), cfg);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await using var fs = File.Create(path);
+        await content.CopyToAsync(fs, ct);
+    }
+
+    /// Keys come from the DB or the admin; never let one escape the root.
+    private static string Resolve(string root, string key)
+    {
+        if (string.IsNullOrWhiteSpace(key) || key.Contains("..") || Path.IsPathRooted(key))
+            throw ProblemException.BadRequest("Bad file key");
+        var full = Path.GetFullPath(Path.Combine(root, key));
+        if (!full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            throw ProblemException.BadRequest("Bad file key");
+        return full;
     }
 }

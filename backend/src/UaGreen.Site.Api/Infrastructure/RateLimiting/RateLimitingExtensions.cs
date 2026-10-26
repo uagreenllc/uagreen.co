@@ -11,7 +11,7 @@ public static class RateLimitingExtensions
     public const string AuthRefresh = "auth-refresh";
     /// Public POSTs: orders, applications, contact.
     public const string Forms = "forms";
-    public const string Presign = "presign";
+    public const string Uploads = "uploads";
 
     public static IServiceCollection AddAppRateLimiting(this IServiceCollection s, IConfiguration cfg)
     {
@@ -50,12 +50,12 @@ public static class RateLimitingExtensions
                 QueueLimit = 0,
             }));
 
-            o.AddPolicy(Presign, ctx => RateLimitPartition.GetTokenBucketLimiter(
+            o.AddPolicy(Uploads, ctx => RateLimitPartition.GetTokenBucketLimiter(
                 ctx.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? Ip(ctx), _ => new TokenBucketRateLimiterOptions
             {
-                TokenLimit = cfg.GetValue("RateLimiting:Presign:PermitLimit", 60),
-                TokensPerPeriod = cfg.GetValue("RateLimiting:Presign:PermitLimit", 60),
-                ReplenishmentPeriod = cfg.GetValue("RateLimiting:Presign:Window", TimeSpan.FromMinutes(1)),
+                TokenLimit = cfg.GetValue("RateLimiting:Uploads:PermitLimit", 60),
+                TokensPerPeriod = cfg.GetValue("RateLimiting:Uploads:PermitLimit", 60),
+                ReplenishmentPeriod = cfg.GetValue("RateLimiting:Uploads:Window", TimeSpan.FromMinutes(1)),
                 AutoReplenishment = true,
                 QueueLimit = 0,
             }));

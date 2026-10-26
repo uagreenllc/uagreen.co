@@ -28,7 +28,7 @@ public sealed record ImpContent(string Key, string Lang, string? Title, string B
 public sealed record ImpRedirect(string From, string To);
 
 /// Loads the Weblium export (`Import:Dir`) once at startup: upserts by slug/key and
-/// uploads `media/*` to MinIO under the same file name, so `/media/<file>` links
+/// copies `media/*` into the media root under the same file name, so `/media/<file>` links
 /// embedded in the HTML bodies keep working. Modelled on TTApp's SeedRunner.
 public sealed class ImportRunner(IServiceProvider sp, IConfiguration cfg, ILogger<ImportRunner> log) : IHostedService
 {

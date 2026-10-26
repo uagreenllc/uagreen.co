@@ -30,12 +30,13 @@ public static class AdminInboxEndpoints
             return await q.Take(500).ToListAsync(ct);
         });
 
-        // Short-lived presigned link to the CV in the private bucket.
+        // CVs live outside the public media root; stream them to HR through the API.
         a.MapGet("/{id:guid}/cv", async (Guid id, AppDbContext db, FileStorage storage, CancellationToken ct) =>
         {
             var x = await db.Applications.AsNoTracking().FirstOrDefaultAsync(z => z.Id == id, ct) ?? throw ProblemException.NotFound("Application not found");
             if (x.CvKey is null) throw ProblemException.NotFound("No CV attached");
-            return Results.Ok(new { url = await storage.PresignPrivateDownloadAsync(x.CvKey, TimeSpan.FromMinutes(5)), fileName = x.CvFileName });
+            var stream = storage.OpenPrivate(x.CvKey) ?? throw ProblemException.NotFound("CV file is missing");
+            return Results.File(stream, FileStorage.ContentTypeFor(x.CvKey), x.CvFileName ?? "cv" + Path.GetExtension(x.CvKey));
         });
 
         a.MapPatch("/{id:guid}", async (Guid id, ReadUpdate req, AppDbContext db, CancellationToken ct) =>
@@ -50,6 +51,7 @@ public static class AdminInboxEndpoints
             var x = await db.Applications.FirstOrDefaultAsync(z => z.Id == id, ct) ?? throw ProblemException.NotFound("Application not found");
             db.Applications.Remove(x);
             await db.SaveChangesAsync(ct);
+            if (x.CvKey is not null) storage.DeletePrivate(x.CvKey);
             return Results.NoContent();
         });
 

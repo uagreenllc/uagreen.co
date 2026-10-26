@@ -104,6 +104,13 @@ ssh "${VPS_USER}@${VPS_IP}" "
   else
     echo '    No existing Postgres container — skipping backup (first deploy).'
   fi
+  # Uploaded media + CVs live on plain volumes — tar them next to the DB dump.
+  for VOL in media_data private_data; do
+    if docker volume ls -q | grep -q \"^uagreen_site_\${VOL}\$\"; then
+      docker run --rm -v \"uagreen_site_\${VOL}:/v:ro\" -v \"\$BACKUP_DIR:/b\" alpine tar czf \"/b/\${VOL}_\${STAMP}.tgz\" -C /v .
+      ls -1t \"\$BACKUP_DIR\"/\${VOL}_*.tgz 2>/dev/null | tail -n +6 | xargs -r rm -f
+    fi
+  done
 "
 
 echo "==> [5/6] Building and starting uagreen_site containers..."
@@ -124,7 +131,7 @@ ssh "${VPS_USER}@${VPS_IP}" "
 "
 
 if $DO_IMPORT; then
-  echo "==> [5b] Running the one-time Weblium import (migration/ → DB + MinIO)..."
+  echo "==> [5b] Running the one-time Weblium import (migration/ → DB + media volume)..."
   ssh "${VPS_USER}@${VPS_IP}" "
     set -e
     cd ${REMOTE_DIR}/infra/docker
@@ -146,4 +153,3 @@ echo ""
 echo "==> Deploy complete!"
 echo "    Site:  https://${DOMAIN}"
 echo "    Admin: https://${ADMIN_DOMAIN}"
-echo "    MinIO console (SSH tunnel): ssh -L 9001:localhost:9001 ${VPS_USER}@${VPS_IP}"

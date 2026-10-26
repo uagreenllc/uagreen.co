@@ -26,7 +26,7 @@ uagreen.co  ──► OberigAI nginx (спільний, 443, certbot)
                          └─ uagreen_site_nginx (стек uagreen_site)
                               ├─ /            → web  (Nuxt SSR, node)
                               ├─ /api/        → api  (.NET 9, :8080)
-                              ├─ /media/      → minio (фото товарів, обкладинки, файли)
+                              ├─ /media/      → статика з Docker-тому (фото, обкладинки, файли)
                               └─ admin.uagreen.co → статика Flutter-адмінки
 postgres (uagreen_site) ← api ← admin (JWT від Gospodar, ролі локально)
 ```
@@ -47,9 +47,9 @@ infra/scripts/deploy.sh
 
 ### Що переюзуємо з TTApp (копіюємо файли, міняємо namespace)
 - `D:/Work/TTApp/infra/scripts/deploy.sh` — деплой-флоу (build Flutter → rsync → backup pg → compose build/up → reload oberig-nginx).
-- `D:/Work/TTApp/infra/docker/docker-compose.prod.yml` — postgres + minio + minio-init + api + nginx; додано сервіс `web` (Nuxt), порт nginx `8083:80`, `name: uagreen_site`.
+- `D:/Work/TTApp/infra/docker/docker-compose.prod.yml` — postgres + api + nginx; додано сервіс `web` (Nuxt), порт nginx `8083:80`, `name: uagreen_site`. MinIO прибрано: образи більше не доступні публічно, медіа лежать на Docker-томі (`media_data`, `private_data`).
 - `D:/Work/OberigAI/backend/nginx/erp.uagreen.co.conf` — шаблон vhost для спільного nginx → `infra/nginx/vhost.conf.template`.
-- `TTApp.Api/Program.cs:59-102` — JWT-валідація зі спільним ключем Gospodar + policies; `Infrastructure/Auth/GospodarClient.cs` — проксі логіну; `JitUserMiddleware.cs`; `Infrastructure/Storage` (S3/MinIO, presigned upload); `AddAppRateLimiting`.
+- `TTApp.Api/Program.cs:59-102` — JWT-валідація зі спільним ключем Gospodar + policies; `Infrastructure/Auth/GospodarClient.cs` — проксі логіну; `AddAppRateLimiting`. Storage — власний простий клас (файли на диску).
 - Flutter-адмінка: каркас, API-клієнт, auth-флоу й `--dart-define=API_HOST` з `TTApp_Front`.
 
 ### Авторизація бекофісу
@@ -64,7 +64,7 @@ infra/scripts/deploy.sh
 |---|---|
 | `categories` | slug, name_uk/en, sort, image |
 | `products` | slug, sku, category_id, name, short_desc, description_html, specs_html, faq_html (всі uk/en), price, old_price, in_stock, is_featured, sort, seo_title/desc, published |
-| `product_images` | product_id, key (MinIO), alt, sort |
+| `product_images` | product_id, key (файл у `/media/`), alt, sort |
 | `product_files` | product_id, key, title |
 | `product_options` / `product_option_values` | option name uk/en; value uk/en, price_delta |
 | `blog_posts` | slug, title, excerpt, body_html (uk/en), cover_key, author, published_at, seo, published |
@@ -80,7 +80,7 @@ infra/scripts/deploy.sh
 ### API
 Публічне (anonymous, кеш 60 с): `GET /api/catalog/categories`, `/api/catalog/products?category=`, `/api/catalog/products/{slug}`, `/api/blog`, `/api/blog/{slug}`, `/api/vacancies`, `/api/vacancies/{slug}`, `/api/content/{key}`, `/api/settings/public`.
 Публічне з rate-limit + honeypot-полем: `POST /api/orders` (повертає order + для liqpay — `data`/`signature`), `POST /api/payments/liqpay/callback`, `POST /api/applications`, `POST /api/contact`. Кожна заявка/замовлення → email на адресу з settings.
-Адмін (`/api/admin/*`, JWT + policy per role): CRUD для всіх таблиць вище, `POST /api/admin/media/presign` (MinIO), `GET/PUT /api/admin/users/{id}/roles`, список замовлень зі зміною статусу.
+Адмін (`/api/admin/*`, JWT + policy per role): CRUD для всіх таблиць вище, `POST /api/admin/media` (multipart upload), `GET/PUT /api/admin/users/{id}/roles`, список замовлень зі зміною статусу.
 
 ### LiqPay
 Checkout API v3: `data = base64(json{version:3, public_key, action:"pay", amount, currency:"UAH", description, order_id, result_url, server_url, language})`, `signature = base64(sha1(private_key + data + private_key))`. Фронт робить form-POST на `https://www.liqpay.ua/api/3/checkout`. `server_url` → наш callback: перевірити підпис, `status in (success, sandbox)` → `orders.status = paid`. Ключі — `LiqPay__PublicKey/PrivateKey` в env, sandbox-ключі для тесту.
@@ -100,9 +100,9 @@ Checkout API v3: `data = base64(json{version:3, public_key, action:"pay", amount
 
 | # | Фаза | Результат | Оцінка |
 |---|---|---|---|
-| 0 | Репо + інфра-скелет | git + GitHub; `infra/*`; `docker compose up` локально піднімає postgres+minio | 0.5 д |
+| 0 | Репо + інфра-скелет | git + GitHub; `infra/*`; `docker compose up` локально піднімає postgres | 0.5 д |
 | 1 | Вивантаження контенту | `tools/scrape_weblium.py` → `migration/*.json` + `migration/media/` + мапа старих URL | 1 д |
-| 2 | Backend | Схема + міграції; публічний API; JWT/Gospodar/ролі; MinIO; `ImportRunner`; email-нотифікації | 2–3 д |
+| 2 | Backend | Схема + міграції; публічний API; JWT/Gospodar/ролі; медіа на диску; `ImportRunner`; email-нотифікації | 2–3 д |
 | 3 | Nuxt-сайт | Усі сторінки з даними з API, i18n, SEO, редіректи, форми | 4–5 д |
 | 4 | Кошик і оплата | Кошик, checkout, `POST /api/orders`, LiqPay (sandbox → prod), email менеджеру | 2–3 д |
 | 5 | Flutter-адмінка | Усі екрани, адмін-API, завантаження медіа, ролі | 4–5 д |
