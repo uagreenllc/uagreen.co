@@ -39,7 +39,8 @@ services:
       retries: 3
 
   # One-shot: create the media bucket and make it world-readable (product
-  # photos, blog covers, vacancy files are public). Idempotent.
+  # photos, blog covers, vacancy files are public), plus a private bucket for
+  # job-application CVs (admin reads them via short presigned URLs). Idempotent.
   minio-init:
     image: minio/mc:latest
     container_name: uagreen_site_minio_init
@@ -51,11 +52,13 @@ services:
       /bin/sh -c "
       mc alias set local http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\" &&
       mc mb --ignore-existing local/\"$$S3_BUCKET\" &&
-      mc anonymous set download local/\"$$S3_BUCKET\""
+      mc anonymous set download local/\"$$S3_BUCKET\" &&
+      mc mb --ignore-existing local/\"$$S3_PRIVATE_BUCKET\""
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       S3_BUCKET: ${S3_BUCKET:-media}
+      S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-private}
 
   api:
     build:
@@ -87,6 +90,7 @@ services:
       # — the bucket name). http://minio:9000 stays for internal data-plane calls.
       Storage__Driver: S3
       Storage__S3Bucket: ${S3_BUCKET:-media}
+      Storage__S3PrivateBucket: ${S3_PRIVATE_BUCKET:-private}
       Storage__S3Region: ${S3_REGION:-us-east-1}
       Storage__S3AccessKey: ${MINIO_ROOT_USER}
       Storage__S3SecretKey: ${MINIO_ROOT_PASSWORD}

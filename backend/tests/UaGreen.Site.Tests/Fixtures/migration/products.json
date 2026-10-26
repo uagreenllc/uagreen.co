@@ -1,0 +1,36 @@
+[
+  {
+    "slug": "k1v4",
+    "sku": "595",
+    "category_slug": "vitroelektrostanciyi",
+    "name_uk": "Вітроелектростанція 1кВт",
+    "name_en": "Wind power plant 1kW",
+    "short_desc_uk": "Вертикальна ВЕС 1 кВт",
+    "short_desc_en": null,
+    "description_html_uk": "<p>У стандартний комплект входить: вітряк 1кВт 24В</p><p><img src=\"/media/img1.jpg\"></p>",
+    "description_html_en": null,
+    "specs_html_uk": "<ul><li>Лопаті - 2200х250х250</li></ul>",
+    "specs_html_en": null,
+    "faq_html_uk": "<h3>Скільки реально генерує?</h3><p>200–300 Вт</p>",
+    "faq_html_en": null,
+    "price": 47000,
+    "old_price": 73000,
+    "in_stock": true,
+    "is_featured": true,
+    "sort": 1,
+    "seo_title_uk": "ВЕС 1кВт K1v4",
+    "seo_title_en": null,
+    "seo_desc_uk": null,
+    "seo_desc_en": null,
+    "images": [ { "file": "img1.jpg", "alt": "K1v4" }, { "file": "already.jpg", "alt": null } ],
+    "files": [],
+    "options": [
+      { "name_uk": "Щогла", "name_en": "Mast", "values": [
+        { "value_uk": "6 м", "value_en": "6 m", "price_delta": 0 },
+        { "value_uk": "9 м", "value_en": "9 m", "price_delta": 5000 }
+      ] }
+    ],
+    "source_url_uk": "https://uagreen.co/shop/k1v4",
+    "source_url_en": "https://uagreen.co/en/shop/k1v4"
+  }
+]

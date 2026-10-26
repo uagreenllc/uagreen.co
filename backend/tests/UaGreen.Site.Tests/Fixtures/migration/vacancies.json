@@ -1,0 +1,21 @@
+[
+  {
+    "slug": "junior-assembly-fitter",
+    "old_path_uk": "/junior-assembly-fitter",
+    "old_path_en": "/en/junior-assembly-fitter",
+    "title_uk": "Молодший слюсар-збиральник",
+    "title_en": "Junior assembly fitter",
+    "department": "Слюсарі",
+    "employment_type": "Повна зайнятість",
+    "city": "Львів",
+    "experience": "0-2 роки досвіду",
+    "language": "Українська - Upper-Intermediate (B2)",
+    "requirements_html_uk": "<ul><li>Вміння працювати з електроінструментами</li></ul>",
+    "requirements_html_en": null,
+    "nice_to_have_html_uk": "<ul><li>Вміння читати креслення</li></ul>",
+    "nice_to_have_html_en": null,
+    "conditions_html_uk": "<ul><li>Графік 5/2</li></ul>",
+    "conditions_html_en": null,
+    "is_active": true
+  }
+]
