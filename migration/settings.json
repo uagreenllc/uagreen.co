@@ -1,0 +1,29 @@
+{
+  "phones": [
+    "+380957173772",
+    "+380668696072"
+  ],
+  "emails": [
+    "uagreenllc@gmail.com",
+    "hello@uagreen.co",
+    "oleksii.vynokur@uagreen.co"
+  ],
+  "address": "вул. Волинська 10, Львів",
+  "address_en": "10 Volynska St., Lviv",
+  "address_office": "кв. 117, вул. Садова 1, с. Хроли, Харківська обл.",
+  "address_office_en": "Apt. 117, 1 Sadova St., Khroly village, Kharkiv Oblast",
+  "socials": {
+    "instagram": "https://www.instagram.com/uagreenllc",
+    "tiktok": "https://www.tiktok.com/@ua.green",
+    "linkedin": "https://www.linkedin.com/company/ua-green",
+    "youtube": "https://www.youtube.com/@UAGREEEN"
+  },
+  "vacancy_apply_url": "https://forms.gle/ucZFHxTmH67iteu6A",
+  "ga4_id": "G-9MEWBJF4B0",
+  "google_ads_id": "AW-16667422706",
+  "fb_pixel_id": "1534621291606786",
+  "site_title_uk": "UA GREEN | Вітроелектростанції та обладнання до них",
+  "site_title_en": null,
+  "site_description_uk": "ТОВ \"ЮА Грін\" - український виробник вітроелектростанцій та супітнього обладнання до них. 80% нашої станції виготовлено з українських комплектуючих та матеріалів.",
+  "site_description_en": null
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "slug": "vitroelektrostanciyi",
+    "name_uk": "Вітроелектростанції",
+    "name_en": null,
+    "sort": 1,
+    "image": "e93adf5d-4383-492a-8b0c-a5763ef5ce0a.jpg"
+  },
+  {
+    "slug": "generatori",
+    "name_uk": "Генератори",
+    "name_en": null,
+    "sort": 2,
+    "image": "41991f9f-94aa-4d36-b881-824ff19d1896.jpg"
+  },
+  {
+    "slug": "lopati",
+    "name_uk": "Лопаті",
+    "name_en": null,
+    "sort": 3,
+    "image": "ee207985-e165-4f0d-88e8-ab85cf911353.jpg"
+  },
+  {
+    "slug": "poslugi",
+    "name_uk": "Послуги",
+    "name_en": null,
+    "sort": 4,
+    "image": "a292518f-af2a-47e6-8426-4562e39ceee0.jpg"
+  },
+  {
+    "slug": "machti",
+    "name_uk": "Щогли",
+    "name_en": null,
+    "sort": 5,
+    "image": "56bf579a-d14c-4eaf-a435-dea2ec48ddb8.jpg"
+  }
+]
