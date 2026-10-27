@@ -6,8 +6,9 @@ const localePath = useLocalePath()
 const slug = String(route.params.slug)
 
 const { data } = await useApiFetch<Vacancy>(`vacancy:${slug}`, `/vacancies/${slug}`)
-if (!data.value) throw createError({ statusCode: 404 })
-const v = data.value
+// A closed vacancy is the common "not found" here (old job-board links): send people to the open ones.
+if (!data.value) await navigateTo(localePath('/vacancies'), { redirectCode: 301 })
+const v = data.value!
 
 const facts = computed(() => [
   ['vacancies.department', v.department],

@@ -22,7 +22,8 @@ cd frontend && npm install && npm run dev                      # http://localhos
 ```
 
 Postgres → `localhost:5433` (5432 is taken by the native PostgreSQL on the dev box). Media are written to `backend/src/UaGreen.Site.Api/data/` in dev and served by the API at `/media` (dev only).
-Frontend checks: `npm run typecheck`, `npm test` (vitest, pure geometry only).
+Frontend checks: `npm run typecheck`, `npm test` (vitest: scene geometry, pricing, cart, redirects, CV rules).
+Old-URL audit (every Weblium URL must answer 200 or 301→200): `python tools/check_old_urls.py http://localhost:3000`.
 
 ## Contracts between the parts
 

@@ -23,6 +23,10 @@ export default defineNuxtConfig({
     baseUrl: siteUrl,
   },
   site: { url: siteUrl },
+  sitemap: {
+    sources: ['/_sitemap/urls'],
+    exclude: ['/cart', '/checkout', '/order/**', '/en/cart', '/en/checkout', '/en/order/**'],
+  },
   // Dev only: the browser talks to the API and its static media through the Nuxt dev server.
   // Nitro honours `proxy` here (verified), Nuxt's typed subset of route rules just omits it.
   $development: {
