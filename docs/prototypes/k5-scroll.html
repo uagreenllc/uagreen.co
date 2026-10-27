@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UA GREEN — К5: від заготовки до вітру (прототип)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.cdnfonts.com/css/e-ukraine" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7f5; --ink:#1f2a22; --ink-2:#44524a; --green:#576e4f; --green-2:#3f5239;
+  --copper:#b5673a; --line:#d8ddd6; --metal:#8a948c; --metal-2:#c3c9c1; --concrete:#cfd2cb; --soil:#e6e8e3;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'e-Ukraine','Manrope',system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+header{position:fixed;inset:0 0 auto 0;z-index:30;display:flex;align-items:center;justify-content:space-between;padding:18px 40px}
+.logo{font-weight:700;letter-spacing:.04em;color:var(--green);text-decoration:none;font-size:18px}
+nav{display:flex;align-items:center;gap:26px}
+nav a{color:var(--ink);text-decoration:none;font-size:15px}
+nav a.pill{background:var(--green);color:#fff;padding:9px 16px;border-radius:999px;font-weight:500}
+.btn{display:inline-block;background:var(--green);color:#fff;text-decoration:none;padding:14px 22px;border-radius:999px;font-weight:600;font-size:16px}
+.btn:hover{background:var(--green-2)}
+.link{display:inline-block;color:var(--green);text-decoration:none;font-weight:500;margin-top:16px;border-bottom:1px solid currentColor}
+
+#story{height:100vh;position:relative;overflow:hidden}
+.stage{height:100%;display:grid;grid-template-columns:150px minmax(300px,36%) 1fr;gap:32px;padding:88px 40px 32px}
+.rail{position:relative}
+.rail .line,.rail .fill{position:absolute;left:11px;top:10px;bottom:10px;width:2px;background:var(--line)}
+.rail .fill{background:var(--green);transform-origin:top;transform:scaleY(0)}
+.rail ol{list-style:none;margin:0;padding:0;position:relative;display:flex;flex-direction:column;justify-content:space-between;height:100%}
+.rail li{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--ink-2);white-space:nowrap}
+.rail li::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--bg);border:2px solid var(--line);margin-left:7px;flex:none}
+.rail li.done::before{border-color:var(--green)}
+.rail li.active{color:var(--green);font-weight:600}
+.rail li.active::before{border-color:var(--green);background:var(--green)}
+
+.copy{position:relative;display:flex;align-items:center}
+.step{position:absolute;left:0;right:0;opacity:0;transform:translateY(18px);transition:opacity .45s cubic-bezier(.2,.7,.2,1),transform .45s cubic-bezier(.2,.7,.2,1);pointer-events:none}
+.step.active{opacity:1;transform:none;pointer-events:auto}
+.step h1{font-size:clamp(38px,4.4vw,64px);line-height:1.05;margin:0 0 18px;letter-spacing:-.02em;text-wrap:balance}
+.step h2{font-size:clamp(26px,2.5vw,36px);line-height:1.15;margin:0 0 14px;letter-spacing:-.01em;text-wrap:balance}
+.step p{margin:0 0 18px;color:var(--ink-2);font-size:17px;max-width:44ch;text-wrap:pretty}
+.facts{padding-top:14px;border-top:1px solid var(--line);font-size:15px;color:var(--ink-2)}
+.facts b{color:var(--ink);font-weight:600;font-size:18px}
+.facts i{font-style:normal;margin:0 10px;color:var(--line)}
+.hint{display:inline-flex;align-items:center;gap:10px;color:var(--ink-2);font-size:14px;margin-top:8px}
+.hint svg{animation:nudge 1.6s cubic-bezier(.2,.7,.2,1) infinite}
+@keyframes nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+.scene{position:relative;min-height:0}
+.scene svg{width:100%;height:100%;display:block}
+
+.after{min-height:85vh;padding:120px 40px;max-width:1100px}
+.after h2{font-size:clamp(28px,3vw,42px);margin:0 0 16px;letter-spacing:-.01em}
+.after p{max-width:64ch;color:var(--ink-2);font-size:18px}
+footer{padding:40px;border-top:1px solid var(--line);color:var(--ink-2);font-size:14px}
+
+@media (max-width:900px){
+  header{padding:14px 16px} nav a:not(.pill){display:none}
+  .stage{grid-template-columns:1fr;grid-template-rows:1fr auto;gap:8px;padding:64px 16px 20px}
+  .rail{display:none}
+  .scene{order:1}
+  .copy{order:2;min-height:240px}
+  .step p{font-size:15px}
+}
+@media (prefers-reduced-motion:reduce){
+  .hint svg{animation:none}
+  .step{transition:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="logo" href="#">UA GREEN</a>
+  <nav>
+    <a href="#">Магазин</a><a href="#">Про нас</a><a href="#">Блог</a><a href="#">Вакансії</a><a href="#">Контакти</a>
+    <a href="#">+380 66 869 60 72</a>
+    <a class="pill" href="#">Кошик · 0</a>
+  </nav>
+</header>
+
+<section id="story">
+  <div class="stage">
+    <aside class="rail" aria-hidden="true">
+      <div class="line"></div><div class="fill" id="railFill"></div>
+      <ol>
+        <li data-step="1">Генератор</li>
+        <li data-step="2">Лопаті</li>
+        <li data-step="3">Складання</li>
+        <li data-step="4">Щогла</li>
+        <li data-step="5">Встановлення</li>
+      </ol>
+    </aside>
+
+    <div class="copy">
+      <div class="step active" data-step="0">
+        <h1>Від заготовки до вітру.</h1>
+        <p>Вертикальний вітрогенератор К5 ми робимо самі — від намотування статора до встановлення на вашій ділянці. Прокрутіть сторінку і подивіться, як.</p>
+        <span class="hint"><svg width="14" height="18" viewBox="0 0 14 18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 1v15M1 10l6 7 6-7"/></svg>Скрольте</span>
+      </div>
+      <div class="step" data-step="1">
+        <h2>Серце К5 — генератор на постійних магнітах.</h2>
+        <p>Статор з електротехнічної сталі, мідна обмотка, 72 неодимові магніти. Без редуктора — нема чому зношуватись.</p>
+        <div class="facts"><b>5 кВт</b> номінал<i>·</i><b>6,5 кВт</b> пік<i>·</i><b>48 В</b></div>
+      </div>
+      <div class="step" data-step="2">
+        <h2>Три композитні лопаті, шар за шаром.</h2>
+        <p>Склотканина від 48 до 400 г/м², епоксид, пінопластовий лонжерон. Ламінуємо вручну, фарбуємо, балансуємо.</p>
+        <div class="facts"><b>4,75 м</b> лопать<i>·</i><b>Ø5 м</b> ротор<i>·</i><b>22 м²</b> площа</div>
+      </div>
+      <div class="step" data-step="3">
+        <h2>Збираємо й провертаємо вперше.</h2>
+        <p>Вал Ø170, траверси, лопаті на генератор. Ротор має рушати вже від 1,5 м/с.</p>
+        <div class="facts"><b>1,5 м/с</b> старт<i>·</i><b>250 об/хв</b><i>·</i><b>300 кг</b></div>
+      </div>
+      <div class="step" data-step="4">
+        <h2>Фундамент, закладна, секції по 6 метрів.</h2>
+        <p>Арматурний каркас, бетон, анкерна плита. Щогла 12, 18 або 24 м збирається на фланцях, із драбиною для обслуговування.</p>
+        <div class="facts"><b>12 / 18 / 24 м</b> щогла<i>·</i><b>45 м/с</b> витримує</div>
+      </div>
+      <div class="step" data-step="5">
+        <h2>Ротор сідає на щоглу. Кабель — у дім.</h2>
+        <p>Контролер MPPT, баластне навантаження, акумулятори. Далі працює лише вітер.</p>
+        <div class="facts" style="margin-bottom:26px"><b>38 дБ</b><i>·</i><b>−40…+60 °C</b><i>·</i><b>1,3–2 кВт</b> середньорічно</div>
+        <a class="btn" href="#">Розрахувати для моєї ділянки</a><br><a class="link" href="#">К5 у магазині — 295 000 ₴</a>
+      </div>
+    </div>
+
+    <div class="scene">
+      <svg id="scene" viewBox="0 0 1400 1556" preserveAspectRatio="xMidYMid meet" aria-label="Схема виготовлення, складання та встановлення вітрогенератора К5">
+        <g id="site">
+          <rect x="-200" y="1400" width="1800" height="300" fill="var(--soil)"/>
+          <path d="M-200,1400H1600" stroke="var(--green)" stroke-width="3"/>
+          <g id="ghost" fill="none" stroke="var(--metal)" stroke-width="2" stroke-dasharray="8 8" opacity=".5">
+            <path d="M900,1400V500"/>
+            <rect x="775" y="180" width="250" height="240" rx="70"/>
+          </g>
+          <g id="foundation">
+            <rect id="concrete" x="790" y="1400" width="220" height="130" fill="var(--concrete)"/>
+            <path id="rebar" d="M810,1420H990M810,1460H990M810,1500H990M830,1410V1520M870,1410V1520M910,1410V1520M950,1410V1520M990,1410V1520" fill="none" stroke="var(--metal)" stroke-width="3"/>
+            <rect id="anchor" x="860" y="1392" width="80" height="10" fill="var(--metal)"/>
+          </g>
+          <g id="mast">
+            <rect class="sect" x="889" y="1100" width="22" height="300" fill="var(--metal-2)" stroke="var(--metal)" stroke-width="2"/>
+            <rect class="sect" x="889" y="800" width="22" height="300" fill="var(--metal-2)" stroke="var(--metal)" stroke-width="2"/>
+            <rect class="sect" x="889" y="500" width="22" height="300" fill="var(--metal-2)" stroke="var(--metal)" stroke-width="2"/>
+            <rect class="flange" x="878" y="1096" width="44" height="8" fill="var(--metal)"/>
+            <rect class="flange" x="878" y="796" width="44" height="8" fill="var(--metal)"/>
+            <path id="ladder" fill="none" stroke="var(--metal)" stroke-width="2"/>
+          </g>
+          <g id="house">
+            <path d="M1140,1400V1290L1250,1215L1360,1290V1400Z" fill="#fff" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>
+            <rect id="window" x="1180" y="1310" width="44" height="44" fill="#fff" stroke="var(--ink)" stroke-width="2"/>
+            <rect id="controller" x="1270" y="1300" width="40" height="28" rx="3" fill="#fff" stroke="var(--green)" stroke-width="3"/>
+            <path id="ballast" d="M1272,1346h6l5-8 6,16 6-16 6,16 5-8h6" fill="none" stroke="var(--copper)" stroke-width="3" stroke-linejoin="round"/>
+            <g id="battery"><rect x="1268" y="1362" width="46" height="26" rx="3" fill="#fff" stroke="var(--ink)" stroke-width="2.5"/><path d="M1278,1375h8M1282,1371v8M1298,1375h8" stroke="var(--ink)" stroke-width="2"/></g>
+          </g>
+          <path id="cable" d="M900,500V1400C900,1470 1120,1470 1160,1400V1330H1270" fill="none" stroke="var(--copper)" stroke-width="3"/>
+        </g>
+
+        <g id="workshop">
+          <g id="stator" transform="translate(350 1250)"></g>
+          <g id="blades-raw"></g>
+        </g>
+
+        <g id="assembly" transform="translate(350 1400)">
+          <rect id="shaft" x="-7" y="-320" width="14" height="250" fill="var(--metal)"/>
+          <g id="struts" fill="none" stroke="var(--metal)" stroke-width="6" stroke-linecap="round"></g>
+          <g id="blades" fill="none" stroke-linecap="round" stroke-linejoin="round"></g>
+          <g id="gen">
+            <rect x="-35" y="-72" width="70" height="72" fill="#cfd4ce" stroke="var(--metal)" stroke-width="2"/>
+            <ellipse cx="0" cy="-72" rx="35" ry="9" fill="#e3e6e0" stroke="var(--metal)" stroke-width="2"/>
+            <circle cx="-22" cy="-74" r="2.5" fill="#6f7872"/><circle cx="22" cy="-74" r="2.5" fill="#6f7872"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section class="after">
+  <h2>Далі на сторінці — звичайні розділи.</h2>
+  <p>Товари (К1, К5, щогли, лопаті), чому саме вертикальна схема, встановлені об'єкти, останні записи блогу й контакти. Без карток-близнюків і банерів зі знижками — великі фото, цифри і текст.</p>
+</section>
+<footer>UA GREEN · Прототип головної, не для продакшену</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+gsap.registerPlugin(ScrollTrigger);
+const NS='http://www.w3.org/2000/svg';
+const $=s=>document.querySelector(s);
+const el=(tag,attrs,parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);parent.appendChild(e);return e;};
+const svg=$('#scene');
+const CAM={
+  title:'0 0 1400 1556',
+  gen:'165 990 370 411',
+  blades:'60 1040 400 444',
+  asm:'100 1000 500 556',
+  mast:'300 300 1100 1222',
+  install:'250 160 1150 1278',
+};
+
+/* ---------- stator detail (stage 1) ---------- */
+const stator=$('#stator');
+// Lamination as on the real K5 stator: ring with 72 slots open to the bore, 4 mounting lugs on the rim.
+const RX=140,RY=70,N=72,LAMS=20,TOPY=-4*(LAMS-1);
+const pt=(r,a)=>`${(RX*r*Math.cos(a)).toFixed(1)},${(RY*r*Math.sin(a)).toFixed(1)}`;
+const ring=(r0,r1)=>{let d='';for(let i=0;i<=120;i++){d+=(i?'L':'M')+pt(r0,i/120*2*Math.PI);}d+='Z';if(r1){for(let i=0;i<=120;i++){d+=(i?'L':'M')+pt(r1,i/120*2*Math.PI);}d+='Z';}return d;};
+function lamPath(){
+  const lugs=[45,135,225,315].map(x=>x*Math.PI/180);
+  const outerR=a=>{for(const L of lugs){const da=Math.abs(Math.atan2(Math.sin(a-L),Math.cos(a-L)));if(da<0.06)return da<0.015?1.03:1.06;}return 1;};
+  let d='';
+  for(let i=0;i<=360;i++){const a=i/360*2*Math.PI;d+=(i?'L':'M')+pt(outerR(a),a);}
+  d+='Z';
+  // slot: narrower opening at the bore (tooth shoes), parallel walls, rounded bottom
+  const rin=0.72,rslot=0.9,pitch=2*Math.PI/N,half=0.22*pitch,open=0.15*pitch,rb=0.88*half,rhob=rslot-rb;
+  for(let k=0;k<N;k++){
+    const c=k*pitch;
+    d+=(k?'L':'M')+pt(rin,c-open)+'L'+pt(rin+0.035,c-open)+'L'+pt(rin+0.045,c-half)+'L'+pt(rhob,c-half);
+    for(let t=1;t<4;t++){const f=Math.PI*t/4;d+='L'+pt(rhob+rb*Math.sin(f),c-half*Math.cos(f));}
+    d+='L'+pt(rhob,c+half)+'L'+pt(rin+0.045,c+half)+'L'+pt(rin+0.035,c+open)+'L'+pt(rin,c+open);
+  }
+  return d+'Z';
+}
+const lamD=lamPath(),lams=[];
+for(let i=0;i<LAMS;i++){
+  lams.push(el('path',{d:lamD,fill:'#dfe3dd',stroke:'#7d867f','stroke-width':1,'fill-rule':'evenodd',transform:`translate(0 ${-4*i})`},stator));
+}
+// rotor: drum with 72 magnets (3 rows x 24) on its outer surface, bolted to the shaft, lowered into the bore.
+// The side band is clipped below the stack top so it disappears into the bore when seated.
+const DR=0.66,H=-TOPY,ROW=H/3,HOVER=TOPY-130; // drum as tall as the stack
+// visible region for the band = above the stack top plane; in this projection its edge is the front arc of the bore ellipse
+const cp=el('clipPath',{id:'aboveStack'},stator);
+{let cd=`M-400,-1200H400V${TOPY}H${(RX*DR).toFixed(1)}`;
+ for(let i=0;i<=40;i++){const a=i/40*Math.PI;cd+=`L${(RX*DR*Math.cos(a)).toFixed(1)},${(TOPY+RY*DR*Math.sin(a)).toFixed(1)}`;}
+ el('path',{d:cd+'H-400Z'},cp);}
+const bandWrap=el('g',{'clip-path':'url(#aboveStack)'},stator);
+const bandG=el('g',{transform:`translate(0 ${HOVER})`},bandWrap);
+{let bd='';for(let i=0;i<=40;i++)bd+=(i?'L':'M')+pt(DR,i/40*Math.PI);
+ bd+=`L${(-RX*DR).toFixed(1)},${H}`;for(let i=40;i>=0;i--){const a=i/40*Math.PI;bd+=`L${(RX*DR*Math.cos(a)).toFixed(1)},${(RY*DR*Math.sin(a)+H).toFixed(1)}`;}
+ el('path',{d:bd+'Z',fill:'#2e3330'},bandG);}
+const magnets=[];
+for(let j=0;j<3;j++)for(let i=0;i<24;i++){
+  const a=(i+0.5)/24*2*Math.PI,s=Math.sin(a);if(s<0.1)continue;const w=3+11*s;
+  magnets.push(el('rect',{x:(RX*DR*Math.cos(a)-w/2).toFixed(1),y:(RY*DR*s+j*ROW+2).toFixed(1),width:w.toFixed(1),height:(ROW-4).toFixed(1),fill:'#15181a',stroke:'#555c57','stroke-width':0.8},bandG));
+}
+// winding as on the real stator: 36 coils, each spanning 4 slots; copper stays on the ring face, never over the rim
+const coils=[];
+const pitch=2*Math.PI/N;
+for(let i=0;i<36;i++){
+  const a=i*2*pitch+pitch/2,b=a+4*pitch;
+  const d=`M${pt(0.74,a)}L${pt(0.88,a)}Q${pt(0.96,a+pitch)} ${pt(0.96,(a+b)/2)}Q${pt(0.96,b-pitch)} ${pt(0.88,b)}L${pt(0.74,b)}`;
+  coils.push(el('path',{d,stroke:i%2?'#a85c31':'#c0733f','stroke-width':5.5,'stroke-linecap':'round','stroke-linejoin':'round',fill:'none',transform:`translate(0 ${TOPY})`},stator));
+}
+// drum end flange (3 windows) with hub and 4 bolts, shaft. Band and flange go above the coils: the drum is in front of the far side
+stator.appendChild(bandWrap);
+const topG=el('g',{transform:`translate(0 ${HOVER})`},stator);
+el('path',{d:ring(DR),fill:'#b9c0b8',stroke:'#6f7872','stroke-width':1.5},topG);
+[0,120,240].forEach(x=>{let d='';for(let s=0;s<=8;s++)d+=(s?'L':'M')+pt(0.45,(x+15+s*7.5)*Math.PI/180);el('path',{d,fill:'none',stroke:'#6f7872','stroke-width':7,'stroke-linecap':'round'},topG);});
+el('path',{d:ring(0.24),fill:'#8f9891',stroke:'#6f7872','stroke-width':1},topG);
+[45,135,225,315].forEach(x=>{const a=x*Math.PI/180;el('circle',{cx:(RX*0.15*Math.cos(a)).toFixed(1),cy:(RY*0.15*Math.sin(a)).toFixed(1),r:2.4,fill:'#4a504c'},topG);});
+// housing as on the finished generator: steel drum closing over the stator, lid with 4 studs, cable out of the side
+const HR=1.14,HBOT=56,housing=el('g',{opacity:0},stator); // drum runs from below the stack (HBOT) up to the lid
+{let hd='';for(let i=0;i<=40;i++){const a=i/40*Math.PI;hd+=(i?'L':'M')+`${(RX*HR*Math.cos(a)).toFixed(1)},${(RY*HR*Math.sin(a)+HBOT).toFixed(1)}`;}
+ hd+=`L${(-RX*HR).toFixed(1)},${TOPY-8}`;for(let i=40;i>=0;i--){const a=i/40*Math.PI;hd+=`L${(RX*HR*Math.cos(a)).toFixed(1)},${(RY*HR*Math.sin(a)+TOPY-8).toFixed(1)}`;}
+ el('path',{d:hd+'Z',fill:'#cfd4ce',stroke:'#8a948c','stroke-width':1.5},housing);
+ el('path',{d:ring(HR),fill:'#e3e6e0',stroke:'#8a948c','stroke-width':1.5,transform:`translate(0 ${TOPY-8})`},housing);
+ // hex nuts on studs, same projection as the lid
+ const hex=(cx,cy)=>{let d='';for(let i=0;i<6;i++){const a=i*Math.PI/3;d+=(i?'L':'M')+(cx+7*Math.cos(a)).toFixed(1)+','+(cy+3.5*Math.sin(a)).toFixed(1);}return d+'Z';};
+ [45,135,225,315].forEach(x=>{const a=x*Math.PI/180,cx=RX*0.98*Math.cos(a),cy=TOPY-8+RY*0.98*Math.sin(a);
+   el('path',{d:hex(cx,cy),fill:'#6f7872'},housing);
+   el('rect',{x:(cx-7).toFixed(1),y:(cy-6).toFixed(1),width:14,height:6,fill:'#7f8882'},housing);
+   el('path',{d:hex(cx,cy-6),fill:'#aab1a9',stroke:'#6f7872','stroke-width':0.8},housing);
+   el('rect',{x:(cx-2.5).toFixed(1),y:(cy-16).toFixed(1),width:5,height:10,fill:'#9aa39c',stroke:'#6f7872','stroke-width':0.6},housing);
+   el('ellipse',{cx:cx.toFixed(1),cy:(cy-16).toFixed(1),rx:2.5,ry:1.2,fill:'#c3c9c1',stroke:'#6f7872','stroke-width':0.6},housing);});}
+// shaft above everything: it stands in front of the lid and the far coils
+const shaftG=el('g',{transform:`translate(0 ${HOVER})`},stator);
+el('path',{d:'M-20,-200V-2A20,10 0 0 0 20,-2V-200Z',fill:'#9aa39c',stroke:'#6f7872','stroke-width':1},shaftG);
+el('ellipse',{cx:0,cy:-200,rx:20,ry:10,fill:'#c3c9c1',stroke:'#6f7872','stroke-width':1},shaftG);
+
+/* ---------- raw blades (stage 2) ---------- */
+const rawGroup=$('#blades-raw');
+const rawBlades=[130,200,270].map(x=>{
+  const cy=1280,layers=[];
+  const lens=(w,h)=>`M${x},${cy-h/2}C${x+w},${cy-h/2+70} ${x+w},${cy+h/2-70} ${x},${cy+h/2}C${x-w},${cy+h/2-70} ${x-w},${cy-h/2+70} ${x},${cy-h/2}Z`;
+  for(let k=4;k>=1;k--) layers.push(el('path',{d:lens(13*(1-k*.18),240*(1-k*.07)),fill:'none',stroke:'var(--copper)','stroke-width':1.5},rawGroup));
+  const outer=el('path',{d:lens(13,240),fill:'#fff','fill-opacity':0,stroke:'var(--green)','stroke-width':2.5},rawGroup);
+  return {layers,outer};
+});
+
+/* ---------- helical rotor (stage 3+) ---------- */
+const R=125,TOP=-320,BOT=-80;
+const strutsG=$('#struts'),bladesG=$('#blades');
+const strutTop=[],strutBot=[],bladeOut=[],bladeFace=[];
+for(let i=0;i<3;i++){
+  strutTop.push(el('path',{},strutsG)); strutBot.push(el('path',{},strutsG));
+}
+for(let i=0;i<3;i++){
+  bladeOut.push(el('path',{stroke:'var(--green)','stroke-width':18},bladesG));
+  bladeFace.push(el('path',{stroke:'#fff','stroke-width':12},bladesG));
+}
+const state={phase:0,bladeDraw:0,strutDraw:0};
+let spin=0,spinOn=false;
+function drawBlades(){
+  const ph=state.phase+spin,N=14;
+  for(let i=0;i<3;i++){
+    let d='';
+    for(let k=0;k<=N;k++){const a=(ph+i*120+k/N*120)*Math.PI/180;d+=(k?'L':'M')+(R*Math.cos(a)).toFixed(1)+','+(TOP+(BOT-TOP)*k/N).toFixed(1);}
+    bladeOut[i].setAttribute('d',d);bladeFace[i].setAttribute('d',d);
+    // dash padded by 20 so round caps don't leave dots at both ends while hidden
+    const L=bladeFace[i].getTotalLength(),off=(L+20)*(1-state.bladeDraw);
+    for(const p of [bladeOut[i],bladeFace[i]]){p.style.strokeDasharray=`${L} ${L+40}`;p.style.strokeDashoffset=off;}
+    const xt=R*Math.cos((ph+i*120)*Math.PI/180),xb=R*Math.cos((ph+i*120+120)*Math.PI/180);
+    strutTop[i].setAttribute('d',`M0,${TOP}L${xt.toFixed(1)},${TOP}`);
+    strutBot[i].setAttribute('d',`M0,${BOT}L${xb.toFixed(1)},${BOT}`);
+    for(const [p,len] of [[strutTop[i],Math.abs(xt)],[strutBot[i],Math.abs(xb)]]){p.style.strokeDasharray=`${len} ${len+40}`;p.style.strokeDashoffset=(len+20)*(1-state.strutDraw);}
+  }
+}
+drawBlades();
+gsap.ticker.add((t,dt)=>{if(spinOn){spin+=dt*0.09;drawBlades();}});
+
+/* ---------- ladder path ---------- */
+{let d='M918,1400V510M930,1400V510';for(let y=1390;y>510;y-=28)d+=`M918,${y}H930`;$('#ladder').setAttribute('d',d);}
+
+/* ---------- initial states ---------- */
+const prep=e=>{const L=e.getTotalLength();e.style.strokeDasharray=`${L} ${L+40}`;e.style.strokeDashoffset=L+20;};
+const draw=(e,dur,pos,tl)=>tl.to(e,{strokeDashoffset:0,duration:dur},pos);
+coils.forEach(prep);
+rawBlades.forEach(b=>{b.layers.forEach(prep);prep(b.outer);});
+['#rebar','#ladder','#cable'].forEach(s=>prep($(s)));
+const sections=[...document.querySelectorAll('.sect')],flanges=[...document.querySelectorAll('.flange')];
+gsap.set(lams,{opacity:0,y:i=>-4*i-40});
+gsap.set([bandG,topG,shaftG],{opacity:0});
+gsap.set(magnets,{opacity:0});
+gsap.set(['#gen','#concrete','#anchor','#controller','#ballast','#battery'],{opacity:0});
+gsap.set(flanges,{opacity:0});
+gsap.set(sections,{scaleY:0,transformOrigin:'50% 100%'});
+gsap.set('#shaft',{scaleY:0,transformOrigin:'50% 100%'});
+
+/* ---------- timeline ---------- */
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const tl=gsap.timeline({defaults:{ease:'none'},paused:reduce,
+  scrollTrigger:reduce?null:{trigger:'#story',start:'top top',end:'+=7000',pin:true,scrub:0.8},
+  onUpdate:syncUi});
+
+tl.to({},{duration:0.35});
+// 1 — generator
+tl.addLabel('s1');
+tl.to(svg,{attr:{viewBox:CAM.gen},duration:0.3,ease:'power2.inOut'},'s1');
+lams.forEach((l,i)=>tl.to(l,{opacity:1,y:-4*i,duration:0.07},`s1+=${0.08+i*0.035}`));
+coils.forEach((c,i)=>draw(c,0.06,`s1+=${0.48+i*0.013}`,tl));
+tl.to([bandG,topG,shaftG],{opacity:1,duration:0.06},'s1+=1.02');
+magnets.forEach((m,i)=>tl.to(m,{opacity:1,duration:0.02},`s1+=${1.06+i*0.006}`));
+tl.to([bandG,topG,shaftG],{y:TOPY,duration:0.25,ease:'power2.inOut'},'s1+=1.3');
+tl.to(housing,{opacity:1,duration:0.12},'s1+=1.56');
+tl.to(stator,{x:350,y:1370,scale:0.2,duration:0.18,ease:'power2.inOut'},'s1+=1.7');
+tl.to(stator,{opacity:0,duration:0.06},'s1+=1.84');
+tl.to('#gen',{opacity:1,duration:0.06},'s1+=1.84');
+// 2 — blades
+tl.addLabel('s2','s1+=1.92');
+tl.to(svg,{attr:{viewBox:CAM.blades},duration:0.3,ease:'power2.inOut'},'s2');
+rawBlades.forEach((b,bi)=>{
+  b.layers.forEach((p,k)=>draw(p,0.08,`s2+=${0.12+bi*0.07+k*0.1}`,tl));
+  draw(b.outer,0.1,`s2+=${0.62+bi*0.07}`,tl);
+  tl.to(b.outer,{attr:{'fill-opacity':1},duration:0.1},`s2+=${0.82+bi*0.07}`);
+  tl.to(b.layers,{opacity:0,duration:0.1},`s2+=${0.82+bi*0.07}`);
+});
+// 3 — assembly
+tl.addLabel('s3','s2+=1.2');
+tl.to(svg,{attr:{viewBox:CAM.asm},duration:0.3,ease:'power2.inOut'},'s3');
+tl.to('#shaft',{scaleY:1,duration:0.2},'s3+=0.05');
+tl.to(state,{strutDraw:1,duration:0.2,onUpdate:drawBlades},'s3+=0.25');
+tl.to(rawGroup,{opacity:0,duration:0.2},'s3+=0.42');
+tl.to(state,{bladeDraw:1,duration:0.35,onUpdate:drawBlades},'s3+=0.42');
+tl.to(state,{phase:120,duration:0.3,ease:'power1.inOut',onUpdate:drawBlades},'s3+=0.82');
+// 4 — foundation & mast
+tl.addLabel('s4','s3+=1.2');
+tl.to(svg,{attr:{viewBox:CAM.mast},duration:0.35,ease:'power2.inOut'},'s4');
+tl.to('#ghost',{opacity:0,duration:0.2},'s4');
+draw($('#rebar'),0.2,'s4+=0.12',tl);
+tl.to('#concrete',{opacity:1,duration:0.15},'s4+=0.32');
+tl.to('#anchor',{opacity:1,duration:0.08},'s4+=0.47');
+sections.forEach((s,i)=>tl.to(s,{scaleY:1,duration:0.15},`s4+=${0.55+i*0.17}`));
+flanges.forEach((f,i)=>tl.to(f,{opacity:1,duration:0.04},`s4+=${0.7+i*0.17}`));
+draw($('#ladder'),0.3,'s4+=0.75',tl);
+// 5 — install
+tl.addLabel('s5','s4+=1.15');
+tl.to(svg,{attr:{viewBox:CAM.install},duration:0.35,ease:'power2.inOut'},'s5');
+tl.to('#assembly',{y:470,duration:0.3,ease:'power2.inOut'},'s5+=0.05');
+tl.to('#assembly',{x:900,duration:0.3,ease:'power2.inOut'},'s5+=0.32');
+tl.to('#assembly',{y:500,duration:0.14,ease:'power2.out'},'s5+=0.62');
+draw($('#cable'),0.25,'s5+=0.78',tl);
+tl.to(['#controller','#ballast','#battery'],{opacity:1,duration:0.08,stagger:0.05},'s5+=0.98');
+tl.to('#window',{attr:{fill:'#f0cc5a'},duration:0.08},'s5+=1.12');
+tl.addLabel('end','s5+=1.3');
+tl.to({},{duration:0.25});
+
+/* ---------- UI sync ---------- */
+const steps=[...document.querySelectorAll('.step')],railItems=[...document.querySelectorAll('.rail li')];
+function syncUi(){
+  const t=tl.time();
+  let idx=0;['s1','s2','s3','s4','s5'].forEach((l,i)=>{if(t>=tl.labels[l]-0.04)idx=i+1;});
+  steps.forEach(s=>s.classList.toggle('active',+s.dataset.step===idx));
+  railItems.forEach((li,i)=>{li.classList.toggle('active',i+1===idx);li.classList.toggle('done',i+1<idx);});
+  $('#railFill').style.transform=`scaleY(${Math.min(1,Math.max(0,(t-tl.labels.s1)/(tl.labels.end-tl.labels.s1)))})`;
+  spinOn=t>=tl.labels.s5+0.78;
+}
+if(reduce){tl.progress(1);steps.forEach(s=>{s.style.position='static';s.classList.add('active');});}
+syncUi();
+</script>
+</body>
+</html>

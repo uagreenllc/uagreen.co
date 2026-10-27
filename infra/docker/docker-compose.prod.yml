@@ -72,8 +72,11 @@ services:
       NODE_ENV: production
       NITRO_PORT: "3000"
       NUXT_PUBLIC_SITE_URL: ${PUBLIC_BASE_URL}
+      # Origins only; the app appends /api itself. Empty public base = same origin (nginx proxies /api/).
       NUXT_API_BASE: "http://api:8080"
-      NUXT_PUBLIC_API_BASE: "/api"
+      NUXT_PUBLIC_API_BASE: ""
+      # @nuxtjs/i18n bakes baseUrl at build time; this runtime override is what hreflang/canonical/og:url use.
+      NUXT_PUBLIC_I18N_BASE_URL: ${PUBLIC_BASE_URL}
     depends_on:
       - api
 
