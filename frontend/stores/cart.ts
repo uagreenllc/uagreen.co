@@ -32,6 +32,18 @@ export function cartTotals(items: CartLine[]) {
   return items.reduce((t, l) => ({ count: t.count + l.qty, subtotal: t.subtotal + l.unitPrice * l.qty }), { count: 0, subtotal: 0 })
 }
 
+/** localStorage → lines; anything that is not a list of lines is an empty cart. */
+export function parseCart(raw: string | null): CartLine[] {
+  try {
+    const v: unknown = JSON.parse(raw ?? '[]')
+    if (!Array.isArray(v)) return []
+    const ok = v.every((l): l is CartLine => !!l && typeof l.key === 'string' && typeof l.qty === 'number' && typeof l.unitPrice === 'number')
+    return ok ? v : []
+  } catch {
+    return []
+  }
+}
+
 const STORAGE = 'uagreen.cart'
 
 export const useCart = defineStore('cart', () => {
@@ -49,9 +61,9 @@ export const useCart = defineStore('cart', () => {
   /** Called once after mount; from then on every change is written back. */
   function load() {
     try {
-      items.value = JSON.parse(localStorage.getItem(STORAGE) ?? '[]')
+      items.value = parseCart(localStorage.getItem(STORAGE))
     } catch {
-      items.value = []
+      items.value = [] // storage access itself can throw (blocked site data)
     }
     ready.value = true
     watch(items, (v) => {

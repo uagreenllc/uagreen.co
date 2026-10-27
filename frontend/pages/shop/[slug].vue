@@ -13,12 +13,13 @@ if (!data.value) throw createError({ statusCode: 404 })
 const p = data.value
 
 // First value of every option preselected; the price follows the selection.
-const selected = ref<Selection>(Object.fromEntries(p.options.map(o => [o.id, o.values[0]!.id])))
+const options = p.options.filter(o => o.values.length)
+const selected = ref<Selection>(defaultSelection(p.options))
 const price = computed(() => unitPrice(p, selected.value))
-const hasOptions = p.options.length > 0
+const hasOptions = options.length > 0
 
 const sections = computed(() => [
-  ['shop.description', p.descriptionHtml],
+  ['shop.about', p.descriptionHtml],
   ['shop.specs', p.specsHtml],
   ['shop.faq', p.faqHtml],
 ].filter(([, html]) => html) as [string, string][])
@@ -72,7 +73,7 @@ useHead({ script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(ld).
         <h1>{{ p.name }}</h1>
         <p v-if="p.sku" class="sku">{{ $t('shop.sku') }} {{ p.sku }}</p>
         <p v-if="p.shortDesc" class="short">{{ p.shortDesc }}</p>
-        <OptionPicker v-model="selected" :options="p.options" />
+        <OptionPicker v-model="selected" :options="options" />
         <p class="price">
           <strong>{{ money(price) }}</strong>
           <s v-if="p.oldPrice && !hasOptions">{{ money(p.oldPrice) }}</s>

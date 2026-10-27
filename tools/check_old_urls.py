@@ -22,10 +22,13 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+OPENER = urllib.request.build_opener(NoRedirect)  # 3xx surfaces as HTTPError, so each hop is printed
+
+
 def fetch(url: str) -> tuple[int, str | None]:
     req = urllib.request.Request(url, headers={"Accept": "text/html", "User-Agent": "uagreen-url-audit"})
     try:
-        with urllib.request.urlopen(req, timeout=60) as r:
+        with OPENER.open(req, timeout=60) as r:
             return r.status, None
     except urllib.error.HTTPError as e:
         return e.code, e.headers.get("Location")

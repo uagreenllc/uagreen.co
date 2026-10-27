@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cartTotals, lineKey, mergeLine, setLineQty, type CartLine } from './cart'
+import { cartTotals, lineKey, mergeLine, parseCart, setLineQty, type CartLine } from './cart'
 
 const k5 = { productId: 'p-k5', slug: 'k5v1', name: 'Вітрогенератор 5кВт', image: null, unitPrice: 295000, optionValueIds: ['m12', 'z1'], optionsText: 'Щогла: 12м. щогла, Зона встановлення: Зона 1' }
 const blade = { productId: 'p-blade', slug: 'lopat-gelokoyidna', name: 'Лопать', image: null, unitPrice: 6000, optionValueIds: [], optionsText: '' }
@@ -29,6 +29,20 @@ describe('cartTotals', () => {
   it('sums qty and unitPrice·qty', () => {
     const items = mergeLine(mergeLine([], k5, 2), blade, 1)
     expect(cartTotals(items)).toEqual({ count: 3, subtotal: 596000 })
+  })
+})
+
+describe('parseCart', () => {
+  it('reads back what the store wrote', () => {
+    const items = mergeLine([], k5, 1)
+    expect(parseCart(JSON.stringify(items))).toEqual(items)
+  })
+  it('treats anything that is not a list of lines as an empty cart', () => {
+    expect(parseCart(null)).toEqual([])
+    expect(parseCart('null')).toEqual([])
+    expect(parseCart('{}')).toEqual([])
+    expect(parseCart('garbage')).toEqual([])
+    expect(parseCart('[{"key":"x"},{"nope":1}]')).toEqual([])
   })
 })
 

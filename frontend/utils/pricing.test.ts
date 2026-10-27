@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { optionsText, unitPrice } from './pricing'
+import { defaultSelection, optionsText, unitPrice } from './pricing'
 
 const product = {
   price: 295000,
@@ -18,6 +18,13 @@ describe('unitPrice', () => {
   })
   it('ignores unknown option or value ids', () => {
     expect(unitPrice(product, { mast: 'nope', colour: 'red' })).toBe(295000)
+  })
+})
+
+describe('defaultSelection', () => {
+  it('picks the first value of every group and skips a group with no values', () => {
+    const options = [...product.options, { id: 'empty', name: 'Колір', values: [] }]
+    expect(defaultSelection(options)).toEqual({ mast: 'm0', zone: 'z0' })
   })
 })
 

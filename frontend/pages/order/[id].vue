@@ -8,8 +8,11 @@ const { t } = useI18n()
 const id = String(route.params.id)
 if (!/^[0-9a-f-]{36}$/i.test(id)) throw createError({ statusCode: 404 })
 
-const { data: order, refresh } = await useApiFetch<Order>(`order:${id}`, `/orders/${id}`)
-if (!order.value) throw createError({ statusCode: 404 })
+const { data, refresh } = await useApiFetch<Order>(`order:${id}`, `/orders/${id}`)
+if (!data.value) throw createError({ statusCode: 404 })
+// Last good copy: a poll that times out sets `data` to null and must not blank the page.
+const order = ref<Order>(data.value)
+watch(data, (v) => { if (v) order.value = v })
 
 usePageHead({ title: t('order.title', { n: order.value.number }) })
 
@@ -17,14 +20,14 @@ usePageHead({ title: t('order.title', { n: order.value.number }) })
 onMounted(() => {
   let left = 24
   const timer = setInterval(async () => {
-    if (order.value?.status !== 'AwaitingPayment' || --left < 0) return clearInterval(timer)
+    if (order.value.status !== 'AwaitingPayment' || --left < 0) return clearInterval(timer)
     await refresh()
   }, 5000)
   onBeforeUnmount(() => clearInterval(timer))
 })
 
 const note = computed(() => {
-  const o = order.value!
+  const o = order.value
   if (o.status === 'Paid') return t('order.thanksPaid')
   if (o.status === 'Cancelled') return ''
   if (o.paymentMethod === 'LiqPay') return t('order.waiting')
@@ -34,7 +37,7 @@ const note = computed(() => {
 </script>
 
 <template>
-  <div v-if="order" class="page section-inner order">
+  <div class="page section-inner order">
     <h1>{{ $t('order.title', { n: order.number }) }}</h1>
     <p class="status">
       <span class="pill">{{ $t(`order.status.${order.status}`) }}</span>
