@@ -47,6 +47,7 @@ export interface SceneRefs {
   ballast: SVGElement
   battery: SVGElement
   window: SVGElement
+  glow: SVGElement // warm halo behind the window once the house has power
 }
 
 export interface Story {
@@ -150,6 +151,7 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   drawBlades()
   g.set([...r.coils, ...r.coilsBottom, ...r.strips, r.rebar, r.cable, r.rotorBack, r.rotorFront], { opacity: 1 })
   g.set(r.asmShaft, { scaleY: 0, transformOrigin: '50% 100%', opacity: 1 })
+  g.set([r.battery, r.ballast, r.controller], { scale: 0.6, transformOrigin: '50% 50%' })
   // sections lie stacked on the trailer, first-needed on top, lower end at x=940; each pivots about that lower end
   r.sections.forEach((s, i) => {
     const h = hangs[i + 1]!
@@ -159,7 +161,7 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   const tl = g.timeline({
     defaults: { ease: 'none' },
     paused: opts.reduce,
-    scrollTrigger: opts.reduce ? undefined : { trigger: r.section, start: 'top top', end: '+=9000', pin: true, scrub: 0.8 },
+    scrollTrigger: opts.reduce ? undefined : { trigger: r.section, start: 'top top', end: '+=10000', pin: true, scrub: 0.8 },
     onUpdate: () => {
       drawCrane()
       const t = tl.time()
@@ -265,12 +267,18 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   tl.to(crane, { hookY: 110, duration: 0.12, ease: 'power1.inOut' }, 's5+=1.18')
   tl.to(crane, { tipX: 840, tipY: 1336, hookY: 1336, duration: 0.18, ease: 'power2.inOut' }, 's5+=1.3') // rope stays reeled in as the boom lowers
   tl.to(r.crane, { x: -500, opacity: 0, duration: 0.25, ease: 'power2.in' }, 's5+=1.46')
-  draw(r.cable, 0.25, 's5+=1.4', tl)
-  tl.to([r.controller, r.ballast, r.battery], { opacity: 1, duration: 0.08, stagger: 0.05 }, 's5+=1.6')
-  tl.to(r.window, { attr: { fill: '#f0cc5a' }, duration: 0.08 }, 's5+=1.74')
-  tl.addLabel('end', 's5+=1.9')
-  tl.to(r.svg, { attr: { viewBox: CAM.end }, duration: 0.3, ease: 'power2.inOut' }, 'end')
-  tl.to({}, { duration: 0.05 }, 'end+=0.3')
+  // wiring: the camera moves to the house, the cable is laid from the mast into it, the battery,
+  // ballast and controller go in one after another, and the window lights up
+  tl.to(r.svg, { attr: { viewBox: CAM.house }, duration: 0.3, ease: 'power2.inOut' }, 's5+=1.7')
+  draw(r.cable, 0.45, 's5+=1.78', tl)
+  ;[r.battery, r.ballast, r.controller].forEach((e, i) =>
+    tl.to(e, { opacity: 1, scale: 1, duration: 0.1, ease: 'power2.out' }, `s5+=${2.25 + i * 0.12}`),
+  )
+  tl.to(r.window, { attr: { fill: '#f0cc5a' }, duration: 0.1 }, 's5+=2.65')
+  tl.to(r.glow, { opacity: 0.35, duration: 0.15 }, 's5+=2.65')
+  tl.addLabel('end', 's5+=2.9')
+  tl.to(r.svg, { attr: { viewBox: CAM.end }, duration: 0.4, ease: 'power2.inOut' }, 'end')
+  tl.to({}, { duration: 0.05 }, 'end+=0.4')
 
   drawCrane()
   const tick = (_t: number, dt: number) => {

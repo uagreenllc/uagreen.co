@@ -93,6 +93,7 @@ onMounted(async () => {
     ballast: one('#k5-ballast'),
     battery: one('#k5-battery'),
     window: one('#k5-window'),
+    glow: one('#k5-glow'),
   }
   story = buildTimeline(refs, gsap, ScrollTrigger, {
     reduce,
@@ -165,13 +166,14 @@ onBeforeUnmount(() => story?.destroy())
             </g>
           </g>
           <g id="k5-house">
-            <!-- walls, chimney, then a solid gable roof with an overhang covering the chimney's base -->
-            <path d="M1280,1400V1290H1500V1400Z" fill="#fff" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round" />
-            <rect x="1440" y="1226" width="16" height="50" fill="#8a948c" stroke="var(--ink)" stroke-width="2" />
-            <path d="M1268,1296L1390,1206L1512,1296Z" fill="#8a948c" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round" />
-            <rect x="1372" y="1340" width="26" height="60" fill="var(--green)" />
-            <circle cx="1393" cy="1372" r="1.8" fill="#e3e6e0" />
-            <rect id="k5-window" x="1320" y="1310" width="44" height="44" fill="#fff" stroke="var(--ink)" stroke-width="2" />
+            <!-- walls, chimney, then a solid gable roof with an overhang covering the chimney's base; soft corners throughout -->
+            <rect x="1280" y="1290" width="220" height="110" rx="6" fill="#fff" stroke="var(--ink)" stroke-width="3" />
+            <rect x="1440" y="1226" width="16" height="50" rx="3" fill="#8a948c" stroke="var(--ink)" stroke-width="2" />
+            <path d="M1268,1296L1390,1206L1512,1296Z" fill="#8a948c" stroke="var(--ink)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" />
+            <path d="M1372,1400V1353a13,13 0 0 1 26,0V1400Z" fill="var(--green)" />
+            <circle cx="1393" cy="1374" r="1.8" fill="#e3e6e0" />
+            <rect id="k5-glow" x="1308" y="1298" width="68" height="68" rx="14" fill="#f0cc5a" opacity="0" />
+            <rect id="k5-window" x="1320" y="1310" width="44" height="44" rx="5" fill="#fff" stroke="var(--ink)" stroke-width="2" />
             <path d="M1342,1310V1354M1320,1332H1364" stroke="var(--ink)" stroke-width="1.5" />
             <rect id="k5-controller" x="1410" y="1300" width="40" height="28" rx="3" fill="#fff" stroke="var(--green)" stroke-width="3" opacity="0" />
             <path id="k5-ballast" d="M1412,1346h6l5-8 6,16 6-16 6,16 5-8h6" fill="none" stroke="var(--copper)" stroke-width="3" stroke-linejoin="round" opacity="0" />
