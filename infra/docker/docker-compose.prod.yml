@@ -72,8 +72,9 @@ services:
       NODE_ENV: production
       NITRO_PORT: "3000"
       NUXT_PUBLIC_SITE_URL: ${PUBLIC_BASE_URL}
+      # Origins only; the app appends /api itself. Empty public base = same origin (nginx proxies /api/).
       NUXT_API_BASE: "http://api:8080"
-      NUXT_PUBLIC_API_BASE: "/api"
+      NUXT_PUBLIC_API_BASE: ""
     depends_on:
       - api
 

@@ -1,0 +1,21 @@
+{
+  "nav": {
+    "shop": "Shop",
+    "about": "About",
+    "blog": "Blog",
+    "vacancies": "Vacancies",
+    "contacts": "Contacts",
+    "cart": "Cart",
+    "menu": "Menu"
+  },
+  "footer": {
+    "address": "Address",
+    "phones": "Phones",
+    "emails": "Email",
+    "legal": "Legal",
+    "terms": "Terms of use",
+    "payment": "Payment and delivery",
+    "rights": "© {year} UA GREEN"
+  },
+  "lang": { "uk": "Укр", "en": "Eng" }
+}

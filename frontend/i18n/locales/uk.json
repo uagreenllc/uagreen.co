@@ -1,0 +1,21 @@
+{
+  "nav": {
+    "shop": "Магазин",
+    "about": "Про нас",
+    "blog": "Блог",
+    "vacancies": "Вакансії",
+    "contacts": "Контакти",
+    "cart": "Кошик",
+    "menu": "Меню"
+  },
+  "footer": {
+    "address": "Адреса",
+    "phones": "Телефони",
+    "emails": "Пошта",
+    "legal": "Юридичне",
+    "terms": "Умови використання",
+    "payment": "Оплата і доставка",
+    "rights": "© {year} UA GREEN"
+  },
+  "lang": { "uk": "Укр", "en": "Eng" }
+}

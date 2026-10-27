@@ -122,6 +122,18 @@ app.UseRateLimiter();
 app.UseAuthorization();
 app.UseOutputCache();
 
+if (app.Environment.IsDevelopment())
+{
+    // Dev only: in prod nginx serves the media volume. Lets the Nuxt dev server show images.
+    var mediaRoot = Path.GetFullPath(app.Configuration["Storage:Root"] ?? "data/media", app.Environment.ContentRootPath);
+    Directory.CreateDirectory(mediaRoot);
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(mediaRoot),
+        RequestPath = "/media",
+    });
+}
+
 app.MapGet("/", () => "UA GREEN site API");
 app.MapGet("/health", async (AppDbContext db, CancellationToken ct) =>
     await db.Database.CanConnectAsync(ct) ? Results.Ok(new { status = "ok" }) : Results.StatusCode(503));

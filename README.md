@@ -18,18 +18,20 @@ infra/      docker compose, nginx, deploy script
 cp infra/docker/.env.prod.example infra/docker/.env   # fill in dev values
 docker compose -f infra/docker/docker-compose.prod.yml -f infra/docker/docker-compose.dev.yml --env-file infra/docker/.env up -d postgres
 cd backend && dotnet run --project src/UaGreen.Site.Api      # http://localhost:5000, migrates on boot
+cd frontend && npm install && npm run dev                      # http://localhost:3000, proxies /api and /media to :5000
 ```
 
-Postgres → `localhost:5433` (5432 is taken by the native PostgreSQL on the dev box). Media are written to `backend/src/UaGreen.Site.Api/data/` in dev.
+Postgres → `localhost:5433` (5432 is taken by the native PostgreSQL on the dev box). Media are written to `backend/src/UaGreen.Site.Api/data/` in dev and served by the API at `/media` (dev only).
+Frontend checks: `npm run typecheck`, `npm test` (vitest, pure geometry only).
 
 ## Contracts between the parts
 
 - API listens on `:8080`; config keys are the `Xxx__Yyy` env vars in
   `infra/docker/docker-compose.prod.yml` (`ConnectionStrings__Postgres`, `Jwt__*`,
   `Gospodar__BaseUrl`, `Storage__*`, `Smtp__*`, `LiqPay__*`, `Import__Dir`, …).
-- Nuxt reads `NUXT_API_BASE` (server-side, `http://api:8080`), `NUXT_PUBLIC_API_BASE`
-  (`/api`, browser) and `NUXT_PUBLIC_SITE_URL`; listens on `NITRO_PORT=3000`;
-  ships its own `frontend/Dockerfile`.
+- Nuxt reads `NUXT_API_BASE` (API origin for SSR, `http://api:8080`), `NUXT_PUBLIC_API_BASE`
+  (origin for the browser, empty = same origin) and `NUXT_PUBLIC_SITE_URL`; it appends
+  `/api/...` itself. Listens on `NITRO_PORT=3000`; ships its own `frontend/Dockerfile`.
 - Flutter admin is built with `flutter build web --release --pwa-strategy=none
   --dart-define=API_HOST=https://admin.uagreen.co` and served as static files on
   `admin.uagreen.co` (`/api/` proxied on the same host).
