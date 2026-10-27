@@ -18,6 +18,30 @@
     "rights": "© {year} UA GREEN"
   },
   "lang": { "uk": "Укр", "en": "Eng" },
+  "pages": {
+    "aboutTitle": "About us",
+    "contactsTitle": "Contacts",
+    "paymentTitle": "Payment and delivery",
+    "termsTitle": "Terms of use",
+    "write": "Write to us"
+  },
+  "form": {
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "message": "Message",
+    "send": "Send",
+    "sending": "Sending…",
+    "sent": "Thank you, we'll be in touch.",
+    "required": "This field is required",
+    "phoneInvalid": "Enter a phone number",
+    "failed": "Could not send. Try again or call us."
+  },
+  "error": {
+    "notFoundTitle": "Page not found",
+    "home": "Home",
+    "generic": "Something went wrong"
+  },
   "home": {
     "products": { "h": "Equipment", "more": "Details", "all": "Whole shop" },
     "why": {

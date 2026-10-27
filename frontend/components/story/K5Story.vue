@@ -43,7 +43,8 @@ onMounted(async () => {
   const reduce = route.query.motion === 'off' || window.matchMedia('(prefers-reduced-motion: reduce)').matches
   isStatic.value = reduce
   const [{ gsap }, { ScrollTrigger }] = await Promise.all([import('gsap'), import('gsap/ScrollTrigger')])
-  const svg = svgEl.value!
+  if (!svgEl.value || !sectionEl.value) return // navigated away while gsap was loading
+  const svg = svgEl.value
   const all = <T extends Element = SVGElement>(sel: string) => Array.from(svg.querySelectorAll<T>(sel))
   const one = <T extends Element = SVGElement>(sel: string) => svg.querySelector<T>(sel)!
   const refs: SceneRefs = {

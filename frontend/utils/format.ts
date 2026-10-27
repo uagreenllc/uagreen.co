@@ -11,6 +11,12 @@ export function formatDate(iso: string): string {
   return `${p(d.getUTCDate())}.${p(d.getUTCMonth() + 1)}.${d.getUTCFullYear()}`
 }
 
+/** HTML → first ~160 characters of plain text, for meta descriptions. */
+export function excerpt(html: string | null | undefined, max = 160): string {
+  const text = (html ?? '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text
+}
+
 /** Comma-joined setting → trimmed list. */
 export function splitList(value: string | undefined): string[] {
   return (value ?? '').split(',').map(s => s.trim()).filter(Boolean)

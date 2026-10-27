@@ -16,7 +16,12 @@ export function useSiteHead(opts: { title?: string; description?: string; image?
   )
   const image = computed(() => (opts.image ? new URL(opts.image, config.public.siteUrl).toString() : undefined))
 
-  useHead(() => ({ htmlAttrs: i18nHead.value.htmlAttrs, link: i18nHead.value.link, meta: i18nHead.value.meta }))
+  useHead(() => ({
+    htmlAttrs: i18nHead.value.htmlAttrs,
+    link: i18nHead.value.link,
+    meta: i18nHead.value.meta,
+    titleTemplate: t => (!t || t.includes('UA GREEN') ? t ?? null : `${t} — UA GREEN`),
+  }))
   useSeoMeta({
     title,
     description,
