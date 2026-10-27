@@ -37,6 +37,13 @@
     "phoneInvalid": "Enter a phone number",
     "failed": "Could not send. Try again or call us."
   },
+  "blog": {
+    "title": "Blog",
+    "empty": "No posts yet.",
+    "prev": "Newer",
+    "next": "Older",
+    "back": "All posts"
+  },
   "error": {
     "notFoundTitle": "Page not found",
     "home": "Home",
