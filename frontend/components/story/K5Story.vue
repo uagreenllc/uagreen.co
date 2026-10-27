@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   LAMS, TOPY, HOVER, DR, HR, CAM,
-  lamPath, bandPath, bandClipPath, magnets, coilPath, flangeWindows, housing, rawBlade, bladePath, strutPaths, ladderPath, ring,
+  lamPath, bandPath, bandClipPath, magnets, slotStrips, coilPath, flangeWindows, housing, rawBlade, bladePath, strutPaths, ladderPath, ring,
 } from './scene'
 import { buildTimeline, type SceneRefs, type Story } from './timeline'
 
@@ -28,10 +28,12 @@ const lam = lamPath()
 const band = bandPath()
 const clip = bandClipPath()
 const mags = magnets()
+const strips = slotStrips()
 const coils = Array.from({ length: 36 }, (_, i) => coilPath(i))
 const windows = flangeWindows()
 const hs = housing()
-const rawX = [130, 200, 270]
+const rawX = [360, 410, 460] // finished blades standing beside the mould
+const layerFill = ['#e9f0e6', '#dde8d9', '#d1e0cc', '#c6d8c0', '#bbd0b5'] // glass fabric, 48 → 400 g/m²
 const blades0 = ([0, 1, 2] as const).map(i => bladePath(i, 0))
 const struts0 = strutPaths(0)
 const ladder = ladderPath()
@@ -51,13 +53,17 @@ onMounted(async () => {
     stator: one<SVGGElement>('#k5-stator'),
     lams: all('[data-k=lam]'),
     coils: all<SVGPathElement>('[data-k=coil]'),
+    strips: all<SVGPathElement>('[data-k=strip]'),
+    coilsBottom: all<SVGPathElement>('[data-k=coil-bottom]'),
     band: one<SVGGElement>('#k5-band'),
     top: one<SVGGElement>('#k5-top'),
     shaft: one<SVGGElement>('#k5-shaft'),
     magnets: all('[data-k=mag]'),
     housing: one<SVGGElement>('#k5-housing'),
     rawGroup: one<SVGGElement>('#k5-raw'),
-    rawLayers: all<SVGPathElement>('[data-k=raw-layer]'),
+    moldLayers: all('[data-k=mold-layer]'),
+    moldLid: one('#k5-mold-lid'),
+    moldBlade: one('#k5-mold-blade'),
     rawOuter: all<SVGPathElement>('[data-k=raw-outer]'),
     assembly: one<SVGGElement>('#k5-asm'),
     asmShaft: one('#k5-asm-shaft'),
@@ -124,13 +130,14 @@ onBeforeUnmount(() => story?.destroy())
           <defs>
             <path id="k5-lam" :d="lam" />
             <clipPath id="k5-above"><path :d="clip" /></clipPath>
+            <clipPath id="k5-bore"><path :d="ring(0.72)" :transform="`translate(0 ${TOPY})`" /></clipPath>
           </defs>
 
           <!-- site -->
           <rect x="-200" y="1400" width="1800" height="300" fill="var(--soil)" />
           <path d="M-200,1400H1600" stroke="var(--green)" stroke-width="3" />
           <g id="k5-ghost" fill="none" stroke="var(--metal)" stroke-width="2" stroke-dasharray="8 8" opacity=".5">
-            <path d="M900,1400V500" /><rect x="775" y="180" width="250" height="240" rx="70" />
+            <path d="M900,1400V500" /><rect x="775" y="180" width="250" height="240" rx="8" />
           </g>
           <rect id="k5-concrete" x="790" y="1400" width="220" height="130" fill="var(--concrete)" opacity="0" />
           <path id="k5-rebar" d="M810,1420H990M810,1460H990M810,1500H990M830,1410V1520M870,1410V1520M910,1410V1520M950,1410V1520M990,1410V1520" fill="none" stroke="var(--metal)" stroke-width="3" opacity="0" />
@@ -151,12 +158,20 @@ onBeforeUnmount(() => story?.destroy())
 
           <!-- workshop: stator detail -->
           <g id="k5-stator" transform="translate(350 1250)">
+            <!-- end turns under the stack: drawn first, so only the fringe below the front rim shows -->
+            <g transform="translate(0 14)">
+              <path v-for="(d, i) in coils" :key="i" data-k="coil-bottom" :d="d" :stroke="i % 2 ? '#a85c31' : '#c0733f'" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0" />
+            </g>
             <use v-for="i in LAMS" :key="i" data-k="lam" href="#k5-lam" :transform="lamShift(i - 1)" fill="#dfe3dd" stroke="#7d867f" stroke-width="1" fill-rule="evenodd" opacity="0" />
+            <!-- copper filling the slots down the far wall of the bore -->
+            <g clip-path="url(#k5-bore)">
+              <path v-for="s in strips" :key="s.k" data-k="strip" :data-slot="s.k" :d="`M${s.x},${s.y1}V${s.y2}`" stroke="#b5673a" stroke-width="3.2" fill="none" opacity="0" />
+            </g>
             <path v-for="(d, i) in coils" :key="i" data-k="coil" :d="d" :stroke="i % 2 ? '#a85c31' : '#c0733f'" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none" :transform="`translate(0 ${TOPY})`" opacity="0" />
             <g clip-path="url(#k5-above)">
               <g id="k5-band" :transform="`translate(0 ${HOVER})`" opacity="0">
-                <path :d="band" fill="#2e3330" />
-                <rect v-for="(m, i) in mags" :key="i" data-k="mag" :x="m.x" :y="m.y" :width="m.w" :height="m.h" fill="#15181a" stroke="#555c57" stroke-width="0.8" opacity="0" />
+                <path :d="band" fill="#b9c0b8" />
+                <rect v-for="(m, i) in mags" :key="i" data-k="mag" :x="m.x" :y="m.y" :width="m.w" :height="m.h" rx="1.5" fill="#15181a" opacity="0" />
               </g>
             </g>
             <g id="k5-top" :transform="`translate(0 ${HOVER})`" opacity="0">
@@ -178,34 +193,42 @@ onBeforeUnmount(() => story?.destroy())
             </g>
             <g id="k5-shaft" :transform="`translate(0 ${HOVER})`" opacity="0">
               <!-- cylinder: straight sides, the front half of its base ellipse where it stands on the hub, a cap on top -->
-              <path d="M-20,-200V-2A20,10 0 0 0 20,-2V-200Z" fill="#9aa39c" stroke="#6f7872" stroke-width="1" />
-              <ellipse cx="0" cy="-200" rx="20" ry="10" fill="#c3c9c1" stroke="#6f7872" stroke-width="1" />
+              <path d="M-20,-100V-2A20,10 0 0 0 20,-2V-100Z" fill="#9aa39c" stroke="#6f7872" stroke-width="1" />
+              <ellipse cx="0" cy="-100" rx="20" ry="10" fill="#c3c9c1" stroke="#6f7872" stroke-width="1" />
             </g>
           </g>
 
-          <!-- workshop: blade blanks -->
-          <g id="k5-raw">
-            <template v-for="x in rawX" :key="x">
-              <path v-for="k in [4, 3, 2, 1]" :key="k" data-k="raw-layer" :d="rawBlade(x, k as 1 | 2 | 3 | 4)" fill="none" stroke="var(--copper)" stroke-width="1.5" opacity="0" />
-              <path data-k="raw-outer" :d="rawBlade(x, 0)" fill="#fff" fill-opacity="0" stroke="var(--green)" stroke-width="2.5" opacity="0" />
-            </template>
+          <!-- workshop: the blade mould (two blue half-shells on a bench), fabric laid up inside, finished blades standing beside it -->
+          <g id="k5-raw" opacity="0">
+            <rect x="60" y="1290" width="260" height="6" fill="#8a948c" />
+            <rect x="70" y="1250" width="240" height="40" rx="8" fill="#2b6cb0" />
+            <rect x="82" y="1258" width="216" height="24" rx="6" fill="#4a8ad0" />
+            <rect v-for="(fill, i) in layerFill" :key="i" data-k="mold-layer" :x="86 + i * 2" :y="1261 + i * 1.5" :width="208 - i * 4" :height="18 - i * 3" rx="4" :fill="fill" opacity="0" />
+            <rect id="k5-mold-blade" x="82" y="1258" width="216" height="24" rx="6" fill="#fff" stroke="var(--green)" stroke-width="2" opacity="0" />
+            <rect id="k5-mold-lid" x="70" y="1170" width="240" height="40" rx="8" fill="#2b6cb0" opacity="0" />
+            <path v-for="x in rawX" :key="x" data-k="raw-outer" :d="rawBlade(x, 0)" fill="#fff" stroke="var(--green)" stroke-width="2.5" opacity="0" />
           </g>
 
           <!-- assembled rotor + generator -->
           <g id="k5-asm" transform="translate(350 1400)">
-            <rect id="k5-asm-shaft" x="-7" y="-320" width="14" height="250" fill="var(--metal)" opacity="0" />
+            <!-- shaft from the generator up to the hub where the struts meet -->
+            <g id="k5-asm-shaft" opacity="0">
+              <rect x="-7" y="-196" width="14" height="140" fill="var(--metal)" />
+              <rect x="-14" y="-212" width="28" height="24" rx="3" fill="#3b423d" />
+            </g>
             <g id="k5-rotor" opacity="0">
               <g fill="none" stroke="var(--metal)" stroke-width="6" stroke-linecap="round">
                 <template v-for="(s, i) in struts0" :key="i"><path data-k="strut-top" :d="s.top" /><path data-k="strut-bot" :d="s.bot" /></template>
               </g>
-              <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <g fill="none" stroke-linecap="butt">
                 <template v-for="(d, i) in blades0" :key="i"><path data-k="blade-out" :d="d" stroke="var(--green)" stroke-width="18" /><path data-k="blade-face" :d="d" stroke="#fff" stroke-width="12" /></template>
               </g>
             </g>
+            <!-- the finished generator: a wide steel drum with its lid and four nuts, same as the big one -->
             <g id="k5-gen" opacity="0">
-              <rect x="-35" y="-72" width="70" height="72" fill="#cfd4ce" stroke="var(--metal)" stroke-width="2" />
-              <ellipse cx="0" cy="-72" rx="35" ry="9" fill="#e3e6e0" stroke="var(--metal)" stroke-width="2" />
-              <circle cx="-22" cy="-74" r="2.5" fill="#6f7872" /><circle cx="22" cy="-74" r="2.5" fill="#6f7872" />
+              <path d="M-45,-56V-6A45,10 0 0 0 45,-6V-56Z" fill="#cfd4ce" stroke="var(--metal)" stroke-width="2" />
+              <ellipse cx="0" cy="-56" rx="45" ry="10" fill="#e3e6e0" stroke="var(--metal)" stroke-width="2" />
+              <rect v-for="[nx, ny] in [[-31, -60], [31, -60], [-31, -53], [31, -53]]" :key="`${nx}${ny}`" :x="nx - 2.5" :y="ny - 2" width="5" height="4" rx="1" fill="#6f7872" />
             </g>
           </g>
         </svg>

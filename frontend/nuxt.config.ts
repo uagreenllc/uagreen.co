@@ -33,6 +33,9 @@ export default defineNuxtConfig({
       '/media/**': { proxy: 'http://localhost:5000/media/**' },
     },
   },
+  // HMR websocket on its own port: otherwise it grabs :3000 on the other IP family and plain
+  // HTTP there answers "426 Upgrade Required" (localhost → ::1 vs 127.0.0.1 on Windows).
+  vite: { server: { hmr: { port: 24678 } } },
   app: {
     head: {
       htmlAttrs: { lang: 'uk' },

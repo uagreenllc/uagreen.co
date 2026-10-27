@@ -1,4 +1,4 @@
-import { CAM, TOPY, bladePath, strutPaths } from './scene'
+import { CAM, TOPY, bladePath, coilOfSlot, strutPaths } from './scene'
 
 type GsapLib = typeof import('gsap').gsap
 
@@ -9,14 +9,18 @@ export interface SceneRefs {
   stator: SVGGElement
   lams: Element[]
   coils: SVGPathElement[]
+  strips: SVGPathElement[] // copper down the far wall of the bore, data-slot = slot index
+  coilsBottom: SVGPathElement[] // end turns under the stack, same order as coils
   band: SVGGElement
   top: SVGGElement
   shaft: SVGGElement
   magnets: Element[]
   housing: SVGGElement
   rawGroup: SVGGElement
-  rawLayers: SVGPathElement[] // 3 blades × 4 layers, innermost first
-  rawOuter: SVGPathElement[]
+  moldLayers: Element[] // glass-fabric layers laid into the mould, thinnest first
+  moldLid: SVGElement // upper half-shell, closes onto the mould
+  moldBlade: SVGElement // finished blade in the mould; it stands up to become rawOuter[0]
+  rawOuter: SVGPathElement[] // three finished blades standing beside the mould
   assembly: SVGGElement
   asmShaft: SVGElement
   rotor: SVGGElement
@@ -98,9 +102,9 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
     tl.to(e, { strokeDashoffset: 0, duration: dur }, pos)
 
   // Client-side initial state. SSR shipped these hidden (opacity 0) so nothing flashes before the dashes exist.
-  ;[...r.coils, ...r.rawLayers, ...r.rawOuter, r.rebar, r.ladder, r.cable].forEach(prep)
+  ;[...r.coils, ...r.coilsBottom, ...r.strips, r.rebar, r.ladder, r.cable].forEach(prep)
   drawBlades()
-  g.set([...r.coils, ...r.rawLayers, ...r.rawOuter, r.rebar, r.ladder, r.cable, r.rotor], { opacity: 1 })
+  g.set([...r.coils, ...r.coilsBottom, ...r.strips, r.rebar, r.ladder, r.cable, r.rotor], { opacity: 1 })
   g.set([...r.sections, r.asmShaft], { scaleY: 0, transformOrigin: '50% 100%', opacity: 1 })
 
   const tl = g.timeline({
@@ -122,7 +126,11 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   tl.addLabel('s1')
   tl.to(r.svg, { attr: { viewBox: CAM.gen }, duration: 0.3, ease: 'power2.inOut' }, 's1')
   r.lams.forEach((l, i) => tl.to(l, { opacity: 1, y: -4 * i, duration: 0.07 }, `s1+=${0.08 + i * 0.035}`))
-  r.coils.forEach((c, i) => draw(c, 0.06, `s1+=${0.48 + i * 0.013}`, tl))
+  // one coil at a time: its top end turn, its bottom end turn and the copper in its slots go together
+  const coilAt = (i: number) => `s1+=${0.48 + i * 0.013}`
+  r.coils.forEach((c, i) => draw(c, 0.06, coilAt(i), tl))
+  r.coilsBottom.forEach((c, i) => draw(c, 0.06, coilAt(i), tl))
+  r.strips.forEach(s => draw(s, 0.06, coilAt(coilOfSlot(+s.dataset.slot!)), tl))
   tl.to([r.band, r.top, r.shaft], { opacity: 1, duration: 0.06 }, 's1+=1.02')
   r.magnets.forEach((m, i) => tl.to(m, { opacity: 1, duration: 0.02 }, `s1+=${1.06 + i * 0.006}`))
   tl.to([r.band, r.top, r.shaft], { y: TOPY, duration: 0.25, ease: 'power2.inOut' }, 's1+=1.3')
@@ -133,14 +141,19 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   // 2 — blades
   tl.addLabel('s2', 's1+=1.92')
   tl.to(r.svg, { attr: { viewBox: CAM.blades }, duration: 0.3, ease: 'power2.inOut' }, 's2')
-  for (let b = 0; b < 3; b++) {
-    for (let k = 0; k < 4; k++) draw(r.rawLayers[b * 4 + k]!, 0.08, `s2+=${0.12 + b * 0.07 + k * 0.1}`, tl)
-    draw(r.rawOuter[b]!, 0.1, `s2+=${0.62 + b * 0.07}`, tl)
-    tl.to(r.rawOuter[b]!, { attr: { 'fill-opacity': 1 }, duration: 0.1 }, `s2+=${0.82 + b * 0.07}`)
-    tl.to(r.rawLayers.slice(b * 4, b * 4 + 4), { opacity: 0, duration: 0.1 }, `s2+=${0.82 + b * 0.07}`)
-  }
+  tl.to(r.rawGroup, { opacity: 1, duration: 0.1 }, 's2') // the mould shows only in its own stage
+  // fabric goes into the mould layer by layer, the lid closes, opens, the blade stands up; two more follow
+  r.moldLayers.forEach((l, i) => tl.to(l, { opacity: 1, duration: 0.06 }, `s2+=${0.12 + i * 0.08}`))
+  tl.to(r.moldLid, { opacity: 1, y: 80, duration: 0.14, ease: 'power2.inOut' }, 's2+=0.55')
+  tl.to(r.moldLid, { y: 0, opacity: 0, duration: 0.12, ease: 'power2.inOut' }, 's2+=0.75')
+  tl.to(r.moldLayers, { opacity: 0, duration: 0.06 }, 's2+=0.74')
+  tl.to(r.moldBlade, { opacity: 1, duration: 0.06 }, 's2+=0.74')
+  tl.to(r.moldBlade, { x: 170, y: 10, rotation: 90, transformOrigin: '50% 50%', duration: 0.22, ease: 'power2.inOut' }, 's2+=0.88')
+  tl.to(r.rawOuter[0]!, { opacity: 1, duration: 0.04 }, 's2+=1.1')
+  tl.to(r.moldBlade, { opacity: 0, duration: 0.04 }, 's2+=1.1')
+  tl.to([r.rawOuter[1]!, r.rawOuter[2]!], { opacity: 1, duration: 0.08, stagger: 0.05 }, 's2+=1.12')
   // 3 — assembly
-  tl.addLabel('s3', 's2+=1.2')
+  tl.addLabel('s3', 's2+=1.3')
   tl.to(r.svg, { attr: { viewBox: CAM.asm }, duration: 0.3, ease: 'power2.inOut' }, 's3')
   tl.to(r.asmShaft, { scaleY: 1, duration: 0.2 }, 's3+=0.05')
   tl.to(state, { strutDraw: 1, duration: 0.2, onUpdate: drawBlades }, 's3+=0.25')

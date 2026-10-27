@@ -26,7 +26,7 @@ export const BOT = -80
 export const CAM = {
   title: '0 0 1400 1556',
   gen: '165 990 370 411',
-  blades: '60 1040 400 444',
+  blades: '40 1040 480 533',
   asm: '100 1000 500 556',
   mast: '300 300 1100 1222',
   install: '250 160 1150 1278',
@@ -112,20 +112,35 @@ export function bandClipPath(): string {
   return d + 'H-400Z'
 }
 
-/** 72 magnets in 3 rows on the drum; only the 36 facing the viewer are drawn. */
+/** 72 magnets in 3 rows on the drum: big dark tiles with thin light gaps; only the 36 facing the viewer are drawn. */
 export function magnets(): { x: number; y: number; w: number; h: number }[] {
   const out: { x: number; y: number; w: number; h: number }[] = []
   for (let j = 0; j < 3; j++) {
     for (let i = 0; i < 24; i++) {
       const a = ((i + 0.5) / 24) * 2 * Math.PI
       const s = Math.sin(a)
-      if (s < 0.1) continue
-      const w = 3 + 11 * s
-      out.push({ x: +f(RX * DR * Math.cos(a) - w / 2), y: +f(RY * DR * s + j * ROW + 2), w: +f(w), h: +f(ROW - 4) })
+      if (s < 0.12) continue
+      const w = 2 + 22 * s // a tile's width foreshortens towards the drum's sides
+      out.push({ x: +f(RX * DR * Math.cos(a) - w / 2), y: +f(RY * DR * s + j * ROW + 1.5), w: +f(w), h: +f(ROW - 3) })
     }
   }
   return out
 }
+
+/** Copper in the slots as seen through the bore: one strip per far-wall slot k, top lamination down to the bottom one. */
+export function slotStrips(): { k: number; x: number; y1: number; y2: number }[] {
+  const out: { k: number; x: number; y1: number; y2: number }[] = []
+  for (let k = 0; k < N; k++) {
+    const a = k * pitch
+    const s = Math.sin(a)
+    if (s > -0.08) continue
+    out.push({ k, x: +f(RX * 0.72 * Math.cos(a)), y1: +f(TOPY + RY * 0.72 * s), y2: +f(RY * 0.72 * s) })
+  }
+  return out
+}
+
+/** Index of the coil (0..35) whose span covers slot k — coil i runs from slot 2i+0.5 to 2i+4.5. */
+export const coilOfSlot = (k: number): number => Math.min(35, Math.max(0, Math.floor((k - 0.5) / 2)))
 
 /** One of 36 coils, each spanning 4 slots; copper stays on the ring face. */
 export function coilPath(i: number): string {
@@ -166,31 +181,39 @@ export function housing(): { side: string; lid: string; lidY: number; nuts: Nut[
   return { side: cylinderSide(HR, lidY, HBOT), lid: ring(HR), lidY, nuts }
 }
 
-/** Straight blade blank standing in the workshop at x; k=0 outer outline, 1..4 inner lamination layers. */
+/** Blade blank (a tall panel with rounded corners) standing in the workshop at x; k=0 outer outline, 1..4 inner lamination layers. */
 export function rawBlade(x: number, k: 0 | 1 | 2 | 3 | 4): string {
   const cy = 1280
-  const w = 13 * (1 - k * 0.18)
+  const w = 12 * (1 - k * 0.18)
   const h = 240 * (1 - k * 0.07)
-  return `M${x},${f(cy - h / 2)}C${f(x + w)},${f(cy - h / 2 + 70)} ${f(x + w)},${f(cy + h / 2 - 70)} ${x},${f(cy + h / 2)}C${f(x - w)},${f(cy + h / 2 - 70)} ${f(x - w)},${f(cy - h / 2 + 70)} ${x},${f(cy - h / 2)}Z`
+  const r = Math.min(6, w)
+  const t = cy - h / 2
+  const b = cy + h / 2
+  const arc = `A${f(r)},${f(r)} 0 0 1 `
+  return `M${f(x - w + r)},${f(t)}H${f(x + w - r)}${arc}${f(x + w)},${f(t + r)}V${f(b - r)}${arc}${f(x + w - r)},${f(b)}H${f(x - w + r)}${arc}${f(x - w)},${f(b - r)}V${f(t + r)}${arc}${f(x - w + r)},${f(t)}Z`
 }
 
-/** Helical blade i (0..2) projected side-on at rotor phase phaseDeg; 15 points from TOP to BOT. */
+/** H-rotor blade i (0..2): a straight vertical panel at the rotor radius, side-on at rotor phase phaseDeg. */
 export function bladePath(i: 0 | 1 | 2, phaseDeg: number): string {
-  const S = 14
-  let d = ''
-  for (let k = 0; k <= S; k++) {
-    const a = ((phaseDeg + i * 120 + (k / S) * 120) * Math.PI) / 180
-    d += (k ? 'L' : 'M') + f(R * Math.cos(a)) + ',' + f(TOP + ((BOT - TOP) * k) / S)
-  }
-  return d
+  const x = f(R * Math.cos(((phaseDeg + i * 120) * Math.PI) / 180))
+  return `M${x},${TOP}L${x},${BOT}`
 }
 
-/** Top and bottom struts for each blade at the given phase, with their lengths for dash-drawing. */
+export const HUB_Y = (TOP + BOT) / 2 // where the struts meet on the shaft
+
+/** Two struts per blade, from its upper and lower quarter points to the hub, meeting in a V; lengths for dash-drawing. */
 export function strutPaths(phaseDeg: number): { top: string; bot: string; topLen: number; botLen: number }[] {
+  const h = BOT - TOP
+  const yA = TOP + h * 0.25
+  const yB = TOP + h * 0.75
   return [0, 1, 2].map((i) => {
-    const xt = R * Math.cos(((phaseDeg + i * 120) * Math.PI) / 180)
-    const xb = R * Math.cos(((phaseDeg + i * 120 + 120) * Math.PI) / 180)
-    return { top: `M0,${TOP}L${f(xt)},${TOP}`, bot: `M0,${BOT}L${f(xb)},${BOT}`, topLen: Math.abs(xt), botLen: Math.abs(xb) }
+    const x = R * Math.cos(((phaseDeg + i * 120) * Math.PI) / 180)
+    return {
+      top: `M${f(x)},${f(yA)}L0,${f(HUB_Y - 8)}`,
+      bot: `M${f(x)},${f(yB)}L0,${f(HUB_Y + 8)}`,
+      topLen: Math.hypot(x, yA - (HUB_Y - 8)),
+      botLen: Math.hypot(x, yB - (HUB_Y + 8)),
+    }
   })
 }
 
