@@ -30,7 +30,9 @@ Frontend checks: `npm run typecheck`, `npm test` (vitest, pure geometry only).
   `infra/docker/docker-compose.prod.yml` (`ConnectionStrings__Postgres`, `Jwt__*`,
   `Gospodar__BaseUrl`, `Storage__*`, `Smtp__*`, `LiqPay__*`, `Import__Dir`, …).
 - Nuxt reads `NUXT_API_BASE` (API origin for SSR, `http://api:8080`), `NUXT_PUBLIC_API_BASE`
-  (origin for the browser, empty = same origin) and `NUXT_PUBLIC_SITE_URL`; it appends
+  (origin for the browser, empty = same origin), `NUXT_PUBLIC_SITE_URL` and
+  `NUXT_PUBLIC_I18N_BASE_URL` (both the public origin; the second one is what hreflang,
+  canonical and og:url use, because @nuxtjs/i18n fixes its baseUrl at build time); it appends
   `/api/...` itself. Listens on `NITRO_PORT=3000`; ships its own `frontend/Dockerfile`.
 - Flutter admin is built with `flutter build web --release --pwa-strategy=none
   --dart-define=API_HOST=https://admin.uagreen.co` and served as static files on

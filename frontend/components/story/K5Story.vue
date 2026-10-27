@@ -227,8 +227,9 @@ onBeforeUnmount(() => story?.destroy())
 .rail li.active { color: var(--green); font-weight: 600; }
 .rail li.active::before { border-color: var(--green); background: var(--green); }
 
-.copy { position: relative; display: flex; align-items: center; }
-.step { position: absolute; left: 0; right: 0; opacity: 0; transform: translateY(18px); transition: opacity 0.45s var(--ease), transform 0.45s var(--ease); pointer-events: none; }
+/* Steps stack in one grid cell, so the row is as tall as the tallest step on every viewport. */
+.copy { display: grid; align-items: center; }
+.step { grid-area: 1 / 1; opacity: 0; transform: translateY(18px); transition: opacity 0.45s var(--ease), transform 0.45s var(--ease); pointer-events: none; }
 .step.active { opacity: 1; transform: none; pointer-events: auto; }
 .step h1 { font-size: clamp(38px, 4.4vw, 64px); line-height: 1.05; margin: 0 0 18px; letter-spacing: -0.02em; font-weight: 600; }
 .step h2 { font-size: clamp(26px, 2.5vw, 36px); margin: 0 0 14px; }
@@ -249,7 +250,7 @@ onBeforeUnmount(() => story?.destroy())
 .story--static .stage { height: auto; grid-template-columns: 1fr; padding-top: 88px; }
 .story--static .rail { display: none; }
 .story--static .copy { display: block; }
-.story--static .step { position: static; opacity: 1; transform: none; pointer-events: auto; margin-bottom: 48px; transition: none; }
+.story--static .step { opacity: 1; transform: none; pointer-events: auto; margin-bottom: 48px; transition: none; }
 .story--static .scene { height: 80vh; }
 .story--static .hint { display: none; }
 
@@ -257,7 +258,7 @@ onBeforeUnmount(() => story?.destroy())
   .stage { grid-template-columns: 1fr; grid-template-rows: 1fr auto; gap: 8px; padding: 64px 16px 20px; }
   .rail { display: none; }
   .scene { order: 1; }
-  .copy { order: 2; min-height: 260px; }
+  .copy { order: 2; }
   .step h1 { font-size: clamp(32px, 9vw, 44px); }
   .step h2 { font-size: clamp(22px, 6vw, 28px); }
   .step p { font-size: 15px; }

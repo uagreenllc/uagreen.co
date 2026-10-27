@@ -16,8 +16,11 @@ export function useApiFetch<T>(key: string, path: string, query: Query = {}) {
   return useFetch<T | null>(() => apiUrl(path), {
     key: `${key}:${locale.value}`,
     query: { lang: locale.value, ...query },
-    timeout: 8000,
+    timeout: 4000,
     default: () => null,
+    onRequestError({ error }) {
+      console.warn(`[api] ${path} → ${error.message}`)
+    },
     onResponseError({ response }) {
       console.warn(`[api] ${path} → ${response.status}`)
     },
