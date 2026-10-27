@@ -44,6 +44,23 @@
     "next": "Давніші",
     "back": "Усі записи"
   },
+  "vacancies": {
+    "title": "Вакансії",
+    "empty": "Відкритих вакансій зараз немає.",
+    "all": "Усі вакансії",
+    "apply": "Відгукнутися",
+    "requirements": "Вимоги",
+    "niceToHave": "Буде плюсом",
+    "conditions": "Умови",
+    "department": "Відділ",
+    "employment": "Зайнятість",
+    "city": "Місто",
+    "experience": "Досвід",
+    "language": "Мови",
+    "cv": "Резюме (PDF або Word, до 10 МБ)",
+    "cvTooBig": "Файл більший за 10 МБ",
+    "cvType": "Лише PDF або Word"
+  },
   "error": {
     "notFoundTitle": "Сторінку не знайдено",
     "home": "На головну",

@@ -44,6 +44,23 @@
     "next": "Older",
     "back": "All posts"
   },
+  "vacancies": {
+    "title": "Vacancies",
+    "empty": "No open positions right now.",
+    "all": "All vacancies",
+    "apply": "Apply",
+    "requirements": "Requirements",
+    "niceToHave": "Nice to have",
+    "conditions": "What we offer",
+    "department": "Department",
+    "employment": "Employment",
+    "city": "City",
+    "experience": "Experience",
+    "language": "Languages",
+    "cv": "CV (PDF or Word, up to 10 MB)",
+    "cvTooBig": "File is over 10 MB",
+    "cvType": "PDF or Word only"
+  },
   "error": {
     "notFoundTitle": "Page not found",
     "home": "Home",
