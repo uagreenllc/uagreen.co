@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { lamPath, bladePath, strutPaths, magnets, coilPath, ladderPath, bandClipPath, TOPY } from './scene'
+import { lamPath, bladePath, strutPaths, magnets, coilPath, ladderSegment, bandClipPath, TOPY } from './scene'
 
 describe('k5 scene geometry', () => {
   it('lamination has 72 slots and 4 lugs', () => {
@@ -10,13 +10,9 @@ describe('k5 scene geometry', () => {
     expect((d.match(/L/g) ?? []).length).toBeGreaterThan(72 * 10)
   })
 
-  it('blade is a straight vertical panel from TOP to BOT inside the rotor radius', () => {
-    const pts = bladePath(0, 0).slice(1).split('L').map(p => p.split(',').map(Number))
-    expect(pts.length).toBe(2)
-    expect(pts[0]![1]).toBe(-320)
-    expect(pts[1]![1]).toBe(-80)
-    expect(pts[0]![0]).toBe(pts[1]![0]) // vertical
-    expect(Math.abs(pts[0]![0])).toBeLessThanOrEqual(125)
+  it('blade is the same 24 × 240 panel as the workshop blank, centred on the rotor radius', () => {
+    expect(bladePath(0, 0)).toBe('M113.0,-320H137.0V-80H113.0Z') // x = 125 ± 12, TOP..BOT, closed
+    expect(bladePath(1, 0)).toBe('M-74.5,-320H-50.5V-80H-74.5Z') // cos 120° · 125 = −62.5
   })
 
   it('each blade hangs on two struts that meet at the hub on the shaft', () => {
@@ -35,6 +31,6 @@ describe('k5 scene geometry', () => {
     expect(magnets().length).toBe(36)
     expect(coilPath(35)).toMatch(/^M-?\d/)
     expect(bandClipPath()).toContain(`V${TOPY}`)
-    expect(ladderPath()).toContain('M918,1400V510')
+    expect(ladderSegment(1100)).toContain('M918,1100V1400')
   })
 })

@@ -25,11 +25,11 @@ export const BOT = -80
 // Camera (viewBox) per stage
 export const CAM = {
   title: '0 0 1400 1556',
-  gen: '165 990 370 411',
-  blades: '40 1040 480 533',
-  asm: '100 1000 500 556',
-  mast: '300 300 1100 1222',
-  install: '250 160 1150 1278',
+  gen: '285 990 370 411',
+  blades: '0 1040 440 489',
+  asm: '220 1000 500 556',
+  mast: '300 250 1200 1333',
+  install: '250 160 1250 1389',
   end: '450 60 900 1000',
 } as const
 
@@ -181,22 +181,18 @@ export function housing(): { side: string; lid: string; lidY: number; nuts: Nut[
   return { side: cylinderSide(HR, lidY, HBOT), lid: ring(HR), lidY, nuts }
 }
 
-/** Blade blank (a tall panel with rounded corners) standing in the workshop at x; k=0 outer outline, 1..4 inner lamination layers. */
+/** Finished blade standing in the workshop at x: a flat 24 × 240 panel with square ends (k shrinks it for inner layers). */
 export function rawBlade(x: number, k: 0 | 1 | 2 | 3 | 4): string {
   const cy = 1280
   const w = 12 * (1 - k * 0.18)
   const h = 240 * (1 - k * 0.07)
-  const r = Math.min(6, w)
-  const t = cy - h / 2
-  const b = cy + h / 2
-  const arc = `A${f(r)},${f(r)} 0 0 1 `
-  return `M${f(x - w + r)},${f(t)}H${f(x + w - r)}${arc}${f(x + w)},${f(t + r)}V${f(b - r)}${arc}${f(x + w - r)},${f(b)}H${f(x - w + r)}${arc}${f(x - w)},${f(b - r)}V${f(t + r)}${arc}${f(x - w + r)},${f(t)}Z`
+  return `M${f(x - w)},${f(cy - h / 2)}H${f(x + w)}V${f(cy + h / 2)}H${f(x - w)}Z`
 }
 
-/** H-rotor blade i (0..2): a straight vertical panel at the rotor radius, side-on at rotor phase phaseDeg. */
+/** H-rotor blade i (0..2): the same 24 × 240 panel as the workshop blank, side-on at rotor phase phaseDeg. */
 export function bladePath(i: 0 | 1 | 2, phaseDeg: number): string {
-  const x = f(R * Math.cos(((phaseDeg + i * 120) * Math.PI) / 180))
-  return `M${x},${TOP}L${x},${BOT}`
+  const x = R * Math.cos(((phaseDeg + i * 120) * Math.PI) / 180)
+  return `M${f(x - 12)},${TOP}H${f(x + 12)}V${BOT}H${f(x - 12)}Z`
 }
 
 export const HUB_Y = (TOP + BOT) / 2 // where the struts meet on the shaft
@@ -217,9 +213,9 @@ export function strutPaths(phaseDeg: number): { top: string; bot: string; topLen
   })
 }
 
-/** Service ladder on the mast: two rails from the ground to the top flange, a rung every 28. */
-export function ladderPath(): string {
-  let d = 'M918,1400V510M930,1400V510'
-  for (let y = 1390; y > 510; y -= 28) d += `M918,${y}H930`
+/** Ladder on one 300-tall mast section whose top is at `top`: two rails and a rung every 28. */
+export function ladderSegment(top: number): string {
+  let d = `M918,${top}V${top + 300}M930,${top}V${top + 300}`
+  for (let y = top + 10; y < top + 300; y += 28) d += `M918,${y}H930`
   return d
 }
