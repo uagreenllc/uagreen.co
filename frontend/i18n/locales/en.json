@@ -17,5 +17,39 @@
     "payment": "Payment and delivery",
     "rights": "© {year} UA GREEN"
   },
-  "lang": { "uk": "Укр", "en": "Eng" }
+  "lang": { "uk": "Укр", "en": "Eng" },
+  "story": {
+    "title": "From raw stock to wind.",
+    "lead": "We build the K5 vertical-axis wind turbine ourselves, from winding the stator to installing it on your site. Scroll and watch how.",
+    "hint": "Scroll",
+    "svgLabel": "How the K5 wind turbine is manufactured, assembled and installed",
+    "rail": ["Generator", "Blades", "Assembly", "Mast", "Installation"],
+    "s1": {
+      "h": "The heart of K5 is a permanent-magnet generator.",
+      "p": "Electrical-steel stator, copper winding, 72 neodymium magnets. No gearbox, nothing to wear out.",
+      "facts": [{ "v": "5 kW", "l": "nominal" }, { "v": "6.5 kW", "l": "peak" }, { "v": "48 V", "l": "" }]
+    },
+    "s2": {
+      "h": "Three composite blades, layer by layer.",
+      "p": "Glass fabric from 48 to 400 g/m², epoxy, foam spar. Laminated by hand, painted, balanced.",
+      "facts": [{ "v": "4.75 m", "l": "blade" }, { "v": "Ø5 m", "l": "rotor" }, { "v": "22 m²", "l": "swept area" }]
+    },
+    "s3": {
+      "h": "Assembled and turned for the first time.",
+      "p": "Ø170 shaft, struts, blades onto the generator. The rotor has to start from 1.5 m/s.",
+      "facts": [{ "v": "1.5 m/s", "l": "cut-in" }, { "v": "250 rpm", "l": "" }, { "v": "300 kg", "l": "" }]
+    },
+    "s4": {
+      "h": "Foundation, anchor plate, 6-metre sections.",
+      "p": "Rebar cage, concrete, anchor plate. A 12, 18 or 24 m mast bolts together at flanges, with a service ladder.",
+      "facts": [{ "v": "12 / 18 / 24 m", "l": "mast" }, { "v": "45 m/s", "l": "survives" }]
+    },
+    "s5": {
+      "h": "The rotor seats on the mast. The cable goes indoors.",
+      "p": "MPPT controller, ballast load, batteries. From here on, only the wind works.",
+      "facts": [{ "v": "38 dB", "l": "" }, { "v": "−40…+60 °C", "l": "" }, { "v": "1.3–2 kW", "l": "yearly average" }]
+    },
+    "cta": "Size it for my site",
+    "shop": "K5 in the shop — 295,000 ₴"
+  }
 }

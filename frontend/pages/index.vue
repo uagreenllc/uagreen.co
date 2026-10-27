@@ -1,7 +1,10 @@
 <template>
-  <section class="section" style="padding-top: 120px">
-    <div class="section-inner">
-      <h1>UA GREEN</h1>
-    </div>
-  </section>
+  <div>
+    <K5Story />
+    <section class="section">
+      <div class="section-inner">
+        <h2>UA GREEN</h2>
+      </div>
+    </section>
+  </div>
 </template>

@@ -6,6 +6,8 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   modules: ['@nuxtjs/i18n', '@nuxtjs/sitemap', '@pinia/nuxt', '@nuxtjs/tailwindcss'],
   css: ['@fontsource-variable/commissioner', '~/assets/css/main.css'],
+  // Components are named by file (K5Story, SiteHeader, FeaturedProducts), not by folder + file.
+  components: [{ path: '~/components', pathPrefix: false }],
   runtimeConfig: {
     apiBase: 'http://localhost:5000',
     public: { apiBase: '', siteUrl },
