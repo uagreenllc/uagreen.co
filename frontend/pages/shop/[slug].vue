@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Product } from '~/types/api'
 import type { Selection } from '~/utils/pricing'
+import { useCart } from '~/stores/cart'
 
 const route = useRoute()
 const localePath = useLocalePath()
@@ -22,8 +23,21 @@ const sections = computed(() => [
   ['shop.faq', p.faqHtml],
 ].filter(([, html]) => html) as [string, string][])
 
-// Wired to the cart store in the next task.
-const addToCart = () => {}
+const cart = useCart()
+const added = ref(false)
+function addToCart() {
+  cart.add({
+    productId: p.id,
+    slug: p.slug,
+    name: p.name,
+    image: p.images[0]?.url ?? null,
+    unitPrice: price.value,
+    optionValueIds: Object.values(selected.value),
+    optionsText: optionsText(p, selected.value),
+  })
+  added.value = true
+}
+watch(selected, () => { added.value = false }, { deep: true })
 
 usePageHead({ title: p.seoTitle || p.name, description: p.seoDesc || p.shortDesc, image: p.images[0]?.url })
 const config = useRuntimeConfig()
@@ -65,7 +79,10 @@ useHead({ script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(ld).
           <small v-if="hasOptions">{{ $t('shop.withOptions') }}</small>
         </p>
         <p class="stock">{{ p.inStock ? $t('shop.inStock') : $t('shop.onOrder') }}</p>
-        <button class="btn" type="button" @click="addToCart">{{ $t('shop.addToCart') }}</button>
+        <p class="cta">
+          <button class="btn" type="button" @click="addToCart">{{ $t('shop.addToCart') }}</button>
+          <span v-if="added" class="added">{{ $t('shop.added') }} · <NuxtLink class="link" :to="localePath('/cart')">{{ $t('shop.goToCart') }}</NuxtLink></span>
+        </p>
       </div>
     </div>
     <section v-for="[key, html] in sections" :key="key" class="block">
@@ -94,6 +111,8 @@ useHead({ script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(ld).
 .price s { color: var(--metal); font-size: 18px; }
 .price small { color: var(--ink-2); font-size: 14px; }
 .stock { color: var(--ink-2); font-size: 14px; margin: 0 0 24px; }
+.cta { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin: 0; }
+.added { color: var(--green); }
 .block { margin-top: 64px; max-width: 860px; }
 .block h2 { font-size: 26px; }
 .block :deep(table) { border-collapse: collapse; width: 100%; max-width: 680px; font-size: 16px; }

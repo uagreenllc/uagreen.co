@@ -21,6 +21,7 @@ const phone = computed(() => splitList(settings.value?.phones)[0] ?? '')
 
     <nav class="nav-desktop" aria-label="Main">
       <NuxtLink v-for="[key, to] in links" :key="key" :to="localePath(to)">{{ $t(`nav.${key}`) }}</NuxtLink>
+      <CartBadge />
       <NuxtLink :to="switchLocalePath(other)" class="lang">{{ $t(`lang.${other}`) }}</NuxtLink>
       <a v-if="phone" :href="`tel:${phone}`" class="pill">{{ formatPhone(phone) }}</a>
     </nav>
@@ -29,6 +30,7 @@ const phone = computed(() => splitList(settings.value?.phones)[0] ?? '')
       <summary>{{ $t('nav.menu') }}</summary>
       <ul>
         <li v-for="[key, to] in links" :key="key"><NuxtLink :to="localePath(to)">{{ $t(`nav.${key}`) }}</NuxtLink></li>
+        <li><CartBadge /></li>
         <li><NuxtLink :to="switchLocalePath(other)">{{ $t(`lang.${other}`) }}</NuxtLink></li>
         <li v-if="phone"><a :href="`tel:${phone}`">{{ formatPhone(phone) }}</a></li>
       </ul>

@@ -14,7 +14,9 @@ export function useForm<T>(submit: (values: T) => Promise<void>) {
       await submit(values)
       done.value = true
     } catch (e) {
-      error.value = (e as { data?: ApiError }).data?.message || t('form.failed')
+      // Only our API's { code, message } is worth showing verbatim; a proxy's "Bad Gateway" is not.
+      const data = (e as { data?: Partial<ApiError> }).data
+      error.value = data?.code && data.message ? data.message : t('form.failed')
     } finally {
       pending.value = false
     }

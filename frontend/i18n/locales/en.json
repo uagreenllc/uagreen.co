@@ -62,6 +62,57 @@
     "price": "Price",
     "withOptions": "with selected options"
   },
+  "cart": {
+    "title": "Cart",
+    "empty": "Your cart is empty.",
+    "toShop": "Go to the shop",
+    "qty": "Quantity",
+    "remove": "Remove",
+    "subtotal": "Subtotal",
+    "checkout": "Checkout"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "customer": "Customer",
+    "delivery": "Delivery",
+    "delivery_NovaPoshta": "Nova Poshta",
+    "delivery_Ukrposhta": "Ukrposhta",
+    "delivery_Pickup": "Pickup in Lviv",
+    "city": "City",
+    "warehouse": "Branch",
+    "deliveryNote": "Delivery at the carrier's rates, paid on receipt.",
+    "payment": "Payment",
+    "payment_LiqPay": "Card online",
+    "payment_LiqPay_hint": "Visa / Mastercard via LiqPay, right after you confirm.",
+    "payment_Invoice": "Bank transfer by invoice",
+    "payment_Invoice_hint": "We'll send the invoice by email or messenger.",
+    "payment_Credit": "0 % credit",
+    "payment_Credit_hint": "Instalments via partner banks; a manager will contact you.",
+    "comment": "Comment",
+    "summary": "Your order",
+    "editCart": "Edit cart",
+    "place": "Place order",
+    "redirecting": "Taking you to the payment page…",
+    "pay": "Go to payment"
+  },
+  "order": {
+    "title": "Order #{n}",
+    "total": "Total",
+    "help": "Questions about your order?",
+    "waiting": "Waiting for LiqPay to confirm the payment. This page refreshes itself.",
+    "thanksPaid": "Payment received. Thank you! We'll be in touch about shipping.",
+    "thanksInvoice": "Thank you! We'll send the invoice by email or messenger.",
+    "thanksCredit": "Thank you! A manager will contact you about the credit.",
+    "status": {
+      "New": "New",
+      "AwaitingPayment": "Awaiting payment",
+      "Paid": "Paid",
+      "InvoiceSent": "Invoice sent",
+      "Credit": "Credit",
+      "Shipped": "Shipped",
+      "Cancelled": "Cancelled"
+    }
+  },
   "vacancies": {
     "title": "Vacancies",
     "empty": "No open positions right now.",
