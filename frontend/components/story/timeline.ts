@@ -35,7 +35,8 @@ export interface SceneRefs {
   anchor: SVGElement
   sections: Element[] // complete sections (tube, ladder, flange); lie on the trailer, tilt up about their lower end, then fly to the mast
   trailer: SVGElement
-  cable: SVGPathElement
+  cable: SVGPathElement // mast → underground → house wall
+  cable2: SVGPathElement // under the floor → up into the equipment
   crane: SVGGElement
   boom: SVGPathElement // telescopic extension (thin)
   boomBase: SVGPathElement // base stage (thick)
@@ -147,9 +148,9 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
     tl.to(e, { strokeDashoffset: 0, duration: dur }, pos)
 
   // Client-side initial state. SSR shipped these hidden (opacity 0) so nothing flashes before the dashes exist.
-  ;[...r.coils, ...r.coilsBottom, ...r.strips, r.rebar, r.cable].forEach(prep)
+  ;[...r.coils, ...r.coilsBottom, ...r.strips, r.rebar, r.cable, r.cable2].forEach(prep)
   drawBlades()
-  g.set([...r.coils, ...r.coilsBottom, ...r.strips, r.rebar, r.cable, r.rotorBack, r.rotorFront], { opacity: 1 })
+  g.set([...r.coils, ...r.coilsBottom, ...r.strips, r.rebar, r.cable, r.cable2, r.rotorBack, r.rotorFront], { opacity: 1 })
   g.set(r.asmShaft, { scaleY: 0, transformOrigin: '50% 100%', opacity: 1 })
   g.set([r.battery, r.ballast, r.controller], { scale: 0.6, transformOrigin: '50% 50%' })
   // sections lie stacked on the trailer, first-needed on top, lower end at x=940; each pivots about that lower end
@@ -161,7 +162,7 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   const tl = g.timeline({
     defaults: { ease: 'none' },
     paused: opts.reduce,
-    scrollTrigger: opts.reduce ? undefined : { trigger: r.section, start: 'top top', end: '+=10000', pin: true, scrub: 0.8 },
+    scrollTrigger: opts.reduce ? undefined : { trigger: r.section, start: 'top top', end: '+=10500', pin: true, scrub: 0.8 },
     onUpdate: () => {
       drawCrane()
       const t = tl.time()
@@ -251,8 +252,10 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
     tl.to(crane, { hookY: 110, duration: 0.06 }, `s4+=${t4 + 0.68}`)
     t4 += 0.78
   })
+  // the empty trailer drives off behind the house
+  tl.to(r.trailer, { x: 700, opacity: 0, duration: 0.3, ease: 'power2.in' }, `s4+=${t4}`)
   // 5 — installation
-  tl.addLabel('s5', `s4+=${t4 + 0.1}`)
+  tl.addLabel('s5', `s4+=${t4 + 0.3}`)
   tl.to(r.svg, { attr: { viewBox: CAM.install }, duration: 0.35, ease: 'power2.inOut' }, 's5')
   // the boom swings over the turbine, the hook comes down onto the hub…
   tl.to(crane, { tipX: 470, tipY: 110, hookY: 110, duration: 0.2, ease: 'power2.inOut' }, 's5+=0.05')
@@ -267,16 +270,18 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   tl.to(crane, { hookY: 110, duration: 0.12, ease: 'power1.inOut' }, 's5+=1.18')
   tl.to(crane, { tipX: 840, tipY: 1336, hookY: 1336, duration: 0.18, ease: 'power2.inOut' }, 's5+=1.3') // rope stays reeled in as the boom lowers
   tl.to(r.crane, { x: -500, opacity: 0, duration: 0.25, ease: 'power2.in' }, 's5+=1.46')
-  // wiring: the camera moves to the house, the cable is laid from the mast into it, the battery,
-  // ballast and controller go in one after another, and the window lights up
-  tl.to(r.svg, { attr: { viewBox: CAM.house }, duration: 0.3, ease: 'power2.inOut' }, 's5+=1.7')
-  draw(r.cable, 0.45, 's5+=1.78', tl)
+  // wiring, first run in the wide view: the cable is laid down the mast and underground to the house
+  draw(r.cable, 0.4, 's5+=1.6', tl)
+  // then the camera moves to the house: the cable comes up through the floor, the battery, ballast
+  // and controller go in one after another, and the window lights up
+  tl.to(r.svg, { attr: { viewBox: CAM.house }, duration: 0.3, ease: 'power2.inOut' }, 's5+=2.0')
+  draw(r.cable2, 0.2, 's5+=2.28', tl)
   ;[r.battery, r.ballast, r.controller].forEach((e, i) =>
-    tl.to(e, { opacity: 1, scale: 1, duration: 0.1, ease: 'power2.out' }, `s5+=${2.25 + i * 0.12}`),
+    tl.to(e, { opacity: 1, scale: 1, duration: 0.1, ease: 'power2.out' }, `s5+=${2.5 + i * 0.12}`),
   )
-  tl.to(r.window, { attr: { fill: '#f0cc5a' }, duration: 0.1 }, 's5+=2.65')
-  tl.to(r.glow, { opacity: 0.35, duration: 0.15 }, 's5+=2.65')
-  tl.addLabel('end', 's5+=2.9')
+  tl.to(r.window, { attr: { fill: '#f0cc5a' }, duration: 0.1 }, 's5+=2.9')
+  tl.to(r.glow, { opacity: 0.35, duration: 0.15 }, 's5+=2.9')
+  tl.addLabel('end', 's5+=3.15')
   tl.to(r.svg, { attr: { viewBox: CAM.end }, duration: 0.4, ease: 'power2.inOut' }, 'end')
   tl.to({}, { duration: 0.05 }, 'end+=0.4')
 

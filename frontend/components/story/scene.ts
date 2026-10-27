@@ -28,8 +28,8 @@ export const CAM = {
   gen: '285 990 370 411',
   blades: '0 1040 440 489',
   asm: '220 1000 500 556',
-  mast: '300 250 1200 1333',
-  install: '250 160 1250 1389',
+  mast: '300 40 1350 1500', // headroom for the boom tip (y 110) and a section hanging under it
+  install: '250 40 1250 1389', // headroom for the hoisted rotor (top at y 150)
   house: '1230 1110 320 356',
   end: '450 60 900 1000',
 } as const

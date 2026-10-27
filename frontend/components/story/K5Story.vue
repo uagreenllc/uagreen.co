@@ -82,6 +82,7 @@ onMounted(async () => {
     sections: all('[data-k=sect]'),
     trailer: one('#k5-trailer'),
     cable: one<SVGPathElement>('#k5-cable'),
+    cable2: one<SVGPathElement>('#k5-cable2'),
     crane: one<SVGGElement>('#k5-crane'),
     boom: one<SVGPathElement>('#k5-boom'),
     boomBase: one<SVGPathElement>('#k5-boom-base'),
@@ -179,8 +180,9 @@ onBeforeUnmount(() => story?.destroy())
             <path id="k5-ballast" d="M1412,1346h6l5-8 6,16 6-16 6,16 5-8h6" fill="none" stroke="var(--copper)" stroke-width="3" stroke-linejoin="round" opacity="0" />
             <g id="k5-battery" opacity="0"><rect x="1408" y="1362" width="46" height="26" rx="3" fill="#fff" stroke="var(--ink)" stroke-width="2.5" /><path d="M1418,1375h8M1422,1371v8M1438,1375h8" stroke="var(--ink)" stroke-width="2" /></g>
           </g>
-          <!-- cable: down the mast, underground, up through the floor straight into the equipment stack -->
-          <path id="k5-cable" d="M900,500V1400C900,1470 1380,1470 1430,1400V1388" fill="none" stroke="var(--copper)" stroke-width="3" opacity="0" />
+          <!-- cable in two runs: down the mast and underground to the house (wide view), then under the floor up into the equipment (house view) -->
+          <path id="k5-cable" d="M900,500V1400C900,1470 1240,1470 1290,1432" fill="none" stroke="var(--copper)" stroke-width="3" opacity="0" />
+          <path id="k5-cable2" d="M1290,1432Q1430,1432 1430,1400V1388" fill="none" stroke="var(--copper)" stroke-width="3" opacity="0" />
           <!-- mobile crane between the workshop and the mast: it stacks the mast, lifts the turbine on, then drives off -->
           <g id="k5-crane" opacity="0">
             <!-- outriggers on pads, chassis, cab, counterweight, turntable, hydraulic cylinder, two-stage telescopic boom, hook block -->
