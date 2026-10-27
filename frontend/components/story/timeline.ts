@@ -49,6 +49,7 @@ export interface SceneRefs {
   battery: SVGElement
   window: SVGElement
   glow: SVGElement // warm halo behind the window once the house has power
+  beam: SVGElement // light from the window falling on the ground
 }
 
 export interface Story {
@@ -281,6 +282,7 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   )
   tl.to(r.window, { attr: { fill: '#f0cc5a' }, duration: 0.1 }, 's5+=2.9')
   tl.to(r.glow, { opacity: 0.35, duration: 0.15 }, 's5+=2.9')
+  tl.to(r.beam, { opacity: 0.25, duration: 0.2 }, 's5+=2.95')
   tl.addLabel('end', 's5+=3.15')
   tl.to(r.svg, { attr: { viewBox: CAM.end }, duration: 0.4, ease: 'power2.inOut' }, 'end')
   tl.to({}, { duration: 0.05 }, 'end+=0.4')

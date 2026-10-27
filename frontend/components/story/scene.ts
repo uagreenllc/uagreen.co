@@ -31,7 +31,7 @@ export const CAM = {
   mast: '300 40 1350 1500', // headroom for the boom tip (y 110) and a section hanging under it
   install: '250 40 1250 1389', // headroom for the hoisted rotor (top at y 150)
   house: '1230 1110 320 356',
-  end: '450 60 900 1000',
+  end: '350 40 1250 1389', // the whole installation with the lit window, rotor turning
 } as const
 
 const f = (n: number) => n.toFixed(1)

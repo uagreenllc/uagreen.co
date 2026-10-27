@@ -95,6 +95,7 @@ onMounted(async () => {
     battery: one('#k5-battery'),
     window: one('#k5-window'),
     glow: one('#k5-glow'),
+    beam: one('[data-k=beam]'),
   }
   story = buildTimeline(refs, gsap, ScrollTrigger, {
     reduce,
@@ -180,6 +181,7 @@ onBeforeUnmount(() => story?.destroy())
               <rect x="1366" y="1398" width="38" height="5" rx="1" fill="#c3c9c1" />
               <path d="M1372,1400V1353a13,13 0 0 1 26,0V1400Z" fill="var(--green)" />
               <rect id="k5-glow" x="1308" y="1298" width="68" height="68" rx="14" fill="#f0cc5a" stroke="none" opacity="0" />
+              <path data-k="beam" d="M1322,1354H1362L1400,1404H1284Z" fill="#f0cc5a" stroke="none" opacity="0" />
               <rect id="k5-window" x="1320" y="1310" width="44" height="44" rx="4" fill="#fff" />
               <path d="M1342,1310V1354M1320,1332H1364" stroke-width="1.5" />
               <rect x="1315" y="1354" width="54" height="5" rx="1" fill="#c3c9c1" />
