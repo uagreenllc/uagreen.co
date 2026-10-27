@@ -44,6 +44,24 @@
     "next": "Older",
     "back": "All posts"
   },
+  "shop": {
+    "title": "Shop",
+    "description": "K1 and K5 vertical-axis wind turbines, generators, blades, masts and services from the manufacturer.",
+    "all": "All products",
+    "empty": "Nothing in this category yet.",
+    "inStock": "In stock",
+    "onOrder": "Made to order",
+    "sku": "SKU",
+    "addToCart": "Add to cart",
+    "added": "Added to cart",
+    "goToCart": "Go to cart",
+    "description": "Description",
+    "specs": "Specifications",
+    "faq": "FAQ",
+    "files": "Documents",
+    "price": "Price",
+    "withOptions": "with selected options"
+  },
   "vacancies": {
     "title": "Vacancies",
     "empty": "No open positions right now.",
