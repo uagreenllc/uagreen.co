@@ -276,7 +276,7 @@ const HR=1.14,HBOT=56,housing=el('g',{opacity:0},stator); // drum runs from belo
    el('ellipse',{cx:cx.toFixed(1),cy:(cy-16).toFixed(1),rx:2.5,ry:1.2,fill:'#c3c9c1',stroke:'#6f7872','stroke-width':0.6},housing);});}
 // shaft above everything: it stands in front of the lid and the far coils
 const shaftG=el('g',{transform:`translate(0 ${HOVER})`},stator);
-el('rect',{x:-20,y:-200,width:40,height:198,fill:'#9aa39c',stroke:'#6f7872','stroke-width':1},shaftG);
+el('path',{d:'M-20,-200V-2A20,10 0 0 0 20,-2V-200Z',fill:'#9aa39c',stroke:'#6f7872','stroke-width':1},shaftG);
 el('ellipse',{cx:0,cy:-200,rx:20,ry:10,fill:'#c3c9c1',stroke:'#6f7872','stroke-width':1},shaftG);
 
 /* ---------- raw blades (stage 2) ---------- */

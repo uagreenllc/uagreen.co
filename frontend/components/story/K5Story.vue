@@ -177,7 +177,8 @@ onBeforeUnmount(() => story?.destroy())
               </template>
             </g>
             <g id="k5-shaft" :transform="`translate(0 ${HOVER})`" opacity="0">
-              <rect x="-20" y="-200" width="40" height="198" fill="#9aa39c" stroke="#6f7872" stroke-width="1" />
+              <!-- cylinder: straight sides, the front half of its base ellipse where it stands on the hub, a cap on top -->
+              <path d="M-20,-200V-2A20,10 0 0 0 20,-2V-200Z" fill="#9aa39c" stroke="#6f7872" stroke-width="1" />
               <ellipse cx="0" cy="-200" rx="20" ry="10" fill="#c3c9c1" stroke="#6f7872" stroke-width="1" />
             </g>
           </g>
