@@ -71,7 +71,7 @@ type ScrollTriggerLib = typeof import('gsap/ScrollTrigger').ScrollTrigger
 
 export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTriggerLib, opts: StoryOptions): Story {
   g.registerPlugin(ScrollTrigger)
-  const state = { phase: 30, bladeDraw: 0, strutDraw: 0 } // phase 30°: all three blades project to distinct x
+  const state = { phase: 15, bladeDraw: 0, strutDraw: 0 } // phase 15°: three distinct x positions, none hidden behind the shaft
   let spin = 0
   let spinOn = false
 
@@ -185,14 +185,15 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   r.magnets.forEach((m, i) => tl.to(m, { opacity: 1, duration: 0.02 }, `s1+=${1.06 + i * 0.006}`))
   tl.to([r.band, r.top, r.shaft], { y: TOPY, duration: 0.25, ease: 'power2.inOut' }, 's1+=1.3')
   tl.to(r.housing, { opacity: 1, duration: 0.12 }, 's1+=1.56')
-  // the finished generator shrinks onto its spot in the assembly; at the end it is swapped for the
-  // assembly's copy (same shape at scale 0.282) in one frame, so nothing vanishes or pops
-  tl.to(r.stator, { x: 470, y: 1374.2, scale: 0.19, duration: 0.2, ease: 'power2.inOut' }, 's1+=1.7')
-  tl.set(r.stator, { opacity: 0 }, 's1+=1.9')
-  tl.set(r.gen, { opacity: 1 }, 's1+=1.9')
+  // The camera glides to the workshop view while the finished generator shrinks onto its spot on the
+  // floor, so the eye follows one continuous motion; at the end it is swapped for the assembly's copy
+  // (same shape at scale 0.19) in one frame, so nothing vanishes or pops.
+  tl.to(r.svg, { attr: { viewBox: CAM.blades }, duration: 0.45, ease: 'power2.inOut' }, 's1+=1.62')
+  tl.to(r.stator, { x: 470, y: 1374.2, scale: 0.19, duration: 0.35, ease: 'power2.inOut' }, 's1+=1.7')
+  tl.set(r.stator, { opacity: 0 }, 's1+=2.05')
+  tl.set(r.gen, { opacity: 1 }, 's1+=2.05')
   // 2 — blades
-  tl.addLabel('s2', 's1+=1.92')
-  tl.to(r.svg, { attr: { viewBox: CAM.blades }, duration: 0.3, ease: 'power2.inOut' }, 's2')
+  tl.addLabel('s2', 's1+=2.08')
   tl.to(r.rawGroup, { opacity: 1, duration: 0.1 }, 's2') // the mould shows only in its own stage
   // fabric goes into the mould layer by layer, the lid closes, opens, the blade stands up; two more follow
   r.moldLayers.forEach((l, i) => tl.to(l, { opacity: 1, duration: 0.06 }, `s2+=${0.12 + i * 0.07}`))
@@ -222,7 +223,7 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   })
   tl.set(state, { bladeDraw: 1, onUpdate: drawBlades }, 's3+=0.98')
   tl.set(r.rawOuter, { opacity: 0 }, 's3+=0.98')
-  tl.to(state, { phase: 150, duration: 0.3, ease: 'power1.inOut', onUpdate: drawBlades }, 's3+=1.02')
+  tl.to(state, { phase: 135, duration: 0.3, ease: 'power1.inOut', onUpdate: drawBlades }, 's3+=1.02')
   // 4 — foundation and mast
   tl.addLabel('s4', 's3+=1.4')
   tl.to(r.svg, { attr: { viewBox: CAM.mast }, duration: 0.35, ease: 'power2.inOut' }, 's4')

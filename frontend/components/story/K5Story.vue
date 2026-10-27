@@ -165,9 +165,10 @@ onBeforeUnmount(() => story?.destroy())
             </g>
           </g>
           <g id="k5-house">
-            <path d="M1280,1400V1290L1390,1215L1500,1290V1400Z" fill="#fff" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round" />
-            <rect x="1440" y="1226" width="16" height="40" fill="#8a948c" stroke="var(--ink)" stroke-width="2" />
-            <path d="M1268,1298L1390,1206L1512,1298L1500,1290L1390,1215L1280,1290Z" fill="#8a948c" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" />
+            <!-- walls, chimney, then a solid gable roof with an overhang covering the chimney's base -->
+            <path d="M1280,1400V1290H1500V1400Z" fill="#fff" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round" />
+            <rect x="1440" y="1226" width="16" height="50" fill="#8a948c" stroke="var(--ink)" stroke-width="2" />
+            <path d="M1268,1296L1390,1206L1512,1296Z" fill="#8a948c" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round" />
             <rect x="1372" y="1340" width="26" height="60" fill="var(--green)" />
             <circle cx="1393" cy="1372" r="1.8" fill="#e3e6e0" />
             <rect id="k5-window" x="1320" y="1310" width="44" height="44" fill="#fff" stroke="var(--ink)" stroke-width="2" />
@@ -176,7 +177,8 @@ onBeforeUnmount(() => story?.destroy())
             <path id="k5-ballast" d="M1412,1346h6l5-8 6,16 6-16 6,16 5-8h6" fill="none" stroke="var(--copper)" stroke-width="3" stroke-linejoin="round" opacity="0" />
             <g id="k5-battery" opacity="0"><rect x="1408" y="1362" width="46" height="26" rx="3" fill="#fff" stroke="var(--ink)" stroke-width="2.5" /><path d="M1418,1375h8M1422,1371v8M1438,1375h8" stroke="var(--ink)" stroke-width="2" /></g>
           </g>
-          <path id="k5-cable" d="M900,500V1400C900,1470 1260,1470 1300,1400V1330H1410" fill="none" stroke="var(--copper)" stroke-width="3" opacity="0" />
+          <!-- cable: down the mast, underground, up through the floor straight into the equipment stack -->
+          <path id="k5-cable" d="M900,500V1400C900,1470 1380,1470 1430,1400V1388" fill="none" stroke="var(--copper)" stroke-width="3" opacity="0" />
           <!-- mobile crane between the workshop and the mast: it stacks the mast, lifts the turbine on, then drives off -->
           <g id="k5-crane" opacity="0">
             <!-- outriggers on pads, chassis, cab, counterweight, turntable, hydraulic cylinder, two-stage telescopic boom, hook block -->
