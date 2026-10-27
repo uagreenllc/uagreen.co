@@ -4,6 +4,13 @@ export function formatPhone(e164: string): string {
   return m ? `+380 ${m[1]} ${m[2]} ${m[3]} ${m[4]}` : e164
 }
 
+/** ISO date → "27.10.2026" (UTC, so SSR and the browser render the same string). */
+export function formatDate(iso: string): string {
+  const d = new Date(iso)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getUTCDate())}.${p(d.getUTCMonth() + 1)}.${d.getUTCFullYear()}`
+}
+
 /** Comma-joined setting → trimmed list. */
 export function splitList(value: string | undefined): string[] {
   return (value ?? '').split(',').map(s => s.trim()).filter(Boolean)

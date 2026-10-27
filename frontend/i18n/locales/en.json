@@ -18,6 +18,22 @@
     "rights": "© {year} UA GREEN"
   },
   "lang": { "uk": "Укр", "en": "Eng" },
+  "home": {
+    "products": { "h": "Equipment", "more": "Details", "all": "Whole shop" },
+    "why": {
+      "h": "Why a vertical axis",
+      "p1": "The K5 rotor turns slowly and almost silently, shrugs off gusts and shifting wind direction, and needs no tail vane or yawing.",
+      "p2": "Gearless generator, ballast braking, IP54 enclosure: one service a year, from the ladder on the mast.",
+      "facts": [{ "v": "38 dB", "l": "" }, { "v": "1.5 m/s", "l": "cut-in" }, { "v": "250 rpm", "l": "" }, { "v": "−40…+60 °C", "l": "" }],
+      "alt": "K5 wind turbine on its mast"
+    },
+    "posts": { "h": "Blog", "all": "All posts" },
+    "contact": {
+      "h": "Let's talk about your site",
+      "p": "Write or call: we'll size the wind, the mast and the kit for your site.",
+      "btn": "Contacts"
+    }
+  },
   "story": {
     "title": "From raw stock to wind.",
     "lead": "We build the K5 vertical-axis wind turbine ourselves, from winding the stator to installing it on your site. Scroll and watch how.",
