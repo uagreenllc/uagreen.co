@@ -167,22 +167,32 @@ onBeforeUnmount(() => story?.destroy())
             </g>
           </g>
           <g id="k5-house">
-            <!-- walls, chimney, then a solid gable roof with an overhang covering the chimney's base; soft corners throughout -->
-            <rect x="1280" y="1290" width="220" height="110" rx="6" fill="#fff" stroke="var(--ink)" stroke-width="3" />
-            <rect x="1440" y="1226" width="16" height="50" rx="3" fill="#8a948c" stroke="var(--ink)" stroke-width="2" />
-            <path d="M1268,1296L1390,1206L1512,1296Z" fill="#8a948c" stroke="var(--ink)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" />
-            <path d="M1372,1400V1353a13,13 0 0 1 26,0V1400Z" fill="var(--green)" />
+            <!-- house: one 2.5px ink outline everywhere, round joins; walls, chimney with cap, gable roof with overhang,
+                 attic window, door with step, window with sill -->
+            <g stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+              <rect x="1280" y="1290" width="220" height="110" rx="6" fill="#fff" />
+              <rect x="1440" y="1232" width="16" height="44" rx="2" fill="#8a948c" />
+              <rect x="1436" y="1226" width="24" height="8" rx="2" fill="#6f7872" />
+              <path d="M1268,1296L1390,1206L1512,1296Z" fill="#8a948c" />
+              <path d="M1310,1265H1470M1340,1243H1440" stroke-width="1.5" stroke="#6f7872" />
+              <circle cx="1390" cy="1256" r="9" fill="#fff" />
+              <path d="M1390,1247V1265M1381,1256H1399" stroke-width="1.5" />
+              <rect x="1366" y="1398" width="38" height="5" rx="1" fill="#c3c9c1" />
+              <path d="M1372,1400V1353a13,13 0 0 1 26,0V1400Z" fill="var(--green)" />
+              <rect id="k5-glow" x="1308" y="1298" width="68" height="68" rx="14" fill="#f0cc5a" stroke="none" opacity="0" />
+              <rect id="k5-window" x="1320" y="1310" width="44" height="44" rx="4" fill="#fff" />
+              <path d="M1342,1310V1354M1320,1332H1364" stroke-width="1.5" />
+              <rect x="1315" y="1354" width="54" height="5" rx="1" fill="#c3c9c1" />
+            </g>
             <circle cx="1393" cy="1374" r="1.8" fill="#e3e6e0" />
-            <rect id="k5-glow" x="1308" y="1298" width="68" height="68" rx="14" fill="#f0cc5a" opacity="0" />
-            <rect id="k5-window" x="1320" y="1310" width="44" height="44" rx="5" fill="#fff" stroke="var(--ink)" stroke-width="2" />
-            <path d="M1342,1310V1354M1320,1332H1364" stroke="var(--ink)" stroke-width="1.5" />
-            <rect id="k5-controller" x="1410" y="1300" width="40" height="28" rx="3" fill="#fff" stroke="var(--green)" stroke-width="3" opacity="0" />
-            <path id="k5-ballast" d="M1412,1346h6l5-8 6,16 6-16 6,16 5-8h6" fill="none" stroke="var(--copper)" stroke-width="3" stroke-linejoin="round" opacity="0" />
+            <rect id="k5-controller" x="1410" y="1300" width="40" height="28" rx="3" fill="#fff" stroke="var(--green)" stroke-width="2.5" opacity="0" />
+            <path id="k5-ballast" d="M1412,1346h6l5-8 6,16 6-16 6,16 5-8h6" fill="none" stroke="var(--copper)" stroke-width="2.5" stroke-linejoin="round" opacity="0" />
             <g id="k5-battery" opacity="0"><rect x="1408" y="1362" width="46" height="26" rx="3" fill="#fff" stroke="var(--ink)" stroke-width="2.5" /><path d="M1418,1375h8M1422,1371v8M1438,1375h8" stroke="var(--ink)" stroke-width="2" /></g>
           </g>
-          <!-- cable in two runs: down the mast and underground to the house (wide view), then under the floor up into the equipment (house view) -->
-          <path id="k5-cable" d="M900,500V1400C900,1470 1240,1470 1290,1432" fill="none" stroke="var(--copper)" stroke-width="3" opacity="0" />
-          <path id="k5-cable2" d="M1290,1432Q1430,1432 1430,1400V1388" fill="none" stroke="var(--copper)" stroke-width="3" opacity="0" />
+          <!-- cable in two runs: down the mast and underground to the house (wide view), then under the floor up into the
+               equipment (house view). The first run ends horizontally so the second continues it without a kink. -->
+          <path id="k5-cable" d="M900,500V1400C900,1480 1180,1440 1290,1440" fill="none" stroke="var(--copper)" stroke-width="3" stroke-linecap="round" opacity="0" />
+          <path id="k5-cable2" d="M1290,1440H1400Q1430,1440 1430,1410V1388" fill="none" stroke="var(--copper)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0" />
           <!-- mobile crane between the workshop and the mast: it stacks the mast, lifts the turbine on, then drives off -->
           <g id="k5-crane" opacity="0">
             <!-- outriggers on pads, chassis, cab, counterweight, turntable, hydraulic cylinder, two-stage telescopic boom, hook block -->
