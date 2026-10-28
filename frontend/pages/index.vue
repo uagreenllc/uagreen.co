@@ -12,7 +12,7 @@ const list = computed(() => products.value ?? [])
 const lead = computed(() => list.value.find(p => p.slug === 'k5v1') ?? list.value[0])
 const block = (key: string) => blocks.value?.find(b => b.key === key) ?? null
 
-useSiteHead({ image: lead.value?.image })
+usePageHead({ image: lead.value?.image })
 
 const settings = useSettings()
 const config = useRuntimeConfig()

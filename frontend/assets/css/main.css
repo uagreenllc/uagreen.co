@@ -62,6 +62,26 @@ img { display: block; max-width: 100%; height: auto; }
 .section-inner { max-width: 1200px; margin: 0 auto; }
 @media (max-width: 900px) { .section { padding-left: 16px; padding-right: 16px; } }
 
+/* Inner pages: room for the fixed header, one column of text */
+.page { padding: 128px 40px 96px; }
+.page h1 { font-size: clamp(32px, 4vw, 52px); font-weight: 600; margin: 0 0 32px; max-width: 24ch; }
+@media (max-width: 900px) { .page { padding: 92px 16px 64px; } }
+
+/* Forms */
+.field { display: grid; gap: 6px; margin: 0 0 18px; max-width: 520px; }
+.field > span { font-size: 14px; color: var(--ink-2); }
+.field input, .field textarea, .field select {
+  font: inherit; color: var(--ink); background: #fff;
+  border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px;
+}
+.field input:focus, .field textarea:focus, .field select:focus { outline: 2px solid var(--green); outline-offset: -1px; border-color: var(--green); }
+.field em { font-style: normal; color: var(--copper); font-size: 14px; }
+.form-error { color: var(--copper); margin: 0 0 16px; }
+.form-ok { color: var(--green); font-size: 18px; }
+.btn:disabled { opacity: 0.6; cursor: wait; }
+button.btn { border: 0; cursor: pointer; font-family: inherit; }
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+
 /* HTML from the back office */
 .prose p { max-width: 68ch; margin: 0 0 1em; color: var(--ink-2); font-size: 17px; }
 .prose h2, .prose h3 { margin: 1.4em 0 0.5em; }

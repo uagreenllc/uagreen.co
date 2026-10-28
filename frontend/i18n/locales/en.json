@@ -18,6 +18,123 @@
     "rights": "© {year} UA GREEN"
   },
   "lang": { "uk": "Укр", "en": "Eng" },
+  "pages": {
+    "aboutTitle": "About us",
+    "contactsTitle": "Contacts",
+    "paymentTitle": "Payment and delivery",
+    "termsTitle": "Terms of use",
+    "write": "Write to us"
+  },
+  "form": {
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "message": "Message",
+    "send": "Send",
+    "sending": "Sending…",
+    "sent": "Thank you, we'll be in touch.",
+    "required": "This field is required",
+    "phoneInvalid": "Enter a phone number",
+    "failed": "Could not send. Try again or call us."
+  },
+  "blog": {
+    "title": "Blog",
+    "empty": "No posts yet.",
+    "prev": "Newer",
+    "next": "Older",
+    "back": "All posts"
+  },
+  "shop": {
+    "title": "Shop",
+    "description": "K1 and K5 vertical-axis wind turbines, generators, blades, masts and services from the manufacturer.",
+    "all": "All products",
+    "empty": "Nothing in this category yet.",
+    "inStock": "In stock",
+    "onOrder": "Made to order",
+    "sku": "SKU",
+    "addToCart": "Add to cart",
+    "added": "Added to cart",
+    "goToCart": "Go to cart",
+    "about": "Description",
+    "specs": "Specifications",
+    "faq": "FAQ",
+    "files": "Documents",
+    "price": "Price",
+    "withOptions": "with selected options"
+  },
+  "cart": {
+    "title": "Cart",
+    "empty": "Your cart is empty.",
+    "toShop": "Go to the shop",
+    "qty": "Quantity",
+    "remove": "Remove",
+    "subtotal": "Subtotal",
+    "checkout": "Checkout"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "customer": "Customer",
+    "delivery": "Delivery",
+    "delivery_NovaPoshta": "Nova Poshta",
+    "delivery_Ukrposhta": "Ukrposhta",
+    "delivery_Pickup": "Pickup in Lviv",
+    "city": "City",
+    "warehouse": "Branch",
+    "deliveryNote": "Delivery at the carrier's rates, paid on receipt.",
+    "payment": "Payment",
+    "payment_LiqPay": "Card online",
+    "payment_LiqPay_hint": "Visa / Mastercard via LiqPay, right after you confirm.",
+    "payment_Invoice": "Bank transfer by invoice",
+    "payment_Invoice_hint": "We'll send the invoice by email or messenger.",
+    "payment_Credit": "0 % credit",
+    "payment_Credit_hint": "Instalments via partner banks; a manager will contact you.",
+    "comment": "Comment",
+    "summary": "Your order",
+    "editCart": "Edit cart",
+    "place": "Place order",
+    "redirecting": "Taking you to the payment page…",
+    "pay": "Go to payment"
+  },
+  "order": {
+    "title": "Order #{n}",
+    "total": "Total",
+    "help": "Questions about your order?",
+    "waiting": "Waiting for LiqPay to confirm the payment. This page refreshes itself.",
+    "thanksPaid": "Payment received. Thank you! We'll be in touch about shipping.",
+    "thanksInvoice": "Thank you! We'll send the invoice by email or messenger.",
+    "thanksCredit": "Thank you! A manager will contact you about the credit.",
+    "status": {
+      "New": "New",
+      "AwaitingPayment": "Awaiting payment",
+      "Paid": "Paid",
+      "InvoiceSent": "Invoice sent",
+      "Credit": "Credit",
+      "Shipped": "Shipped",
+      "Cancelled": "Cancelled"
+    }
+  },
+  "vacancies": {
+    "title": "Vacancies",
+    "empty": "No open positions right now.",
+    "all": "All vacancies",
+    "apply": "Apply",
+    "requirements": "Requirements",
+    "niceToHave": "Nice to have",
+    "conditions": "What we offer",
+    "department": "Department",
+    "employment": "Employment",
+    "city": "City",
+    "experience": "Experience",
+    "language": "Languages",
+    "cv": "CV (PDF or Word, up to 10 MB)",
+    "cvTooBig": "File is over 10 MB",
+    "cvType": "PDF or Word only"
+  },
+  "error": {
+    "notFoundTitle": "Page not found",
+    "home": "Home",
+    "generic": "Something went wrong"
+  },
   "home": {
     "products": { "h": "Equipment", "more": "Details", "all": "Whole shop" },
     "why": {
