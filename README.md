@@ -19,10 +19,12 @@ cp infra/docker/.env.prod.example infra/docker/.env   # fill in dev values
 docker compose -f infra/docker/docker-compose.prod.yml -f infra/docker/docker-compose.dev.yml --env-file infra/docker/.env up -d postgres
 cd backend && dotnet run --project src/UaGreen.Site.Api      # http://localhost:5000, migrates on boot
 cd frontend && npm install && npm run dev                      # http://localhost:3000, proxies /api and /media to :5000
+cd admin && flutter run -d chrome --web-port 8080               # back office; debug builds call http://localhost:5000
 ```
 
 Postgres → `localhost:5433` (5432 is taken by the native PostgreSQL on the dev box). Media are written to `backend/src/UaGreen.Site.Api/data/` in dev and served by the API at `/media` (dev only).
 Frontend checks: `npm run typecheck`, `npm test` (vitest: scene geometry, pricing, cart, redirects, CV rules).
+Admin: port 8080 is in the dev CORS list; login goes through the API to Gospodar (`Gospodar__BaseUrl`), so it needs an ERP account with a role assigned under Користувачі (ERP `Admin` = full access). Check with `flutter analyze`.
 Old-URL audit (every Weblium URL must answer 200 or 301→200): `python tools/check_old_urls.py http://localhost:3000`.
 
 ## Contracts between the parts
