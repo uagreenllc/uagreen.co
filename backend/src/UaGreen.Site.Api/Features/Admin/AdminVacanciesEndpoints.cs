@@ -11,12 +11,14 @@ namespace UaGreen.Site.Api.Features.Admin;
 public sealed record VacancyUpsert(
     string Slug, string TitleUk, string? TitleEn, string Department, string EmploymentType, string City, string? Experience, string? Language,
     string? RequirementsHtmlUk, string? RequirementsHtmlEn, string? NiceToHaveHtmlUk, string? NiceToHaveHtmlEn,
-    string? ConditionsHtmlUk, string? ConditionsHtmlEn, bool IsActive, int Sort, DateTime? PublishedAt);
+    string? ConditionsHtmlUk, string? ConditionsHtmlEn, bool IsActive, int Sort, DateTime? PublishedAt,
+    string? TitleCs = null, string? DepartmentCs = null, string? EmploymentTypeCs = null, string? CityCs = null, string? ExperienceCs = null, string? LanguageCs = null, string? RequirementsHtmlCs = null, string? NiceToHaveHtmlCs = null, string? ConditionsHtmlCs = null);
 
 public sealed record VacancyAdminDto(
     Guid Id, string Slug, string TitleUk, string? TitleEn, string Department, string EmploymentType, string City, string? Experience, string? Language,
     string? RequirementsHtmlUk, string? RequirementsHtmlEn, string? NiceToHaveHtmlUk, string? NiceToHaveHtmlEn,
-    string? ConditionsHtmlUk, string? ConditionsHtmlEn, bool IsActive, int Sort, DateTime PublishedAt, DateTime UpdatedAt, int Applications);
+    string? ConditionsHtmlUk, string? ConditionsHtmlEn, bool IsActive, int Sort, DateTime PublishedAt, DateTime UpdatedAt, int Applications,
+    string? TitleCs, string? DepartmentCs, string? EmploymentTypeCs, string? CityCs, string? ExperienceCs, string? LanguageCs, string? RequirementsHtmlCs, string? NiceToHaveHtmlCs, string? ConditionsHtmlCs);
 
 public static class AdminVacanciesEndpoints
 {
@@ -87,6 +89,15 @@ public static class AdminVacanciesEndpoints
         v.RequirementsHtmlUk = Clean(req.RequirementsHtmlUk); v.RequirementsHtmlEn = Clean(req.RequirementsHtmlEn);
         v.NiceToHaveHtmlUk = Clean(req.NiceToHaveHtmlUk); v.NiceToHaveHtmlEn = Clean(req.NiceToHaveHtmlEn);
         v.ConditionsHtmlUk = Clean(req.ConditionsHtmlUk); v.ConditionsHtmlEn = Clean(req.ConditionsHtmlEn);
+        v.TitleCs = Clean(req.TitleCs);
+        v.DepartmentCs = Clean(req.DepartmentCs);
+        v.EmploymentTypeCs = Clean(req.EmploymentTypeCs);
+        v.CityCs = Clean(req.CityCs);
+        v.ExperienceCs = Clean(req.ExperienceCs);
+        v.LanguageCs = Clean(req.LanguageCs);
+        v.RequirementsHtmlCs = Clean(req.RequirementsHtmlCs);
+        v.NiceToHaveHtmlCs = Clean(req.NiceToHaveHtmlCs);
+        v.ConditionsHtmlCs = Clean(req.ConditionsHtmlCs);
         v.IsActive = req.IsActive; v.Sort = req.Sort;
         v.PublishedAt = req.PublishedAt ?? (v.PublishedAt == default ? DateTime.UtcNow : v.PublishedAt);
         v.UpdatedAt = DateTime.UtcNow;
@@ -95,5 +106,6 @@ public static class AdminVacanciesEndpoints
     private static VacancyAdminDto ToDto(Vacancy v, int applications) => new(
         v.Id, v.Slug, v.TitleUk, v.TitleEn, v.Department, v.EmploymentType, v.City, v.Experience, v.Language,
         v.RequirementsHtmlUk, v.RequirementsHtmlEn, v.NiceToHaveHtmlUk, v.NiceToHaveHtmlEn, v.ConditionsHtmlUk, v.ConditionsHtmlEn,
-        v.IsActive, v.Sort, v.PublishedAt, v.UpdatedAt, applications);
+        v.IsActive, v.Sort, v.PublishedAt, v.UpdatedAt, applications,
+        v.TitleCs, v.DepartmentCs, v.EmploymentTypeCs, v.CityCs, v.ExperienceCs, v.LanguageCs, v.RequirementsHtmlCs, v.NiceToHaveHtmlCs, v.ConditionsHtmlCs);
 }

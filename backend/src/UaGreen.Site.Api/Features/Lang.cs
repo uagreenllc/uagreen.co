@@ -1,7 +1,8 @@
 namespace UaGreen.Site.Api.Features;
 
 /// Public endpoints flatten the `*_uk` / `*_en` pairs by `?lang=`; EN falls back to UK.
-/// ponytail: only category names have a CS column; everything else shows EN (then UK) for CS. Add `*Cs` columns when Czech copy exists.
+/// CS has `*Cs` columns (products, options, blog, vacancies, reviews, category names) and `cs` content rows; empty → EN, then UK.
+/// ponytail: category description/SEO have no CS columns (all empty today) — add them when a category gets a description.
 public static class Lang
 {
     public static string Norm(string? lang) => lang?.ToLowerInvariant() switch { "en" => "en", "cs" => "cs", _ => "uk" };

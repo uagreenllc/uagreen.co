@@ -38,7 +38,7 @@
       "p": "Po instalaci připojte větrnou elektrárnu k portálu «Oberig»: bude ji hlídat 24/7, včas upozorní na opotřebení ložisek, listů či generátoru — dřív, než se z drobnosti stane oprava — a ukáže předpověď výroby."
     }
   },
-  "lang": { "uk": "Укр", "en": "Eng", "cs": "Čes" },
+  "lang": { "uk": "Укр", "en": "Eng", "cs": "Čes", "choose": "Jazyk" },
   "site": {
     "title": "UA GREEN | Větrné turbíny a vybavení",
     "description": "Ukrajinský výrobce větrných turbín se svislou osou a vybavení k nim."
@@ -64,7 +64,8 @@
     "phoneInvalid": "Zadejte telefonní číslo",
     "failed": "Odeslání se nezdařilo. Zkuste to znovu nebo nám zavolejte.",
     "privacyNote": "Odesláním formuláře souhlasíte se {link}",
-    "privacyLink": "zásadami ochrany osobních údajů"
+    "privacyLink": "zásadami ochrany osobních údajů",
+    "captchaFailed": "Nepodařilo se ověřit, že nejste robot. Počkejte několik sekund a odešlete znovu."
   },
   "blog": {
     "title": "Blog",
@@ -188,21 +189,41 @@
       "h": "Proč svislá osa",
       "p1": "Rotor K5 se otáčí pomalu a téměř neslyšně, nevadí mu nárazy větru ani měnící se směr a nepotřebuje směrovku ani natáčení.",
       "p2": "Bezpřevodový generátor, brzdění balastní zátěží, krytí IP54: jeden servis ročně, přímo ze žebříku na stožáru.",
-      "facts": [{ "v": "38 dB", "l": "" }, { "v": "1,5 m/s", "l": "rozběh" }, { "v": "250 ot./min", "l": "" }, { "v": "−40…+60 °C", "l": "" }],
+      "facts": [{ "v": "38 dB", "l": "" }, { "v": "1,5 m/s", "l": "rozběh" }, { "v": "125 ot./min", "l": "" }, { "v": "−40…+60 °C", "l": "" }],
       "alt": "Větrná turbína K5 na stožáru"
     },
+    "reviews": { "h": "Reference zákazníků" },
     "posts": { "h": "Blog", "all": "Všechny příspěvky" },
     "contact": {
       "h": "Probereme vaši lokalitu",
       "p": "Napište nebo zavolejte: posoudíme vítr a navrhneme stožár i sestavu pro vaše místo.",
       "btn": "Kontakty"
+    },
+    "seo": {
+      "title": "Vertikální větrná elektrárna 5 kW od výrobce — UA GREEN",
+      "description": "Vertikální větrná elektrárna K5 5 kW vyrobená na Ukrajině, od {price}. Rozběh od 1,5 m/s, 38 dB, stožár 12–24 m, montáž ve 21 oblastech Ukrajiny."
+    },
+    "faq": {
+      "h": "Otázky k větrné elektrárně 5 kW",
+      "items": [
+        { "q": "Kolik stojí vertikální větrná elektrárna 5 kW?", "a": "K5 stojí {price}. Sada obsahuje turbínu 5 kW 48 V, MPPT regulátor nabíjení 5 kW, balastní zátěž 5 kW a 50 m kabelu. Stožár 12, 18 nebo 24 m a montáž si můžete přiobjednat na stránce produktu." },
+        { "q": "Kolik elektřiny vyrobí větrná elektrárna 5 kW?", "a": "K5 dosahuje jmenovitého výkonu 5 kW (špičkově 6,5 kW) při 12 m/s. Celoroční průměrný výkon je 1,3–2 kW, tedy zhruba 11–17 MWh ročně; v zimě vyrábí asi o 30 % více než v létě. Přesné číslo pro váš pozemek určí větrný audit." },
+        { "q": "Jaký vítr K5 potřebuje?", "a": "Rotor se rozbíhá při 1,5 m/s, pracuje od 2 do 25 m/s a jmenovitého výkonu dosahuje při 12 m/s. Vydrží vítr až 45 m/s a při silném větru rotor přibrzdí balastní zátěž." },
+        { "q": "Vertikální, nebo horizontální: která je pro dům lepší?", "a": "Horizontální turbína vyrobí víc při silném a stálém větru. Vertikální přijímá vítr z jakéhokoli směru bez směrovky a natáčení, zvládá nárazy větru, otáčí se pomalu (125 ot./min) a tiše – 38 dB, takže se hodí k domu, kde žijí lidé." },
+        { "q": "Jaký stožár a základ jsou potřeba?", "a": "Stožár 12, 18 nebo 24 m se skládá z šestimetrových přírubových sekcí se servisním žebříkem. Stojí na železobetonovém základu s kotevní deskou." },
+        { "q": "Jak se připojí k domu a k solárním panelům?", "a": "MPPT regulátor nabíjí 48V baterie a hybridní střídač napájí dům. Na stejný střídač lze připojit i solární panely a vytvořit větrně-solární systém. Sestavu navrhneme podle vaší spotřeby." },
+        { "q": "Jak často potřebuje servis a kdy se zaplatí?", "a": "Servis se provádí jednou ročně nebo každých 12–15 MWh, ze žebříku na stožáru. Generátor je bezpřevodový, takže se toho opotřebuje málo. Návratnost závisí na tarifu: v průměru 1–2 roky u firem a 5–6 let u domácností." },
+        { "q": "Kde se K5 vyrábí a jak ji získat?", "a": "Generátor i listy vyrábíme sami na Ukrajině; 80 % dílů je ukrajinských. Doručujeme po celé Ukrajině, nebo si ji vyzvednete ve Lvově, a montáž provádíme ve 21 oblastech. Platit můžete kartou, na fakturu nebo na úvěr s 0 %." }
+      ]
     }
   },
   "story": {
+    "kicker": "Vertikální větrná elektrárna K5 · 5 kW",
     "title": "Od suroviny k větru.",
     "lead": "Větrnou turbínu K5 se svislou osou vyrábíme sami, od navíjení statoru až po instalaci u vás. Posouvejte stránku a uvidíte jak.",
     "hint": "Posouvejte",
     "svgLabel": "Jak se vyrábí, montuje a instaluje větrná turbína K5",
+    "railLabel": "Fáze",
     "rail": ["Generátor", "Listy", "Montáž", "Stožár", "Instalace"],
     "s1": {
       "h": "Srdcem K5 je generátor s permanentními magnety.",
@@ -217,7 +238,7 @@
     "s3": {
       "h": "Smontováno a poprvé roztočeno.",
       "p": "Hřídel Ø170, vzpěry, listy na generátor. Rotor se musí rozběhnout už od 1,5 m/s.",
-      "facts": [{ "v": "1,5 m/s", "l": "rozběh" }, { "v": "250 ot./min", "l": "" }, { "v": "300 kg", "l": "" }]
+      "facts": [{ "v": "1,5 m/s", "l": "rozběh" }, { "v": "125 ot./min", "l": "" }, { "v": "300 kg", "l": "" }]
     },
     "s4": {
       "h": "Základ, kotevní deska, šestimetrové sekce.",

@@ -26,6 +26,7 @@ final _groups = <(String, IconData, String?, List<_S>)>[
     _s('emails', 'Email-и', hint: 'Через кому; перший — у кнопці «Написати»'),
     _s('address', 'Адреса виробництва (UK)'),
     _s('address_en', 'Адреса виробництва (EN)'),
+    _s('address_cs', 'Адреса виробництва (CS)'),
     _s('address_office', 'Юридична адреса (UK)'),
     _s('address_office_en', 'Юридична адреса (EN)'),
     _s('vacancy_apply_url', 'Посилання «Подати анкету»', hint: 'Google Form для загального відгуку на вакансії'),

@@ -20,7 +20,7 @@
     "privacy": "Privacy policy",
     "oberig": "Oberig customer portal"
   },
-  "lang": { "uk": "Укр", "en": "Eng", "cs": "Čes" },
+  "lang": { "uk": "Укр", "en": "Eng", "cs": "Čes", "choose": "Language" },
   "site": {
     "title": "UA GREEN | Wind turbines and equipment",
     "description": "Ukrainian manufacturer of vertical-axis wind turbines and the equipment around them."

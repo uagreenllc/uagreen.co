@@ -450,8 +450,10 @@ class _FeedsPageState extends State<FeedsPage> {
 const _reviewFields = [
   F('authorUk', "Ім'я, місто (UK)", required: true),
   F('authorEn', "Ім'я, місто (EN)"),
+  F('authorCs', "Ім'я, місто (CS)"),
   F('textUk', 'Текст відгуку (UK)', t: T.multiline, required: true),
   F('textEn', 'Текст відгуку (EN)', t: T.multiline),
+  F('textCs', 'Текст відгуку (CS)', t: T.multiline),
   F('photoKey', 'Фото', t: T.image, folder: 'content'),
   F('published', 'Показувати на сайті', t: T.bool),
   F('sort', 'Порядок', t: T.int, hint: 'Менше число — раніше на головній'),

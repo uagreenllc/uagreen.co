@@ -16,15 +16,16 @@ public sealed record CategoryAdminDto(Guid Id, string Slug, string NameUk, strin
 
 public sealed record ImageUpsert(string Key, string? Alt, int Sort);
 public sealed record FileUpsert(string Key, string Title);
-public sealed record OptionValueUpsert(Guid? Id, string ValueUk, string? ValueEn, decimal PriceDelta, int Sort);
-public sealed record OptionUpsert(Guid? Id, string NameUk, string? NameEn, int Sort, List<OptionValueUpsert> Values);
+public sealed record OptionValueUpsert(Guid? Id, string ValueUk, string? ValueEn, decimal PriceDelta, int Sort, string? ValueCs = null);
+public sealed record OptionUpsert(Guid? Id, string NameUk, string? NameEn, int Sort, List<OptionValueUpsert> Values, string? NameCs = null);
 public sealed record ProductUpsert(
     string Slug, string? Sku, Guid? CategoryId,
     string NameUk, string? NameEn, string? ShortDescUk, string? ShortDescEn,
     string? DescriptionHtmlUk, string? DescriptionHtmlEn, string? SpecsHtmlUk, string? SpecsHtmlEn, string? FaqHtmlUk, string? FaqHtmlEn,
     decimal Price, decimal? OldPrice, bool InStock, bool IsFeatured, int Sort,
     string? SeoTitleUk, string? SeoTitleEn, string? SeoDescUk, string? SeoDescEn, bool Published,
-    List<ImageUpsert>? Images, List<FileUpsert>? Files, List<OptionUpsert>? Options, bool OberigMonitoring = false);
+    List<ImageUpsert>? Images, List<FileUpsert>? Files, List<OptionUpsert>? Options, bool OberigMonitoring = false,
+    string? NameCs = null, string? ShortDescCs = null, string? DescriptionHtmlCs = null, string? SpecsHtmlCs = null, string? FaqHtmlCs = null, string? SeoTitleCs = null, string? SeoDescCs = null);
 
 /// Quick toggles from the product list; null = leave as is.
 public sealed record ProductPatch(bool? Published, bool? InStock, bool? IsFeatured, bool? OberigMonitoring);
@@ -35,8 +36,8 @@ public sealed record ProductAdminListDto(Guid Id, string Slug, string? Sku, stri
 
 public sealed record ImageAdminDto(Guid Id, string Key, string Url, string? Alt, int Sort);
 public sealed record FileAdminDto(Guid Id, string Key, string Url, string Title);
-public sealed record OptionValueAdminDto(Guid Id, string ValueUk, string? ValueEn, decimal PriceDelta, int Sort);
-public sealed record OptionAdminDto(Guid Id, string NameUk, string? NameEn, int Sort, List<OptionValueAdminDto> Values);
+public sealed record OptionValueAdminDto(Guid Id, string ValueUk, string? ValueEn, decimal PriceDelta, int Sort, string? ValueCs);
+public sealed record OptionAdminDto(Guid Id, string NameUk, string? NameEn, int Sort, List<OptionValueAdminDto> Values, string? NameCs);
 public sealed record ProductAdminDto(
     Guid Id, string Slug, string? Sku, Guid? CategoryId,
     string NameUk, string? NameEn, string? ShortDescUk, string? ShortDescEn,
@@ -44,7 +45,8 @@ public sealed record ProductAdminDto(
     decimal Price, decimal? OldPrice, bool InStock, bool IsFeatured, int Sort,
     string? SeoTitleUk, string? SeoTitleEn, string? SeoDescUk, string? SeoDescEn, bool Published,
     List<ImageAdminDto> Images, List<FileAdminDto> Files, List<OptionAdminDto> Options, DateTime CreatedAt, DateTime UpdatedAt,
-    bool OberigMonitoring);
+    bool OberigMonitoring, string? NameCs, string? ShortDescCs, string? DescriptionHtmlCs, string? SpecsHtmlCs, string? FaqHtmlCs,
+    string? SeoTitleCs, string? SeoDescCs);
 
 public static class AdminCatalogEndpoints
 {
@@ -160,8 +162,8 @@ public static class AdminCatalogEndpoints
                 s.Images.Select(i => new ImageUpsert(i.Key, i.Alt, i.Sort)).ToList(),
                 s.Files.Select(f => new FileUpsert(f.Key, f.Title)).ToList(),
                 s.Options.Select(o => new OptionUpsert(null, o.NameUk, o.NameEn, o.Sort,
-                    o.Values.Select(v => new OptionValueUpsert(null, v.ValueUk, v.ValueEn, v.PriceDelta, v.Sort)).ToList())).ToList(),
-                s.OberigMonitoring);
+                    o.Values.Select(v => new OptionValueUpsert(null, v.ValueUk, v.ValueEn, v.PriceDelta, v.Sort, v.ValueCs)).ToList(), o.NameCs)).ToList(),
+                s.OberigMonitoring, s.NameCs, s.ShortDescCs, s.DescriptionHtmlCs, s.SpecsHtmlCs, s.FaqHtmlCs, s.SeoTitleCs, s.SeoDescCs);
             var p = new Product { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow };
             await ApplyAsync(p, req, db, ct);
             db.Products.Add(p);
@@ -219,6 +221,9 @@ public static class AdminCatalogEndpoints
         p.Price = req.Price; p.OldPrice = req.OldPrice; p.InStock = req.InStock; p.IsFeatured = req.IsFeatured; p.Sort = req.Sort;
         p.SeoTitleUk = Clean(req.SeoTitleUk); p.SeoTitleEn = Clean(req.SeoTitleEn);
         p.SeoDescUk = Clean(req.SeoDescUk); p.SeoDescEn = Clean(req.SeoDescEn);
+        p.NameCs = Clean(req.NameCs); p.ShortDescCs = Clean(req.ShortDescCs); p.DescriptionHtmlCs = Clean(req.DescriptionHtmlCs);
+        p.SpecsHtmlCs = Clean(req.SpecsHtmlCs); p.FaqHtmlCs = Clean(req.FaqHtmlCs);
+        p.SeoTitleCs = Clean(req.SeoTitleCs); p.SeoDescCs = Clean(req.SeoDescCs);
         p.Published = req.Published;
         p.OberigMonitoring = req.OberigMonitoring;
         p.UpdatedAt = DateTime.UtcNow;
@@ -230,10 +235,10 @@ public static class AdminCatalogEndpoints
             (req.Files ?? []).Select(f => new ProductFile { Id = Guid.NewGuid(), ProductId = p.Id, Key = f.Key.Trim(), Title = f.Title.Trim() }),
             (req.Options ?? []).Select((o, n) =>
             {
-                var opt = new ProductOption { Id = Guid.NewGuid(), ProductId = p.Id, NameUk = o.NameUk.Trim(), NameEn = Clean(o.NameEn), Sort = o.Sort == 0 ? n : o.Sort };
+                var opt = new ProductOption { Id = Guid.NewGuid(), ProductId = p.Id, NameUk = o.NameUk.Trim(), NameEn = Clean(o.NameEn), NameCs = Clean(o.NameCs), Sort = o.Sort == 0 ? n : o.Sort };
                 opt.Values.AddRange((o.Values ?? []).Select((v, m) => new ProductOptionValue
                 {
-                    Id = Guid.NewGuid(), OptionId = opt.Id, ValueUk = v.ValueUk.Trim(), ValueEn = Clean(v.ValueEn), PriceDelta = v.PriceDelta, Sort = v.Sort == 0 ? m : v.Sort,
+                    Id = Guid.NewGuid(), OptionId = opt.Id, ValueUk = v.ValueUk.Trim(), ValueEn = Clean(v.ValueEn), ValueCs = Clean(v.ValueCs), PriceDelta = v.PriceDelta, Sort = v.Sort == 0 ? m : v.Sort,
                 }));
                 return opt;
             }));
@@ -254,6 +259,7 @@ public static class AdminCatalogEndpoints
         p.Images.OrderBy(i => i.Sort).Select(i => new ImageAdminDto(i.Id, i.Key, FileStorage.Url(i.Key), i.Alt, i.Sort)).ToList(),
         p.Files.Select(f => new FileAdminDto(f.Id, f.Key, FileStorage.Url(f.Key), f.Title)).ToList(),
         p.Options.OrderBy(o => o.Sort).Select(o => new OptionAdminDto(o.Id, o.NameUk, o.NameEn, o.Sort,
-            o.Values.OrderBy(v => v.Sort).Select(v => new OptionValueAdminDto(v.Id, v.ValueUk, v.ValueEn, v.PriceDelta, v.Sort)).ToList())).ToList(),
-        p.CreatedAt, p.UpdatedAt, p.OberigMonitoring);
+            o.Values.OrderBy(v => v.Sort).Select(v => new OptionValueAdminDto(v.Id, v.ValueUk, v.ValueEn, v.PriceDelta, v.Sort, v.ValueCs)).ToList(), o.NameCs)).ToList(),
+        p.CreatedAt, p.UpdatedAt, p.OberigMonitoring,
+        p.NameCs, p.ShortDescCs, p.DescriptionHtmlCs, p.SpecsHtmlCs, p.FaqHtmlCs, p.SeoTitleCs, p.SeoDescCs);
 }

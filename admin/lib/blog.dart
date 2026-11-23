@@ -418,7 +418,7 @@ class _PostEditorState extends State<PostEditor> with SingleTickerProviderStateM
   late final TextEditingController _slug = TextEditingController(text: d['slug'])
     ..addListener(() => d['slug'] = _slug.text.trim());
   late bool _autoSlug = _isNew; // slug follows the title until edited by hand
-  String _lang = 'Uk'; // DTO key suffix: titleUk / titleEn …
+  String _lang = 'Uk'; // DTO key suffix: titleUk / titleEn / titleCs …
   bool _busy = false;
 
   bool get _isNew => widget.post == null;
@@ -530,6 +530,7 @@ class _PostEditorState extends State<PostEditor> with SingleTickerProviderStateM
                           segments: const [
                             ButtonSegment(value: 'Uk', label: Text('Українська')),
                             ButtonSegment(value: 'En', label: Text('English')),
+                            ButtonSegment(value: 'Cs', label: Text('Čeština')),
                           ],
                           selected: {_lang},
                           showSelectedIcon: false,
@@ -568,7 +569,8 @@ class _PostEditorState extends State<PostEditor> with SingleTickerProviderStateM
   }
 
   Widget _content() {
-    final en = _lang == 'En';
+    final en = _lang != 'Uk'; // EN or CS: optional, falls back
+    final tag = _lang.toUpperCase();
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
       child: Column(
@@ -582,8 +584,8 @@ class _PostEditorState extends State<PostEditor> with SingleTickerProviderStateM
                   initialValue: d['title$_lang'] ?? '',
                   style: Theme.of(context).textTheme.titleLarge,
                   decoration: InputDecoration(
-                    labelText: en ? 'Заголовок (EN)' : 'Заголовок *',
-                    helperText: en ? 'Порожні поля EN — англійська версія сайту покаже український текст' : null,
+                    labelText: en ? 'Заголовок ($tag)' : 'Заголовок *',
+                    helperText: en ? 'Порожні поля $tag — сайт покаже англійський, а без нього український текст' : null,
                     border: const OutlineInputBorder(),
                   ),
                   onChanged: (v) {
@@ -607,7 +609,7 @@ class _PostEditorState extends State<PostEditor> with SingleTickerProviderStateM
           const SizedBox(height: 16),
           Expanded(
             child: HtmlField(
-              F('bodyHtml$_lang', en ? 'Текст (EN)' : 'Текст', t: T.html, required: !en, folder: 'blog'),
+              F('bodyHtml$_lang', en ? 'Текст ($tag)' : 'Текст', t: T.html, required: !en, folder: 'blog'),
               d,
               key: ValueKey('body$_lang'),
               height: null,
