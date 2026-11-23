@@ -160,6 +160,7 @@
     "lead": "We build the K5 vertical-axis wind turbine ourselves, from winding the stator to installing it on your site. Scroll and watch how.",
     "hint": "Scroll",
     "svgLabel": "How the K5 wind turbine is manufactured, assembled and installed",
+    "railLabel": "Stages",
     "rail": ["Generator", "Blades", "Assembly", "Mast", "Installation"],
     "s1": {
       "h": "The heart of K5 is a permanent-magnet generator.",
