@@ -1,5 +1,6 @@
 // Env contract (see README): NUXT_API_BASE = API origin for SSR, NUXT_PUBLIC_API_BASE = origin
-// for the browser ("" = same origin, nginx proxies /api/), NUXT_PUBLIC_SITE_URL, NITRO_PORT.
+// for the browser ("" = same origin, nginx proxies /api/), NUXT_PUBLIC_SITE_URL, NITRO_PORT,
+// NUXT_PUBLIC_TURNSTILE_SITE_KEY (Cloudflare captcha; empty = off, pairs with the API's Turnstile:SecretKey).
 const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
 export default defineNuxtConfig({
@@ -10,22 +11,27 @@ export default defineNuxtConfig({
   components: [{ path: '~/components', pathPrefix: false }],
   runtimeConfig: {
     apiBase: 'http://localhost:5000',
-    public: { apiBase: '', siteUrl },
+    public: { apiBase: '', siteUrl, turnstileSiteKey: '' },
   },
   i18n: {
     locales: [
       { code: 'uk', language: 'uk-UA', file: 'uk.json', name: 'Українська' },
       { code: 'en', language: 'en-US', file: 'en.json', name: 'English' },
+      { code: 'cs', language: 'cs-CZ', file: 'cs.json', name: 'Čeština' },
     ],
     defaultLocale: 'uk',
     strategy: 'prefix_except_default',
-    detectBrowserLanguage: false,
+    // First visit to "/" only: browser prefers en over uk → 302 to /en, choice kept in a cookie
+    // (the language switch updates it). Deep links and crawlers (no Accept-Language) stay put.
+    // Russian counts as Ukrainian: server/middleware/ru-as-uk.ts.
+    // ponytail: no fallbackLocale — it would also send Googlebot from / to /en.
+    detectBrowserLanguage: { useCookie: true, redirectOn: 'root' },
     baseUrl: siteUrl,
   },
   site: { url: siteUrl },
   sitemap: {
     sources: ['/_sitemap/urls'],
-    exclude: ['/cart', '/checkout', '/order/**', '/en/cart', '/en/checkout', '/en/order/**'],
+    exclude: ['', '/en', '/cs'].flatMap(p => [`${p}/cart`, `${p}/checkout`, `${p}/order/**`]),
   },
   // Dev only: the browser talks to the API and its static media through the Nuxt dev server.
   // Nitro honours `proxy` here (verified), Nuxt's typed subset of route rules just omits it.

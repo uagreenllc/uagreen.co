@@ -1,9 +1,10 @@
 <script setup lang="ts">
 const props = defineProps<{ slug: string }>()
 const { t } = useI18n()
-const f = reactive({ name: '', phone: '', email: '', message: '', website: '' })
+const f = reactive({ name: '', phone: '', email: '', message: '', website: '', captcha: '' })
 const cv = ref<File | null>(null)
 const errors = reactive<Record<string, string>>({})
+const captchaEl = ref<{ reset(): void }>()
 
 const { pending, error, done, run } = useForm<typeof f>(async (v) => {
   const body = new FormData()
@@ -12,6 +13,7 @@ const { pending, error, done, run } = useForm<typeof f>(async (v) => {
   if (cv.value) body.append('cv', cv.value)
   await $fetch(apiUrl('/applications'), { method: 'POST', body })
 })
+watch(error, e => e && captchaEl.value?.reset())
 
 function onFile(e: Event) {
   cv.value = (e.target as HTMLInputElement).files?.[0] ?? null
@@ -56,6 +58,7 @@ function submit() {
         <em v-if="errors.cv">{{ errors.cv }}</em>
       </label>
       <label class="hp" aria-hidden="true"><span>Website</span><input v-model="f.website" name="website" tabindex="-1" autocomplete="off"></label>
+      <Captcha ref="captchaEl" v-model="f.captcha" />
       <p v-if="error" class="form-error">{{ error }}</p>
       <button class="btn" type="submit" :disabled="pending">{{ pending ? $t('form.sending') : $t('form.send') }}</button>
     </form>

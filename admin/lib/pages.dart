@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'api.dart';
 import 'browser.dart' as browser;
@@ -271,9 +272,16 @@ Widget categoriesPage() => crud(
   fields: const [
     F('nameUk', 'Назва (UK)', required: true),
     F('nameEn', 'Назва (EN)'),
+    F('nameCs', 'Назва (CS)'),
     F('slug', 'Slug (адреса /shop/cat/...)', t: T.slug, required: true),
     F('sort', 'Порядок', t: T.int),
     F('imageKey', 'Зображення', t: T.image, folder: 'categories'),
+    F('descriptionHtmlUk', 'Опис (UK)', t: T.html, folder: 'categories'),
+    F('descriptionHtmlEn', 'Опис (EN)', t: T.html, folder: 'categories'),
+    F('seoTitleUk', 'SEO title (UK)'),
+    F('seoTitleEn', 'SEO title (EN)'),
+    F('seoDescUk', 'SEO description (UK)', t: T.multiline),
+    F('seoDescEn', 'SEO description (EN)', t: T.multiline),
   ],
 );
 
@@ -400,6 +408,133 @@ class _OrderDialogState extends State<_OrderDialog> {
   }
 }
 
+/// Доставка (as on Weblium): switch each method on/off and add a note shown under it at checkout.
+/// Public settings: `delivery.<Method>.off` = 1, `delivery.<Method>.note.<lang>`.
+class DeliveryPage extends StatefulWidget {
+  const DeliveryPage({super.key});
+  @override
+  State<DeliveryPage> createState() => _DeliveryPageState();
+}
+
+class _DeliveryPageState extends State<DeliveryPage> {
+  static const _langs = ['uk', 'en', 'cs'];
+  final _on = <String, bool>{};
+  final _notes = {
+    for (final m in _deliveries.keys)
+      for (final l in _langs) 'delivery.$m.note.$l': TextEditingController(),
+  };
+  Object? _error;
+  bool _busy = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    for (final c in _notes.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      _show(await api.get('/admin/settings') as J);
+    } catch (e) {
+      _error = e;
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  void _show(J m) {
+    for (final d in _deliveries.keys) {
+      _on[d] = m['delivery.$d.off'] == null;
+    }
+    for (final e in _notes.entries) {
+      e.value.text = m[e.key] ?? '';
+    }
+  }
+
+  Future<void> _save() async {
+    setState(() => _busy = true);
+    try {
+      _show(
+        await api.put('/admin/settings', {
+          for (final d in _deliveries.keys) 'delivery.$d.off': _on[d]! ? null : '1', // empty → key deleted
+          for (final e in _notes.entries) e.key: e.value.text,
+        }) as J,
+      );
+      if (mounted) toast(context, 'Збережено');
+    } catch (e) {
+      if (mounted) toast(context, '$e');
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) return Center(child: Text('$_error'));
+    if (_on.isEmpty) return const Center(child: CircularProgressIndicator());
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text('Способи доставки в оформленні замовлення. Примітка — дрібним текстом під назвою (термін, адреса).'),
+        const SizedBox(height: 12),
+        for (final d in _deliveries.entries)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, 4, 16, 16),
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    title: Text(d.value, style: Theme.of(context).textTheme.titleMedium),
+                    subtitle: Text(_on[d.key]! ? 'Увімкнено' : 'Вимкнено'),
+                    value: _on[d.key]!,
+                    onChanged: (v) => setState(() => _on[d.key] = v),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        for (final l in _langs)
+                          SizedBox(
+                            width: 320,
+                            child: TextField(
+                              controller: _notes['delivery.${d.key}.note.$l'],
+                              enabled: _on[d.key],
+                              decoration: InputDecoration(
+                                labelText: 'Примітка (${l.toUpperCase()})',
+                                border: const OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.icon(
+            onPressed: _busy ? null : _save,
+            icon: const Icon(Icons.save),
+            label: const Text('Зберегти'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ── Content (Editor) ──
 
 Widget contentPage() {
@@ -424,6 +559,149 @@ Widget contentPage() {
     delete: (r) => api.delete('/admin/content/${r['key']}/${r['lang']}'),
   );
 }
+
+/// (settings key, title, field label, example, format) — the keys frontend/composables/useAnalytics.ts reads.
+final _analytics = [
+  ('ga4_id', 'Google Аналітика', 'ID потоку даних GA4', 'G-XXXXXXXXXX', RegExp(r'^G-[A-Z0-9]+$')),
+  ('google_ads_id', 'Google Ads', 'Тег Google Ads (конверсії, ремаркетинг)', 'AW-1234567890', RegExp(r'^AW-\d+$')),
+  ('fb_pixel_id', 'Піксель Facebook', 'ID пікселя Meta', '1234567890123456', RegExp(r'^\d+$')),
+];
+
+/// Analytics ids as named fields; they are plain settings, so an empty field deletes the key = disconnects.
+class AnalyticsPage extends StatefulWidget {
+  const AnalyticsPage({super.key});
+  @override
+  State<AnalyticsPage> createState() => _AnalyticsPageState();
+}
+
+class _AnalyticsPageState extends State<AnalyticsPage> {
+  final _form = GlobalKey<FormState>();
+  final _c = {for (final a in _analytics) a.$1: TextEditingController()};
+  J _saved = {};
+  Object? _error;
+  bool _busy = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      _show(await api.get('/admin/settings') as J);
+    } catch (e) {
+      _error = e;
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  void _show(J m) {
+    _saved = m;
+    for (final MapEntry(:key, :value) in _c.entries) {
+      value.text = '${m[key] ?? ''}';
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_form.currentState!.validate()) return;
+    setState(() => _busy = true);
+    try {
+      _show(
+        await api.put('/admin/settings', {for (final MapEntry(:key, :value) in _c.entries) key: value.text.trim()})
+            as J,
+      );
+      if (mounted) toast(context, 'Збережено');
+    } catch (e) {
+      if (mounted) toast(context, '$e');
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) return Center(child: Text('$_error'));
+    if (_busy && _saved.isEmpty) return const Center(child: CircularProgressIndicator());
+    return Form(
+      key: _form,
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: SizedBox(
+          width: 680,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              const Text('Сайт додає ці лічильники на всі сторінки. Порожнє поле — сервіс відключено.'),
+              const SizedBox(height: 16),
+              for (final (key, title, label, example, format) in _analytics)
+                Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium)),
+                            if (_saved[key] != null)
+                              const Tooltip(
+                                message: 'Підключено',
+                                child: Icon(Icons.check_circle, color: Colors.green),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _c[key],
+                          decoration: InputDecoration(
+                            labelText: label,
+                            hintText: example,
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (v) => v!.trim().isEmpty || format.hasMatch(v.trim()) ? null : 'Формат: $example',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.icon(
+                  onPressed: _busy ? null : _save,
+                  icon: const Icon(Icons.save),
+                  label: const Text('Зберегти'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Widget reviewsPage() => crud(
+  path: '/admin/reviews',
+  noun: 'відгук',
+  cols: [
+    Col('', (r) => thumb(r['photoKey'])),
+    Col('Автор', (r) => r['authorUk']),
+    Col('Текст', (r) => r['textUk']),
+    Col('Порядок', (r) => r['sort']),
+    Col('На сайті', (r) => yes(r['published'])),
+  ],
+  blank: () => {'published': true, 'sort': 0},
+  fields: const [
+    F('authorUk', "Ім'я, місто (UK)", required: true),
+    F('authorEn', "Ім'я, місто (EN)"),
+    F('textUk', 'Текст відгуку (UK)', t: T.multiline, required: true),
+    F('textEn', 'Текст відгуку (EN)', t: T.multiline),
+    F('photoKey', 'Фото', t: T.image, folder: 'content'),
+    F('published', 'Показувати на сайті', t: T.bool),
+    F('sort', 'Порядок', t: T.int),
+  ],
+);
 
 /// Key/value site settings (phones, address, socials, analytics ids).
 class SettingsPage extends StatefulWidget {
@@ -528,6 +806,164 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Канали збуту (as on Weblium): the feed links to paste into each channel; they pull it on a schedule.
+class FeedsPage extends StatelessWidget {
+  const FeedsPage({super.key});
+
+  static const _channels = [
+    ('Prom.ua', 'prom', 'Prom.ua → Імпорт товарів → за посиланням, з автооновленням.'),
+    ('Google Merchant Center', 'google', 'Merchant Center → Джерела товарів → Додати → файл за посиланням.'),
+    (
+      'Facebook & Instagram Commerce Manager',
+      'google',
+      'Commerce Manager → Каталог → Джерела даних → Запланований фід (той самий фід, що й для Google).',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder(
+    future: api.get('/admin/feeds'),
+    builder: (context, s) {
+      if (s.hasError) return Center(child: Text('${s.error}'));
+      if (!s.hasData) return const Center(child: CircularProgressIndicator());
+      final urls = s.data as J;
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text('Опубліковані товари, ціни в UAH, українською. Канал сам оновлює фід за розкладом.'),
+          const SizedBox(height: 8),
+          for (final (name, key, how) in _channels)
+            Card(
+              child: ListTile(
+                title: Text(name),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [SelectableText(urls[key]), Text(how)],
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.copy),
+                  tooltip: 'Копіювати посилання',
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: urls[key]));
+                    if (context.mounted) toast(context, 'Скопійовано');
+                  },
+                ),
+              ),
+            ),
+        ],
+      );
+    },
+  );
+}
+
+/// Сторонній код (as on Weblium): raw HTML/JS/CSS the site server pastes into every page.
+class CodePage extends StatefulWidget {
+  const CodePage({super.key});
+  @override
+  State<CodePage> createState() => _CodePageState();
+}
+
+class _CodePageState extends State<CodePage> {
+  static const _tabs = {
+    'code_head': '<HEAD>',
+    'code_body_start': 'After <BODY>',
+    'code_body_end': 'Before </BODY>',
+    'code_css': 'CSS',
+  };
+  final _c = {for (final k in _tabs.keys) k: TextEditingController()};
+  Object? _error;
+  bool _busy = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    for (final c in _c.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      _show(await api.get('/admin/code') as J);
+    } catch (e) {
+      _error = e;
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  void _show(J m) {
+    for (final e in _c.entries) {
+      e.value.text = m[e.key] ?? '';
+    }
+  }
+
+  Future<void> _save() async {
+    setState(() => _busy = true);
+    try {
+      _show(await api.put('/admin/code', {for (final e in _c.entries) e.key: e.value.text}) as J);
+      if (mounted) toast(context, 'Збережено — діє з наступного завантаження сторінки сайту');
+    } catch (e) {
+      if (mounted) toast(context, '$e');
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) return Center(child: Text('$_error'));
+    if (_busy && _c.values.every((c) => c.text.isEmpty)) return const Center(child: CircularProgressIndicator());
+    return DefaultTabController(
+      length: _tabs.length,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Код вставляється як є на кожну сторінку сайту (лічильники, віджети, пікселі). '
+              'CSS — без тегу <style>. Помилка в скрипті може зламати сайт.',
+            ),
+            TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [for (final t in _tabs.values) Tab(text: t)]),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  for (final c in _c.values)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: TextField(
+                        controller: c,
+                        expands: true,
+                        maxLines: null,
+                        textAlignVertical: TextAlignVertical.top,
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                        decoration: const InputDecoration(border: OutlineInputBorder()),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: _busy ? null : _save,
+                icon: const Icon(Icons.save),
+                label: const Text('Зберегти'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

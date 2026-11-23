@@ -16,7 +16,8 @@ export function useForm<T>(submit: (values: T) => Promise<void>) {
     } catch (e) {
       // Only our API's { code, message } is worth showing verbatim; a proxy's "Bad Gateway" is not.
       const data = (e as { data?: Partial<ApiError> }).data
-      error.value = data?.code && data.message ? data.message : t('form.failed')
+      error.value = data?.code === 'CAPTCHA_FAILED' ? t('form.captchaFailed')
+        : data?.code && data.message ? data.message : t('form.failed')
     } finally {
       pending.value = false
     }

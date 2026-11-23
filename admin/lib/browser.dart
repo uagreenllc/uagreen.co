@@ -199,3 +199,20 @@ String cleanHtml(String html) {
   walk(doc.body!);
   return (doc.body!.innerHTML as JSString).toDart;
 }
+
+@JS('Intl.DisplayNames')
+extension type _DisplayNames._(JSObject _) implements JSObject {
+  external _DisplayNames(JSArray<JSString> locales, JSObject options);
+  external String? of(String code);
+}
+
+final _regions = _DisplayNames(['uk'.toJS].toJS, {'type': 'region'}.jsify() as JSObject);
+
+/// "CZ" → "Чехія" (the browser's own country names).
+String countryName(String code) {
+  try {
+    return _regions.of(code) ?? code;
+  } catch (_) {
+    return code;
+  }
+}

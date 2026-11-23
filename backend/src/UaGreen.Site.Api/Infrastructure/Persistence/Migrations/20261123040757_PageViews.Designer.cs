@@ -12,8 +12,8 @@ using UaGreen.Site.Api.Infrastructure.Persistence;
 namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261123040811_BlogSeo")]
-    partial class BlogSeo
+    [Migration("20261123040757_PageViews")]
+    partial class PageViews
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -108,14 +108,6 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("excerpt_uk");
 
-                    b.Property<bool>("NoFollow")
-                        .HasColumnType("boolean")
-                        .HasColumnName("no_follow");
-
-                    b.Property<bool>("NoIndex")
-                        .HasColumnType("boolean")
-                        .HasColumnName("no_index");
-
                     b.Property<bool>("Published")
                         .HasColumnType("boolean")
                         .HasColumnName("published");
@@ -131,14 +123,6 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<string>("SeoDescUk")
                         .HasColumnType("text")
                         .HasColumnName("seo_desc_uk");
-
-                    b.Property<string>("SeoKeywordsEn")
-                        .HasColumnType("text")
-                        .HasColumnName("seo_keywords_en");
-
-                    b.Property<string>("SeoKeywordsUk")
-                        .HasColumnType("text")
-                        .HasColumnName("seo_keywords_uk");
 
                     b.Property<string>("SeoTitleEn")
                         .HasColumnType("text")
@@ -432,6 +416,53 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_order_items_order_id");
 
                     b.ToTable("order_items", (string)null);
+                });
+
+            modelBuilder.Entity("UaGreen.Site.Api.Domain.PageView", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country");
+
+                    b.Property<bool>("Entry")
+                        .HasColumnType("boolean")
+                        .HasColumnName("entry");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("path");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("source");
+
+                    b.Property<Guid>("VisitorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("visitor_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_page_views");
+
+                    b.HasIndex("At")
+                        .HasDatabaseName("ix_page_views_at");
+
+                    b.ToTable("page_views", (string)null);
                 });
 
             modelBuilder.Entity("UaGreen.Site.Api.Domain.Product", b =>

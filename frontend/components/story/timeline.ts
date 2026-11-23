@@ -56,6 +56,8 @@ export interface Story {
   tl: gsap.core.Timeline
   /** Scroll to `s1 + u` timeline units (QA helper). */
   seek: (u: number) => void
+  /** Smooth-scroll to snap stop i: 0 the title, 1..4 a finished stage, 5 the final view. */
+  goTo: (i: number) => void
   destroy: () => void
 }
 
@@ -76,7 +78,9 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   g.registerPlugin(ScrollTrigger)
   const state = { phase: 15, bladeDraw: 0, strutDraw: 0 } // phase 15°: three distinct x positions, none hidden behind the shaft
   let spin = 0
+  let speed = 0 // °/ms; eases towards SPIN once the rotor is on the mast, back to 0 when scrolled before that
   let spinOn = false
+  let onScreen = true
 
   const drawBlades = () => {
     const ph = state.phase + spin
@@ -160,10 +164,10 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
     g.set(s, { svgOrigin: `${h.ax} ${h.ay + 300}`, rotation: 90, x: 40, y: 1317 + 22 * i - (h.ay + 300) })
   })
 
+  // Paused: the ScrollTrigger created below drives it (it needs the labels for its snap stops).
   const tl = g.timeline({
     defaults: { ease: 'none' },
-    paused: opts.reduce,
-    scrollTrigger: opts.reduce ? undefined : { trigger: r.section, start: 'top top', end: '+=10500', pin: true, scrub: 0.8 },
+    paused: true,
     onUpdate: () => {
       drawCrane()
       const t = tl.time()
@@ -189,6 +193,7 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   r.magnets.forEach((m, i) => tl.to(m, { opacity: 1, duration: 0.02 }, `s1+=${1.06 + i * 0.006}`))
   tl.to([r.band, r.top, r.shaft], { y: TOPY, duration: 0.25, ease: 'power2.inOut' }, 's1+=1.3')
   tl.to(r.housing, { opacity: 1, duration: 0.12 }, 's1+=1.56')
+  tl.addLabel('s1done', 's1+=1.68') // housing closed; the camera has barely started to move
   // The camera glides to the workshop view while the finished generator shrinks onto its spot on the
   // floor, so the eye follows one continuous motion; at the end it is swapped for the assembly's copy
   // (same shape at scale 0.19) in one frame, so nothing vanishes or pops.
@@ -209,6 +214,7 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   tl.to(r.rawOuter[0]!, { opacity: 1, duration: 0.04 }, 's2+=1.1')
   tl.to(r.moldBlade, { opacity: 0, duration: 0.04 }, 's2+=1.1')
   tl.to([r.rawOuter[1]!, r.rawOuter[2]!], { opacity: 1, duration: 0.08, stagger: 0.05 }, 's2+=1.12')
+  tl.addLabel('s2done', 's2+=1.25')
   // 3 — assembly
   tl.addLabel('s3', 's2+=1.3')
   tl.to(r.svg, { attr: { viewBox: CAM.asm }, duration: 0.3, ease: 'power2.inOut' }, 's3')
@@ -228,6 +234,7 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   tl.set(state, { bladeDraw: 1, onUpdate: drawBlades }, 's3+=0.98')
   tl.set(r.rawOuter, { opacity: 0 }, 's3+=0.98')
   tl.to(state, { phase: 135, duration: 0.3, ease: 'power1.inOut', onUpdate: drawBlades }, 's3+=1.02')
+  tl.addLabel('s3done', 's3+=1.32')
   // 4 — foundation and mast
   tl.addLabel('s4', 's3+=1.4')
   tl.to(r.svg, { attr: { viewBox: CAM.mast }, duration: 0.35, ease: 'power2.inOut' }, 's4')
@@ -253,6 +260,7 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
     tl.to(crane, { hookY: 110, duration: 0.06 }, `s4+=${t4 + 0.68}`)
     t4 += 0.78
   })
+  tl.addLabel('s4done', `s4+=${t4}`) // last section set, hook reeled in
   // the empty trailer drives off behind the house
   tl.to(r.trailer, { x: 700, opacity: 0, duration: 0.3, ease: 'power2.in' }, `s4+=${t4}`)
   // 5 — installation
@@ -287,17 +295,35 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   tl.to(r.svg, { attr: { viewBox: CAM.end }, duration: 0.4, ease: 'power2.inOut' }, 'end')
   tl.to({}, { duration: 0.05 }, 'end+=0.4')
 
+  // Snap stops: the title, each stage finished (before the camera moves on), the final view. When the
+  // scroll comes to rest between two, it carries on in the scroll's direction, so the scene never
+  // stays half-built and one flick plays one stage.
+  // inertia: false — GSAP measures inertia on the scrubbed timeline, which lags the scroll by `scrub`
+  // seconds; after a rail jump that lag reads as speed and the snap overshoots to the next stop.
+  const stops = [0, ...(['s1done', 's2done', 's3done', 's4done'] as const).map(l => tl.labels[l]! / tl.duration()), 1]
+  const st = opts.reduce
+    ? undefined
+    : ScrollTrigger.create({
+        animation: tl, trigger: r.section, start: 'top top', end: '+=10500', pin: true, scrub: 0.8,
+        snap: { snapTo: stops, inertia: false, duration: { min: 0.2, max: 1 } }, // ponytail: tune max by feel; drop `snap` to scrub freely
+      })
+
   drawCrane()
+  const SPIN = 0.09 // °/ms at full speed
   const tick = (_t: number, dt: number) => {
-    if (spinOn) {
-      spin += dt * 0.09
-      drawBlades()
-    }
+    speed += ((spinOn ? SPIN : 0) - speed) * (1 - Math.exp(-dt / 600)) // spin up / coast down, ~2 s to full speed
+    if (speed < 1e-4) speed = 0
+    if (!speed || !onScreen) return // still, or scrolled away: no SVG writes
+    spin += dt * speed
+    drawBlades()
   }
+  let io: IntersectionObserver | undefined
   if (opts.reduce) {
     tl.progress(1) // finished scene, no spinning: continuous motion is what the user opted out of
   } else {
     g.ticker.add(tick)
+    io = new IntersectionObserver(([e]) => { onScreen = e!.isIntersecting })
+    io.observe(r.section)
     // The plugin loads after the window load event, and the web font lands later still:
     // measure the pin again once layout is final, or the scrub range can come out empty.
     requestAnimationFrame(() => ScrollTrigger.refresh())
@@ -307,13 +333,16 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
   return {
     tl,
     seek(u) {
-      const st = tl.scrollTrigger
       if (st) st.scroll(st.start + ((tl.labels.s1! + u) / tl.duration()) * (st.end - st.start))
       else tl.time(tl.labels.s1! + u)
     },
+    goTo(i) {
+      if (st) window.scrollTo({ top: st.start + stops[i]! * (st.end - st.start), behavior: 'smooth' })
+    },
     destroy() {
       g.ticker.remove(tick)
-      tl.scrollTrigger?.kill()
+      io?.disconnect()
+      st?.kill()
       tl.kill()
     },
   }

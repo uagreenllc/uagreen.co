@@ -18,9 +18,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<ContentBlock> Content => Set<ContentBlock>();
+    public DbSet<Review> Reviews => Set<Review>();
     public DbSet<Setting> Settings => Set<Setting>();
     public DbSet<Redirect> Redirects => Set<Redirect>();
     public DbSet<SiteUser> SiteUsers => Set<SiteUser>();
+    public DbSet<PageView> PageViews => Set<PageView>();
 
     /// Replace a product's images/files/options wholesale. Children get explicit
     /// Remove/Add calls: entities with a pre-set Guid key that EF discovers through a
@@ -125,6 +127,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                         v => v.Aggregate(0, (h, r) => HashCode.Combine(h, r)),
                         v => v.ToList()))
                 .HasMaxLength(100);
+        });
+        b.Entity<PageView>(e =>
+        {
+            e.HasIndex(x => x.At);
+            e.Property(x => x.Path).HasMaxLength(300);
+            e.Property(x => x.Source).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Country).HasMaxLength(2);
         });
     }
 }
