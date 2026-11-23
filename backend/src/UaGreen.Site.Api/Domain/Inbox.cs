@@ -24,6 +24,8 @@ public sealed class ContactRequest
     public string Message { get; set; } = "";
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; }
+    /// The Gospodar CRM deal this request became; null until CrmLeadSync has pushed it.
+    public Guid? CrmDealId { get; set; }
 }
 
 /// Back-office roles. Authentication is Gospodar's; these are assigned here by an Admin.
