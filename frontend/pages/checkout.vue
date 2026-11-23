@@ -8,10 +8,15 @@ const money = useMoney()
 const { t, locale } = useI18n()
 usePageHead({ title: t('checkout.title') })
 
-const deliveries: DeliveryMethod[] = ['NovaPoshta', 'Ukrposhta', 'Pickup']
+// Admin → Доставка: `delivery.<Method>.off` hides a method, `delivery.<Method>.note.<lang>` shows under it.
+const settings = useSettings()
+const deliveries = (['NovaPoshta', 'Ukrposhta', 'Pickup'] as DeliveryMethod[]).filter(d => !settings.value?.[`delivery.${d}.off`])
+const langs = ['cs', 'en', 'uk']
+const deliveryNote = (d: DeliveryMethod) => langs.slice(Math.max(0, langs.indexOf(locale.value)))
+  .map(l => settings.value?.[`delivery.${d}.note.${l}`]).find(Boolean)
 const payments: PaymentMethod[] = ['LiqPay', 'Invoice', 'Credit']
 const f = reactive({
-  name: '', phone: '', email: '', delivery: 'NovaPoshta' as DeliveryMethod, city: '', warehouse: '',
+  name: '', phone: '', email: '', delivery: deliveries[0]!, city: '', warehouse: '',
   payment: 'LiqPay' as PaymentMethod, comment: '', website: '', captcha: '',
 })
 const errors = reactive<Record<string, string>>({})
@@ -79,7 +84,10 @@ function submit() {
 
           <h2>{{ $t('checkout.delivery') }}</h2>
           <div class="choices">
-            <label v-for="d in deliveries" :key="d"><input v-model="f.delivery" type="radio" name="delivery" :value="d"> {{ $t(`checkout.delivery_${d}`) }}</label>
+            <label v-for="d in deliveries" :key="d">
+              <input v-model="f.delivery" type="radio" name="delivery" :value="d">
+              <span>{{ $t(`checkout.delivery_${d}`) }}<small v-if="deliveryNote(d)">{{ deliveryNote(d) }}</small></span>
+            </label>
           </div>
           <template v-if="needsAddress">
             <label class="field">

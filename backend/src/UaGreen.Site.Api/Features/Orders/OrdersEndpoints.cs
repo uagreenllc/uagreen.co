@@ -54,6 +54,9 @@ public static class OrdersEndpoints
             throw ProblemException.BadRequest("Unknown payment method");
         if (!Enum.TryParse<DeliveryMethod>(req.Delivery?.Method, true, out var delivery))
             throw ProblemException.BadRequest("Unknown delivery method");
+        var offKey = $"delivery.{delivery}.off"; // set in admin → Доставка
+        if (await db.Settings.AnyAsync(s => s.Key == offKey, ct))
+            throw ProblemException.BadRequest("Delivery method is turned off");
         if (req.Items is null) throw ProblemException.BadRequest("Order has no items");
         var lang = Lang.Norm(req.Lang);
         await captcha.EnsureHumanAsync(req.Captcha, ct);
