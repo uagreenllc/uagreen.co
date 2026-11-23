@@ -6,6 +6,7 @@ import 'package:uagreen_ui/uagreen_ui.dart';
 
 import 'api.dart';
 import 'browser.dart' as browser;
+import 'slug.dart';
 
 export 'api.dart' show J;
 
@@ -73,21 +74,8 @@ Widget thumb(String? keyOrUrl, {double size = AppSizes.avatarLg}) => ClipRRect(
         ),
 );
 
-final _slug = RegExp(r'^[a-z0-9]+(?:-[a-z0-9]+)*$');
 num? _money(String s) => num.tryParse(s.trim().replaceAll(' ', '').replaceAll(',', '.'));
 num? _int(String s) => int.tryParse(s.trim());
-
-/// Ukrainian latin transliteration for "suggest slug from the title".
-String slugify(String s) {
-  const m = {
-    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'h', 'ґ': 'g', 'д': 'd', 'е': 'e', 'є': 'ie', 'ж': 'zh', 'з': 'z', 'и': 'y',
-    'і': 'i', 'ї': 'i', 'й': 'i', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's',
-    'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ь': '', 'ю': 'iu', 'я': 'ia',
-    "'": '', '’': '',
-  };
-  final latin = s.toLowerCase().split('').map((c) => m[c] ?? c).join();
-  return latin.replaceAll(RegExp(r'[^a-z0-9]+'), '-').replaceAll(RegExp(r'^-+|-+$'), '');
-}
 
 Widget textField(
   J m,
@@ -112,7 +100,7 @@ Widget textField(
     v = v!.trim();
     if (v.isEmpty) return required ? "Обов'язкове поле" : null;
     if (number != null && number(v) == null) return 'Введіть число';
-    if (pattern != null && !pattern.hasMatch(v)) return 'Лише a-z, 0-9 і дефіси, напр. vitryak-k5';
+    if (pattern != null && !pattern.hasMatch(v)) return 'Лише a-z, 0-9, дефіси й _, напр. vitryak-k5';
     return null;
   },
   onChanged: (v) => m[key] = number == null ? v : (v.trim().isEmpty ? empty : number(v)),
@@ -602,7 +590,7 @@ class _SlugFieldState extends State<_SlugField> {
       children: [
         Expanded(
           child: textField(widget.d, widget.f.key, widget.f.label,
-              required: widget.f.required, pattern: _slug, hint: widget.f.hint, controller: _c),
+              required: widget.f.required, pattern: slugPattern, hint: widget.f.hint, controller: _c),
         ),
         AppSpacing.hGapSm,
         Padding(
@@ -623,95 +611,199 @@ class _SlugFieldState extends State<_SlugField> {
   }
 }
 
-/// Raw HTML (what Weblium exported and what Nuxt renders) with a tag toolbar and a
-/// sandboxed preview. ponytail: no WYSIWYG — add one if editors find tags painful.
+/// Text of an HTML fragment (card excerpts, empty-body checks).
+String plainText(Object? html) => '${html ?? ''}'
+    .replaceAll(RegExp(r'<[^>]*>'), ' ')
+    .replaceAll('&nbsp;', ' ')
+    .replaceAll('&amp;', '&')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll(RegExp(r'\s+'), ' ')
+    .trim();
+
+bool blankHtml(Object? html) => plainText(html).isEmpty && !'${html ?? ''}'.contains('<img');
+
+/// One-line text prompt; null when cancelled.
+Future<String?> ask(BuildContext context, String title, String hint) {
+  final c = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (d) => AlertDialog(
+      title: Text(title),
+      content: SizedBox(
+        width: 420,
+        child: TextField(
+          controller: c,
+          autofocus: true,
+          decoration: InputDecoration(hintText: hint, border: const OutlineInputBorder()),
+          onSubmitted: (v) => Navigator.pop(d, v),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(d), child: const Text('Скасувати')),
+        FilledButton(onPressed: () => Navigator.pop(d, c.text), child: const Text('OK')),
+      ],
+    ),
+  );
+}
+
+const _blocks = {'p': 'Абзац', 'h2': 'Заголовок', 'h3': 'Підзаголовок', 'blockquote': 'Цитата'};
+
+/// HTML field (what Weblium exported and what Nuxt renders): a visual editor with a
+/// toolbar, plus a source view for raw tags.
 class HtmlField extends StatefulWidget {
-  const HtmlField(this.f, this.data, {super.key});
+  const HtmlField(this.f, this.data, {super.key, this.height = 420});
   final F f;
   final J data;
+
+  /// Editor height; null fills the parent (the blog post dialog).
+  final double? height;
 
   @override
   State<HtmlField> createState() => _HtmlFieldState();
 }
 
 class _HtmlFieldState extends State<HtmlField> {
-  late final TextEditingController _c = TextEditingController(text: widget.data[widget.f.key] ?? '')
-    ..addListener(() => widget.data[widget.f.key] = _c.text);
-  bool _preview = false;
+  late final _doc = browser.RichDoc(
+    onChange: (h) => widget.data[widget.f.key] = h,
+    onSelect: () => mounted ? setState(() {}) : null, // toolbar shows bold/heading at the caret
+    onWheel: (dy) {
+      final p = Scrollable.maybeOf(context, axis: Axis.vertical)?.position;
+      p?.jumpTo((p.pixels + dy).clamp(p.minScrollExtent, p.maxScrollExtent));
+    },
+  );
+  TextEditingController? _source; // non-null = raw HTML view
 
-  void _wrap(String open, [String close = '']) {
-    final t = _c.text;
-    final s = _c.selection.isValid ? _c.selection : TextSelection.collapsed(offset: t.length);
-    final inner = s.textInside(t);
-    _c.value = TextEditingValue(
-      text: t.replaceRange(s.start, s.end, '$open$inner$close'),
-      selection: TextSelection.collapsed(offset: s.start + open.length + inner.length + close.length),
-    );
+  String get _html => widget.data[widget.f.key] as String? ?? '';
+
+  void _toggleSource() => setState(() {
+    if (_source == null) {
+      final c = TextEditingController(text: _html);
+      _source = c..addListener(() => widget.data[widget.f.key] = c.text);
+    } else {
+      _source!.dispose();
+      _source = null;
+    }
+  });
+
+  Future<void> _link() async {
+    _doc.keepSelection();
+    final url = (await ask(context, 'Посилання', 'https://…'))?.trim() ?? '';
+    if (url.isNotEmpty) _doc.exec('createLink', url);
+  }
+
+  Future<void> _image() async {
+    _doc.keepSelection();
+    final k = await uploadPicked(context, widget.f.folder!, 'image/*');
+    if (k != null) _doc.exec('insertHTML', '<img src="/media/$k" alt="">');
   }
 
   @override
   void dispose() {
-    _c.dispose();
+    _source?.dispose();
     super.dispose();
+  }
+
+  Widget _toolbar() {
+    final visual = _source == null;
+    Widget btn(IconData icon, String tip, VoidCallback on, [bool selected = false]) => IconButton(
+      icon: Icon(icon, size: 20),
+      tooltip: tip,
+      isSelected: selected,
+      visualDensity: VisualDensity.compact,
+      onPressed: visual ? on : null,
+    );
+    Widget cmd(IconData icon, String tip, String command) =>
+        btn(icon, tip, () => _doc.exec(command), visual && _doc.active(command));
+    const gap = SizedBox(height: 24, child: VerticalDivider(width: 16));
+    final block = _doc.block();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          DropdownButton<String>(
+            value: _blocks.containsKey(block) ? block : 'p',
+            underline: const SizedBox.shrink(),
+            focusColor: Colors.transparent,
+            items: [for (final e in _blocks.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
+            onChanged: visual ? (v) => _doc.exec('formatBlock', '<$v>') : null,
+          ),
+          gap,
+          cmd(Icons.format_bold, 'Жирний (Ctrl+B)', 'bold'),
+          cmd(Icons.format_italic, 'Курсив (Ctrl+I)', 'italic'),
+          cmd(Icons.format_underlined, 'Підкреслений (Ctrl+U)', 'underline'),
+          cmd(Icons.format_strikethrough, 'Закреслений', 'strikeThrough'),
+          gap,
+          cmd(Icons.format_list_bulleted, 'Список', 'insertUnorderedList'),
+          cmd(Icons.format_list_numbered, 'Нумерований список', 'insertOrderedList'),
+          btn(Icons.link, 'Посилання', _link),
+          btn(Icons.link_off, 'Прибрати посилання', () => _doc.exec('unlink')),
+          if (widget.f.folder != null) btn(Icons.image_outlined, 'Вставити фото', _image),
+          btn(Icons.format_clear, 'Очистити форматування', () => _doc.exec('removeFormat')),
+          gap,
+          btn(Icons.undo, 'Скасувати (Ctrl+Z)', () => _doc.exec('undo')),
+          btn(Icons.redo, 'Повторити (Ctrl+Y)', () => _doc.exec('redo')),
+          gap,
+          IconButton(
+            icon: const Icon(Icons.code, size: 20),
+            tooltip: visual ? 'Редагувати HTML' : 'Візуальний редактор',
+            isSelected: !visual,
+            visualDensity: VisualDensity.compact,
+            onPressed: _toggleSource,
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final f = widget.f;
-    Widget tag(String label, String tip, String open, String close) =>
-        Tooltip(message: tip, child: TextButton(onPressed: () => _wrap(open, close), child: Text(label)));
-    return InputDecorator(
-      decoration: InputDecoration(
-        labelText: f.required ? '${f.label} *' : f.label,
-        helperText: f.hint,
-        border: const OutlineInputBorder(),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
+    final f = widget.f, cs = Theme.of(context).colorScheme, fill = widget.height == null;
+    final body = _source == null
+        ? _doc.view(_html, apiHost)
+        : TextField(
+            controller: _source,
+            expands: true,
+            maxLines: null,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+            decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.all(16)),
+          );
+    return FormField<void>(
+      validator: (_) => f.required && blankHtml(_html) ? "Обов'язкове поле" : null,
+      builder: (state) {
+        final box = DecoratedBox(
+          decoration: BoxDecoration(
+            color: cs.surface,
+            border: Border.all(color: state.hasError ? cs.error : cs.outline),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
             children: [
-              tag('B', 'Жирний', '<strong>', '</strong>'),
-              tag('I', 'Курсив', '<em>', '</em>'),
-              tag('H2', 'Заголовок 2', '<h2>', '</h2>'),
-              tag('H3', 'Заголовок 3', '<h3>', '</h3>'),
-              tag('¶', 'Абзац', '<p>', '</p>'),
-              tag('• список', 'Маркований список', '<ul>\n<li>', '</li>\n</ul>'),
-              tag('li', 'Пункт списку', '<li>', '</li>'),
-              tag('посилання', 'Посилання', '<a href="">', '</a>'),
-              if (f.folder != null)
-                TextButton.icon(
-                  icon: const Icon(Icons.image_outlined, size: AppSizes.iconSm),
-                  label: const Text('фото'),
-                  onPressed: () async {
-                    final k = await uploadPicked(context, f.folder!, 'image/*');
-                    if (k != null) _wrap('<img src="/media/$k" alt="">');
-                  },
-                ),
-              AppSpacing.hGapLg,
-              FilterChip(
-                avatar: const Icon(Icons.visibility_outlined, size: AppSizes.iconSm),
-                label: const Text('Перегляд'),
-                selected: _preview,
-                onSelected: (v) => setState(() => _preview = v),
-              ),
+              _toolbar(),
+              const Divider(height: 1),
+              fill ? Expanded(child: body) : SizedBox(height: widget.height, child: body),
             ],
           ),
-          if (_preview) SizedBox(height: 420, child: browser.htmlPreview(_c.text, apiHost)),
-          Offstage(
-            offstage: _preview,
-            child: TextFormField(
-              controller: _c,
-              minLines: 6,
-              maxLines: 20,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-              decoration: const InputDecoration(border: InputBorder.none, filled: false),
-              validator: (v) => f.required && v!.trim().isEmpty ? "Обов'язкове поле" : null,
+        );
+        return Column(
+          mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 6),
+              child: Text(f.required ? '${f.label} *' : f.label, style: TextStyle(color: cs.onSurfaceVariant)),
             ),
-          ),
-        ],
-      ),
+            fill ? Expanded(child: box) : box,
+            if (state.hasError)
+              Padding(
+                padding: const EdgeInsets.only(left: 12, top: 6),
+                child: Text(state.errorText!, style: TextStyle(color: cs.error, fontSize: 12)),
+              ),
+          ],
+        );
+      },
     );
   }
 }

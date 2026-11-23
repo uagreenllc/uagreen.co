@@ -10,6 +10,14 @@ if (!post.value) throw createError({ statusCode: 404 })
 const p = post.value
 
 usePageHead({ title: p.seoTitle || p.title, description: p.seoDesc || p.excerpt || excerpt(p.bodyHtml), image: p.cover })
+const robots = [p.noIndex && 'noindex', p.noFollow && 'nofollow'].filter(Boolean).join(', ')
+useSeoMeta({ robots: robots || undefined, keywords: p.keywords || undefined })
+
+// One author for the whole blog (Блог → Налаштування in the admin); a post may override the name.
+const settings = useSettings()
+const blogAuthor = settings.value?.['blog.author']
+const author = p.author || blogAuthor
+const avatar = author === blogAuthor ? settings.value?.['blog.author_avatar'] : undefined
 
 const config = useRuntimeConfig()
 const ld = {
@@ -18,7 +26,7 @@ const ld = {
   headline: p.title,
   datePublished: p.publishedAt,
   dateModified: p.updatedAt,
-  author: p.author ? { '@type': 'Person', name: p.author } : { '@type': 'Organization', name: 'UA GREEN' },
+  author: p.author ? { '@type': 'Person', name: p.author } : { '@type': 'Organization', name: blogAuthor || 'UA GREEN' },
   image: p.cover ? new URL(p.cover, config.public.siteUrl).toString() : undefined,
   mainEntityOfPage: new URL(route.path, config.public.siteUrl).toString(),
 }
@@ -29,7 +37,7 @@ useHead({ script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(ld).
   <article class="page section-inner post">
     <p class="meta">
       <time :datetime="p.publishedAt">{{ formatDate(p.publishedAt) }}</time>
-      <span v-if="p.author">· {{ p.author }}</span>
+      <span v-if="author" class="author">·<img v-if="avatar" :src="avatar" alt="" width="24" height="24">{{ author }}</span>
     </p>
     <h1>{{ p.title }}</h1>
     <img v-if="p.cover" :src="p.cover" :alt="p.title" width="1200" height="675" class="cover">
@@ -40,7 +48,9 @@ useHead({ script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(ld).
 
 <style scoped>
 .post { max-width: 860px; }
-.meta { color: var(--ink-2); font-size: 14px; margin: 0 0 12px; display: flex; gap: 8px; }
+.meta { color: var(--ink-2); font-size: 14px; margin: 0 0 12px; display: flex; gap: 8px; align-items: center; }
+.author { display: inline-flex; gap: 8px; align-items: center; }
+.author img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
 .post h1 { max-width: 30ch; }
 .cover { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; margin: 0 0 40px; background: var(--surface); }
 .back { margin-top: 48px; }

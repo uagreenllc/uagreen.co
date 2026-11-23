@@ -5,9 +5,9 @@ using UaGreen.Site.Api.Infrastructure.Storage;
 
 namespace UaGreen.Site.Api.Features.Blog;
 
-public sealed record PostCardDto(string Slug, string Title, string? Excerpt, string? Cover, string? Author, DateTime PublishedAt);
+public sealed record PostCardDto(string Slug, string Title, string? Excerpt, string? Cover, string? Author, DateTime PublishedAt, bool NoIndex);
 public sealed record PostDto(string Slug, string Title, string? Excerpt, string? Cover, string? Author, DateTime PublishedAt,
-    string BodyHtml, string? SeoTitle, string? SeoDesc, DateTime UpdatedAt);
+    string BodyHtml, string? SeoTitle, string? SeoDesc, string? Keywords, bool NoIndex, bool NoFollow, DateTime UpdatedAt);
 
 public static class BlogEndpoints
 {
@@ -25,7 +25,7 @@ public static class BlogEndpoints
             var rows = await q.OrderByDescending(p => p.PublishedAt).Skip((pn - 1) * ps).Take(ps).ToListAsync(ct);
             return new Page<PostCardDto>(rows.Select(p => new PostCardDto(
                 p.Slug, Lang.PickReq(p.TitleUk, p.TitleEn, l), Lang.Pick(p.ExcerptUk, p.ExcerptEn, l),
-                p.CoverKey is null ? null : FileStorage.Url(p.CoverKey), p.Author, p.PublishedAt)).ToList(), total, pn, ps);
+                p.CoverKey is null ? null : FileStorage.Url(p.CoverKey), p.Author, p.PublishedAt, p.NoIndex)).ToList(), total, pn, ps);
         });
 
         g.MapGet("/{slug}", async (string slug, string? lang, AppDbContext db, CancellationToken ct) =>
@@ -36,7 +36,8 @@ public static class BlogEndpoints
             return new PostDto(p.Slug, Lang.PickReq(p.TitleUk, p.TitleEn, l), Lang.Pick(p.ExcerptUk, p.ExcerptEn, l),
                 p.CoverKey is null ? null : FileStorage.Url(p.CoverKey), p.Author, p.PublishedAt,
                 Lang.PickReq(p.BodyHtmlUk, p.BodyHtmlEn, l),
-                Lang.Pick(p.SeoTitleUk, p.SeoTitleEn, l), Lang.Pick(p.SeoDescUk, p.SeoDescEn, l), p.UpdatedAt);
+                Lang.Pick(p.SeoTitleUk, p.SeoTitleEn, l), Lang.Pick(p.SeoDescUk, p.SeoDescEn, l),
+                Lang.Pick(p.SeoKeywordsUk, p.SeoKeywordsEn, l), p.NoIndex, p.NoFollow, p.UpdatedAt);
         });
     }
 }

@@ -11,12 +11,13 @@ namespace UaGreen.Site.Api.Features.Admin;
 
 public sealed record BlogUpsert(
     string Slug, string TitleUk, string? TitleEn, string? ExcerptUk, string? ExcerptEn, string BodyHtmlUk, string? BodyHtmlEn,
-    string? CoverKey, string? Author, DateTime? PublishedAt, string? SeoTitleUk, string? SeoTitleEn, string? SeoDescUk, string? SeoDescEn, bool Published);
+    string? CoverKey, string? Author, DateTime? PublishedAt, string? SeoTitleUk, string? SeoTitleEn, string? SeoDescUk, string? SeoDescEn,
+    string? SeoKeywordsUk, string? SeoKeywordsEn, bool NoIndex, bool NoFollow, bool Published);
 
 public sealed record BlogAdminDto(
     Guid Id, string Slug, string TitleUk, string? TitleEn, string? ExcerptUk, string? ExcerptEn, string BodyHtmlUk, string? BodyHtmlEn,
     string? CoverKey, string? CoverUrl, string? Author, DateTime PublishedAt, string? SeoTitleUk, string? SeoTitleEn, string? SeoDescUk, string? SeoDescEn,
-    bool Published, DateTime UpdatedAt);
+    string? SeoKeywordsUk, string? SeoKeywordsEn, bool NoIndex, bool NoFollow, bool Published, DateTime UpdatedAt);
 
 public static class AdminBlogEndpoints
 {
@@ -81,6 +82,8 @@ public static class AdminBlogEndpoints
         p.PublishedAt = req.PublishedAt ?? (p.PublishedAt == default ? DateTime.UtcNow : p.PublishedAt);
         p.SeoTitleUk = Clean(req.SeoTitleUk); p.SeoTitleEn = Clean(req.SeoTitleEn);
         p.SeoDescUk = Clean(req.SeoDescUk); p.SeoDescEn = Clean(req.SeoDescEn);
+        p.SeoKeywordsUk = Clean(req.SeoKeywordsUk); p.SeoKeywordsEn = Clean(req.SeoKeywordsEn);
+        p.NoIndex = req.NoIndex; p.NoFollow = req.NoFollow;
         p.Published = req.Published;
         p.UpdatedAt = DateTime.UtcNow;
     }
@@ -88,5 +91,6 @@ public static class AdminBlogEndpoints
     private static BlogAdminDto ToDto(BlogPost p) => new(
         p.Id, p.Slug, p.TitleUk, p.TitleEn, p.ExcerptUk, p.ExcerptEn, p.BodyHtmlUk, p.BodyHtmlEn,
         p.CoverKey, p.CoverKey is null ? null : FileStorage.Url(p.CoverKey), p.Author, p.PublishedAt,
-        p.SeoTitleUk, p.SeoTitleEn, p.SeoDescUk, p.SeoDescEn, p.Published, p.UpdatedAt);
+        p.SeoTitleUk, p.SeoTitleEn, p.SeoDescUk, p.SeoDescEn,
+        p.SeoKeywordsUk, p.SeoKeywordsEn, p.NoIndex, p.NoFollow, p.Published, p.UpdatedAt);
 }
