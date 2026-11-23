@@ -2,12 +2,16 @@ import { describe, it, expect } from 'vitest'
 import { DISMISS_MS, isTeaserBlockedPath, pickQuestion, teaserAllowed } from './chatTeaser'
 
 describe('isTeaserBlockedPath', () => {
-  it('blocks cart, checkout and order pages in both languages', () => {
-    for (const p of ['/cart', '/checkout', '/order', '/order/123', '/en/cart', '/en/checkout/', '/en/order/abc'])
+  it('blocks cart, checkout and order pages in every language', () => {
+    for (const p of ['/cart', '/checkout', '/order', '/order/123', '/en/cart', '/en/checkout/', '/en/order/abc', '/cs/cart', '/cs/checkout/', '/cs/order/1'])
+      expect(isTeaserBlockedPath(p)).toBe(true)
+  })
+  it('blocks the paid audit booking page', () => {
+    for (const p of ['/audit/book', '/audit/book/', '/en/audit/book', '/cs/audit/book/'])
       expect(isTeaserBlockedPath(p)).toBe(true)
   })
   it('allows everything else', () => {
-    for (const p of ['/', '/en', '/shop/k5v1', '/en/shop', '/orders-info', '/blog/cart-tips'])
+    for (const p of ['/', '/en', '/cs', '/cs/', '/shop/k5v1', '/en/shop', '/cs/shop', '/orders-info', '/blog/cart-tips', '/audit', '/cs/audit/consultation', '/csv/cart'])
       expect(isTeaserBlockedPath(p)).toBe(false)
   })
 })
