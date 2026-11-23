@@ -165,9 +165,21 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("DescriptionHtmlEn")
+                        .HasColumnType("text")
+                        .HasColumnName("description_html_en");
+
+                    b.Property<string>("DescriptionHtmlUk")
+                        .HasColumnType("text")
+                        .HasColumnName("description_html_uk");
+
                     b.Property<string>("ImageKey")
                         .HasColumnType("text")
                         .HasColumnName("image_key");
+
+                    b.Property<string>("NameCs")
+                        .HasColumnType("text")
+                        .HasColumnName("name_cs");
 
                     b.Property<string>("NameEn")
                         .HasColumnType("text")
@@ -177,6 +189,22 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name_uk");
+
+                    b.Property<string>("SeoDescEn")
+                        .HasColumnType("text")
+                        .HasColumnName("seo_desc_en");
+
+                    b.Property<string>("SeoDescUk")
+                        .HasColumnType("text")
+                        .HasColumnName("seo_desc_uk");
+
+                    b.Property<string>("SeoTitleEn")
+                        .HasColumnType("text")
+                        .HasColumnName("seo_title_en");
+
+                    b.Property<string>("SeoTitleUk")
+                        .HasColumnType("text")
+                        .HasColumnName("seo_title_uk");
 
                     b.Property<string>("Slug")
                         .IsRequired()

@@ -9,8 +9,10 @@ using static UaGreen.Site.Api.Features.Admin.AdminCommon;
 
 namespace UaGreen.Site.Api.Features.Admin;
 
-public sealed record CategoryUpsert(string Slug, string NameUk, string? NameEn, int Sort, string? ImageKey);
-public sealed record CategoryAdminDto(Guid Id, string Slug, string NameUk, string? NameEn, int Sort, string? ImageKey, string? ImageUrl, int ProductCount);
+public sealed record CategoryUpsert(string Slug, string NameUk, string? NameEn, string? NameCs, int Sort, string? ImageKey,
+    string? DescriptionHtmlUk, string? DescriptionHtmlEn, string? SeoTitleUk, string? SeoTitleEn, string? SeoDescUk, string? SeoDescEn);
+public sealed record CategoryAdminDto(Guid Id, string Slug, string NameUk, string? NameEn, string? NameCs, int Sort, string? ImageKey, string? ImageUrl, int ProductCount,
+    string? DescriptionHtmlUk, string? DescriptionHtmlEn, string? SeoTitleUk, string? SeoTitleEn, string? SeoDescUk, string? SeoDescEn);
 
 public sealed record ImageUpsert(string Key, string? Alt, int Sort);
 public sealed record FileUpsert(string Key, string Title);
@@ -136,8 +138,12 @@ public static class AdminCatalogEndpoints
         c.Slug = slug;
         c.NameUk = req.NameUk.Trim();
         c.NameEn = Clean(req.NameEn);
+        c.NameCs = Clean(req.NameCs);
         c.Sort = req.Sort;
         c.ImageKey = Clean(req.ImageKey);
+        c.DescriptionHtmlUk = Clean(req.DescriptionHtmlUk); c.DescriptionHtmlEn = Clean(req.DescriptionHtmlEn);
+        c.SeoTitleUk = Clean(req.SeoTitleUk); c.SeoTitleEn = Clean(req.SeoTitleEn);
+        c.SeoDescUk = Clean(req.SeoDescUk); c.SeoDescEn = Clean(req.SeoDescEn);
     }
 
     private static async Task ApplyAsync(Product p, ProductUpsert req, AppDbContext db, CancellationToken ct)
@@ -178,7 +184,8 @@ public static class AdminCatalogEndpoints
     }
 
     private static CategoryAdminDto ToDto(Category c, int count)
-        => new(c.Id, c.Slug, c.NameUk, c.NameEn, c.Sort, c.ImageKey, c.ImageKey is null ? null : FileStorage.Url(c.ImageKey), count);
+        => new(c.Id, c.Slug, c.NameUk, c.NameEn, c.NameCs, c.Sort, c.ImageKey, c.ImageKey is null ? null : FileStorage.Url(c.ImageKey), count,
+            c.DescriptionHtmlUk, c.DescriptionHtmlEn, c.SeoTitleUk, c.SeoTitleEn, c.SeoDescUk, c.SeoDescEn);
 
     public static ProductAdminDto ToDto(Product p) => new(
         p.Id, p.Slug, p.Sku, p.CategoryId, p.NameUk, p.NameEn, p.ShortDescUk, p.ShortDescEn,

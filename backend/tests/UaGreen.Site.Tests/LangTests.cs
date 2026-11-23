@@ -14,5 +14,8 @@ public class LangTests
         Assert.Equal("EN", Lang.Pick("UK", "EN", "cs"));
         Assert.Equal("UK", Lang.Pick("UK", " ", "cs"));
         Assert.Equal("UK", Lang.Pick("UK", "EN", "uk"));
+        Assert.Equal("CS", Lang.Pick("UK", "EN", "cs", "CS"));
+        Assert.Equal("EN", Lang.Pick("UK", "EN", "cs", " "));
+        Assert.Equal("EN", Lang.Pick("UK", "EN", "en", "CS"));
     }
 }
