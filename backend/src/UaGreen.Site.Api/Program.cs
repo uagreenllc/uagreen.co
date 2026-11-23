@@ -50,8 +50,9 @@ builder.Services.AddHostedService<CrmSyncWorker>();
 builder.Services.Configure<SiteChatOptions>(builder.Configuration.GetSection("SiteChat"));
 builder.Services.AddHttpClient<GospodarChatClient>((sp, http) =>
 {
-    http.BaseAddress = new Uri(sp.GetRequiredService<IOptions<GospodarOptions>>().Value.BaseUrl);
-    http.Timeout = TimeSpan.FromSeconds(10);
+    var opts = sp.GetRequiredService<IOptions<GospodarOptions>>().Value;
+    http.BaseAddress = new Uri(opts.BaseUrl);
+    http.Timeout = opts.IntegrationTimeout; // a visitor waits on every chat call: 5 s cap, retries included
 }).AddStandardResilienceHandler(o => o.Retry.DisableForUnsafeHttpMethods()); // no retried POSTs: duplicate messages
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<SessionEpochCache>();

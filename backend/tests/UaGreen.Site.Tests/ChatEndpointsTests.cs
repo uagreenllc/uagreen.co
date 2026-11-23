@@ -1,5 +1,8 @@
 using System.Text;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Metadata;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using UaGreen.Site.Api.Features.Chat;
 using UaGreen.Site.Api.Infrastructure.Chat;
@@ -51,5 +54,51 @@ public class ChatEndpointsTests
     {
         var (status, _, _) = await Run(new ChatProxyResult(404, null));
         Assert.Equal(404, status);
+    }
+
+    // nginx in front of Gospodar answers 502/504 with HTML while it is down or redeploying.
+    [Fact]
+    public async Task Gospodar_5xx_html_becomes_chat_unavailable()
+    {
+        var (status, ct, body) = await Run(new ChatProxyResult(502, "<html><body>502 Bad Gateway</body></html>"));
+        Assert.Equal(503, status);
+        Assert.StartsWith("application/json", ct);
+        Assert.Contains("\"code\":\"CHAT_UNAVAILABLE\"", body);
+    }
+
+    // Key mismatch: the visitor gets the ContactForm fallback, not a dead chat.
+    [Theory]
+    [InlineData(401)]
+    [InlineData(403)]
+    public async Task Gospodar_auth_failure_becomes_chat_unavailable(int gospodarStatus)
+    {
+        var (status, _, body) = await Run(new ChatProxyResult(gospodarStatus, null));
+        Assert.Equal(503, status);
+        Assert.Contains("\"code\":\"CHAT_UNAVAILABLE\"", body);
+    }
+
+    [Fact]
+    public async Task No_content_has_no_body()
+    {
+        var (status, ct, body) = await Run(new ChatProxyResult(204, ""));
+        Assert.Equal(204, status);
+        Assert.Null(ct);
+        Assert.Equal("", body);
+    }
+
+    [Fact]
+    public void Every_chat_endpoint_caps_the_request_body_at_16_kb()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddMemoryCache();
+        builder.Services.Configure<SiteChatOptions>(_ => { });
+        builder.Services.AddHttpClient<GospodarChatClient>();
+        var app = builder.Build();
+        ChatEndpoints.Map(app);
+
+        var endpoints = ((IEndpointRouteBuilder)app).DataSources.SelectMany(d => d.Endpoints)
+            .OfType<RouteEndpoint>().Where(e => e.RoutePattern.RawText!.StartsWith("/api/chat")).ToList();
+        Assert.Equal(6, endpoints.Count);
+        Assert.All(endpoints, e => Assert.Equal(16 * 1024, e.Metadata.GetMetadata<IRequestSizeLimitMetadata>()?.MaxRequestBodySize));
     }
 }

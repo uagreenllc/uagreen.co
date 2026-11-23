@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using UaGreen.Site.Api.Common;
@@ -18,7 +19,9 @@ public static class ChatEndpoints
 
     public static void Map(IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/chat").AllowAnonymous().DisableAntiforgery();
+        // Chat bodies are a few KB at most (text <= 2000 chars); Kestrel's default is 30 MB.
+        var g = app.MapGroup("/api/chat").AllowAnonymous().DisableAntiforgery()
+            .WithMetadata(new RequestSizeLimitAttribute(16 * 1024));
 
         g.MapGet("/questions", async (string? lang, IOptions<SiteChatOptions> opts, IMemoryCache cache, GospodarChatClient chat, CancellationToken ct) =>
         {
@@ -74,8 +77,11 @@ public static class ChatEndpoints
         opts.Value.Enabled ? ToResult(await call()) : Results.NotFound();
 
     // public (not internal): the test project has no InternalsVisibleTo.
+    // Gospodar down (nginx 502/504 HTML) or a key mismatch (401/403) is "unavailable" to the visitor:
+    // the widget then offers the ContactForm instead of a chat that silently fails.
     public static IResult ToResult(ChatProxyResult r) =>
-        r.Status == 503 ? Results.Json(new ApiError("CHAT_UNAVAILABLE", "Chat is unavailable"), statusCode: 503)
-        : r.Json is null ? Results.StatusCode(r.Status)
+        r.Status >= 500 || r.Status is 401 or 403
+            ? Results.Json(new ApiError("CHAT_UNAVAILABLE", "Chat is unavailable"), statusCode: 503)
+        : string.IsNullOrEmpty(r.Json) ? Results.StatusCode(r.Status)
         : Results.Content(r.Json, "application/json", statusCode: r.Status);
 }

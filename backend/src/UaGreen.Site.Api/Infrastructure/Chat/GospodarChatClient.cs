@@ -6,7 +6,7 @@ namespace UaGreen.Site.Api.Infrastructure.Chat;
 
 public sealed record ChatProxyResult(int Status, string? Json);
 
-/// Thin proxy to Gospodar's /api/site-chat/*; status and body pass through as-is.
+/// Thin proxy to Gospodar's /api/site-chat/*; status and body pass through (ChatEndpoints.ToResult maps failures to 503).
 public sealed class GospodarChatClient(HttpClient http, IOptions<SiteChatOptions> opts, ILogger<GospodarChatClient> log)
 {
     public async Task<ChatProxyResult> SendAsync(HttpMethod method, string path, object? body, string? chatToken, CancellationToken ct)
@@ -19,7 +19,12 @@ public sealed class GospodarChatClient(HttpClient http, IOptions<SiteChatOptions
             if (!string.IsNullOrEmpty(chatToken)) req.Headers.Add("X-Chat-Token", chatToken);
             if (body is not null) req.Content = JsonContent.Create(body);
             using var resp = await http.SendAsync(req, ct);
-            return new ChatProxyResult((int)resp.StatusCode, await resp.Content.ReadAsStringAsync(ct));
+            var status = (int)resp.StatusCode;
+            if (status is 401 or 403)
+                log.LogError("Gospodar site-chat {Method} {Path}: {Status} - SiteChat:ApiKey does not match Gospodar's SiteChat:ApiKey", method, path, status);
+            else if (status >= 500)
+                log.LogWarning("Gospodar site-chat {Method} {Path}: {Status}", method, path, status);
+            return new ChatProxyResult(status, await resp.Content.ReadAsStringAsync(ct));
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
