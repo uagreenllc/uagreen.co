@@ -43,6 +43,8 @@ export interface Product {
   options: ProductOption[]
   seoTitle: string | null
   seoDesc: string | null
+  /** Shows the "Оберіг" monitoring block (turbines, not spare parts). */
+  oberigMonitoring: boolean
 }
 
 export interface PostCard {

@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Features.Admin;
 using UaGreen.Site.Api.Infrastructure.Auth;
+using UaGreen.Site.Api.Infrastructure.Crm;
 using UaGreen.Site.Api.Infrastructure.Email;
 using UaGreen.Site.Api.Infrastructure.Import;
 using UaGreen.Site.Api.Infrastructure.Payments;
@@ -39,6 +40,9 @@ builder.Services.AddHttpClient<GospodarClient>((sp, http) =>
     http.BaseAddress = new Uri(opts.BaseUrl);
     http.Timeout = TimeSpan.FromSeconds(Math.Max(60, opts.TimeoutSeconds * 2));
 }).AddStandardResilienceHandler();
+builder.Services.AddHttpClient(nameof(CrmSync), http => http.Timeout = TimeSpan.FromSeconds(20));
+builder.Services.AddScoped<CrmSync>();
+builder.Services.AddHostedService<CrmSyncWorker>();
 builder.Services.AddSingleton<SessionEpochCache>();
 builder.Services.AddHostedService<SessionEpochRefresher>();
 
@@ -154,6 +158,7 @@ AdminContentEndpoints.Map(app);
 AdminInboxEndpoints.Map(app);
 AdminUsersEndpoints.Map(app);
 AdminMediaEndpoints.Map(app);
+AdminDashboardEndpoints.Map(app);
 
 app.Run();
 

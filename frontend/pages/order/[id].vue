@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Order } from '~/types/api'
+import type { ContentBlock, Order } from '~/types/api'
 
 const route = useRoute()
 const localePath = useLocalePath()
@@ -8,7 +8,10 @@ const { t } = useI18n()
 const id = String(route.params.id)
 if (!/^[0-9a-f-]{36}$/i.test(id)) throw createError({ statusCode: 404 })
 
-const { data, refresh } = await useApiFetch<Order>(`order:${id}`, `/orders/${id}`)
+const [{ data, refresh }, { data: oberigBlock }] = await Promise.all([
+  useApiFetch<Order>(`order:${id}`, `/orders/${id}`),
+  useApiFetch<ContentBlock[]>('oberig-order', '/content', { keys: 'oberig.order' }),
+])
 if (!data.value) throw createError({ statusCode: 404 })
 // Last good copy: a poll that times out sets `data` to null and must not blank the page.
 const order = ref<Order>(data.value)
@@ -52,6 +55,7 @@ const note = computed(() => {
       </li>
     </ul>
     <p class="sum"><span>{{ $t('order.total') }}</span><strong>{{ money(order.total) }}</strong></p>
+    <OberigCta v-if="order.status !== 'Cancelled'" variant="order" :block="oberigBlock?.[0]" />
     <p class="help">{{ $t('order.help') }} <NuxtLink class="link" :to="localePath('/contacts')">{{ $t('nav.contacts') }}</NuxtLink></p>
   </div>
 </template>

@@ -14,6 +14,10 @@ public sealed class GospodarOptions
     public int TimeoutSeconds { get; set; } = 30;
     /// How often to poll Gospodar's session-epoch endpoint (deploy cutoff). Min 5s.
     public int SessionEpochPollSeconds { get; set; } = 60;
+    /// Company integration key (X-Api-Key) for POST /api/integration/leads. Secret: env only.
+    public string IntegrationKey { get; set; } = "";
+    /// Browser origin of the ERP for deal links; defaults to BaseUrl.
+    public string? WebUrl { get; set; }
 }
 
 public sealed class AppOptions

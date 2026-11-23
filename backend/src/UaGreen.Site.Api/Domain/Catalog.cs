@@ -42,6 +42,8 @@ public sealed class Product
     public string? SeoDescEn { get; set; }
 
     public bool Published { get; set; } = true;
+    /// Shows the "Oberig monitoring" block on the product page (turbines, not spare parts).
+    public bool OberigMonitoring { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

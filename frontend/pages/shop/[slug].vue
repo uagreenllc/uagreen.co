@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Product } from '~/types/api'
+import type { ContentBlock, Product } from '~/types/api'
 import type { Selection } from '~/utils/pricing'
 import { useCart } from '~/stores/cart'
 
@@ -8,7 +8,10 @@ const localePath = useLocalePath()
 const money = useMoney()
 const slug = String(route.params.slug)
 
-const { data } = await useApiFetch<Product>(`product:${slug}`, `/catalog/products/${slug}`)
+const [{ data }, { data: oberigBlock }] = await Promise.all([
+  useApiFetch<Product>(`product:${slug}`, `/catalog/products/${slug}`),
+  useApiFetch<ContentBlock[]>('oberig-product', '/content', { keys: 'oberig.product' }),
+])
 if (!data.value) throw createError({ statusCode: 404 })
 const p = data.value
 
@@ -86,6 +89,7 @@ useHead({ script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(ld).
         </p>
       </div>
     </div>
+    <OberigCta v-if="p.oberigMonitoring" variant="product" :block="oberigBlock?.[0]" />
     <section v-for="[key, html] in sections" :key="key" class="block">
       <h2>{{ $t(key) }}</h2>
       <div class="prose" v-html="html" />

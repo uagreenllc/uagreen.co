@@ -16,7 +16,31 @@ class ApiError implements Exception {
   String toString() => message;
 }
 
+typedef J = Map<String, dynamic>;
+
 final api = Api();
+
+/// `/admin/summary`: dashboard numbers, menu badges and the outside links
+/// (site, Gospodar, Oberig). Refreshed every minute and after inbox/order edits.
+final summary = Summary();
+
+class Summary extends ChangeNotifier {
+  J data = {};
+
+  Future<void> refresh() async {
+    try {
+      data = await api.get('/admin/summary') as J;
+      notifyListeners();
+    } catch (_) {
+      // Badges are a convenience: keep the last numbers on a failed poll.
+    }
+  }
+
+  String? link(String name) {
+    final v = data['links']?[name];
+    return v is String && v.isNotEmpty ? v : null;
+  }
+}
 
 /// JSON calls to `/api` with the Gospodar session (trimmed TTApp ApiClient + AuthService):
 /// bearer on every call, one refresh on 401 then retry, logout when refresh is refused.

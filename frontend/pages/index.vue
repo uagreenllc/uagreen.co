@@ -4,7 +4,7 @@ import type { ContentBlock, Page, PostCard, ProductCard } from '~/types/api'
 // In parallel: a slow API costs one timeout, not three.
 const [{ data: products }, { data: blocks }, { data: posts }] = await Promise.all([
   useApiFetch<ProductCard[]>('products-featured', '/catalog/products', { featured: true }),
-  useApiFetch<ContentBlock[]>('home-blocks', '/content', { keys: 'home.projects,home.testimonials' }),
+  useApiFetch<ContentBlock[]>('home-blocks', '/content', { keys: 'home.projects,home.testimonials,oberig.home' }),
   useApiFetch<Page<PostCard>>('posts-latest', '/blog', { pageSize: 3 }),
 ])
 
@@ -34,6 +34,7 @@ useHead({ script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(org)
     <K5Story />
     <FeaturedProducts :products="list" />
     <WhyVertical :image="lead?.image ?? null" />
+    <OberigCta variant="home" :block="block('oberig.home')" />
     <ContentBlock :block="block('home.projects')" />
     <ContentBlock :block="block('home.testimonials')" />
     <LatestPosts :posts="posts?.items ?? []" />
