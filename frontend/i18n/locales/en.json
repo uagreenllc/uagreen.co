@@ -206,6 +206,22 @@
     "consultLead": "Leave your number — we will call within a business day.",
     "callMe": "Call me back",
     "consultDone": "Thank you! We will call you.",
-    "back": "Back to the audit"
+    "back": "Back to the audit",
+    "dateTitle": "Audit date",
+    "dataTitle": "Contact and address",
+    "picked": "Selected: {date}",
+    "pickDate": "Pick a date",
+    "address": "Site address",
+    "addressHint": "Town or village, street or landmark",
+    "addressRequired": "Enter the site address",
+    "comment": "Comment (optional)",
+    "offer": "I accept the terms of the {link}",
+    "offerLink": "public offer",
+    "offerRequired": "Please accept the offer terms",
+    "pay": "Pay {price}",
+    "noDates": "We cannot show free dates right now. Leave your number and we will pick a date together.",
+    "dateTaken": "This date was just taken — please pick another one.",
+    "booked": "Your audit is scheduled for {date}. Address: {address}.",
+    "paidPending": "Payment received. A manager will call to confirm the date {date}."
   }
 }

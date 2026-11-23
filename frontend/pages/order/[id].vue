@@ -28,6 +28,10 @@ onMounted(() => {
 
 const note = computed(() => {
   const o = order.value
+  if (o.status === 'Paid' && o.auditDate) {
+    const date = formatDate(o.auditDate)
+    return o.auditConfirmed ? t('audit.booked', { date, address: o.auditAddress }) : t('audit.paidPending', { date })
+  }
   if (o.status === 'Paid') return t('order.thanksPaid')
   if (o.status === 'Cancelled') return ''
   if (o.paymentMethod === 'LiqPay') return t('order.waiting')
