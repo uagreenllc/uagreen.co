@@ -15,7 +15,9 @@
     "legal": "Legal",
     "terms": "Terms of use",
     "payment": "Payment and delivery",
-    "rights": "© {year} UA GREEN"
+    "rights": "© {year} UA GREEN",
+    "offer": "Public offer",
+    "privacy": "Privacy policy"
   },
   "lang": { "uk": "Укр", "en": "Eng" },
   "pages": {
@@ -23,7 +25,9 @@
     "contactsTitle": "Contacts",
     "paymentTitle": "Payment and delivery",
     "termsTitle": "Terms of use",
-    "write": "Write to us"
+    "write": "Write to us",
+    "offerTitle": "Public offer",
+    "privacyTitle": "Privacy policy"
   },
   "form": {
     "name": "Name",
@@ -35,7 +39,9 @@
     "sent": "Thank you, we'll be in touch.",
     "required": "This field is required",
     "phoneInvalid": "Enter a phone number",
-    "failed": "Could not send. Try again or call us."
+    "failed": "Could not send. Try again or call us.",
+    "privacyNote": "By submitting the form you agree to the {link}",
+    "privacyLink": "privacy policy"
   },
   "blog": {
     "title": "Blog",
