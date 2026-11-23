@@ -247,8 +247,15 @@ class _ContactsPageState extends State<ContactsPage> {
 
 /// Applications that never reached Gospodar HR. Delivered ones are worked there; in the normal
 /// case this list is empty.
-class ApplicationsPage extends StatelessWidget {
+class ApplicationsPage extends StatefulWidget {
   const ApplicationsPage({super.key});
+  @override
+  State<ApplicationsPage> createState() => _ApplicationsPageState();
+}
+
+class _ApplicationsPageState extends State<ApplicationsPage> {
+  /// Rows being sent right now — their button is off, so a double click sends once.
+  final _sending = <Object?>{};
 
   Future<void> _downloadCv(BuildContext context, J r) => attempt(
     context,
@@ -257,7 +264,10 @@ class ApplicationsPage extends StatelessWidget {
 
   Future<void> _resend(BuildContext context, PagedListState list, J r) async {
     J? x;
-    if (!await attempt(context, () async => x = await api.post('$_applications/${r['id']}/resend', null) as J)) return;
+    setState(() => _sending.add(r['id']));
+    final ok = await attempt(context, () async => x = await api.post('$_applications/${r['id']}/resend', null) as J);
+    if (mounted) setState(() => _sending.remove(r['id']));
+    if (!ok) return;
     // No error after a send = Gospodar has it.
     if (x!['gospodarError'] == null) {
       list.removeWhere((y) => y['id'] == r['id']);
@@ -293,7 +303,11 @@ class ApplicationsPage extends StatelessWidget {
           Text(fmtDate(r['createdAt'])),
           if (r['hasCv'] == true)
             IconButton(tooltip: 'Завантажити CV', icon: const Icon(Icons.download_outlined), onPressed: () => _downloadCv(context, r)),
-          IconButton(tooltip: 'Надіслати ще раз', icon: const Icon(Icons.send_outlined), onPressed: () => _resend(context, list, r)),
+          IconButton(
+            tooltip: 'Надіслати ще раз',
+            icon: const Icon(Icons.send_outlined),
+            onPressed: _sending.contains(r['id']) ? null : () => _resend(context, list, r),
+          ),
           IconButton(
             tooltip: 'Видалити',
             icon: const Icon(Icons.delete_outline),
