@@ -35,6 +35,7 @@ services:
       Jwt__Issuer: ${JWT_ISSUER:-UaGreenApi}
       Jwt__Audience: ${JWT_AUDIENCE:-UaGreenApp}
       Gospodar__BaseUrl: ${GOSPODAR_BASE_URL}
+      Gospodar__ApiKey: ${GOSPODAR_API_KEY:-}
       App__PublicBaseUrl: ${PUBLIC_BASE_URL}
       Cors__AllowedOrigins__0: ${ADMIN_BASE_URL}
       Smtp__Host: ${SMTP_HOST}

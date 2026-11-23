@@ -145,6 +145,7 @@ UaGreen.Site.Api.Features.Vacancies.VacanciesEndpoints.Map(app);
 UaGreen.Site.Api.Features.Content.ContentEndpoints.Map(app);
 UaGreen.Site.Api.Features.Orders.OrdersEndpoints.Map(app);
 UaGreen.Site.Api.Features.Forms.FormsEndpoints.Map(app);
+UaGreen.Site.Api.Features.Audit.AuditEndpoints.Map(app);
 
 AdminCatalogEndpoints.Map(app);
 AdminBlogEndpoints.Map(app);

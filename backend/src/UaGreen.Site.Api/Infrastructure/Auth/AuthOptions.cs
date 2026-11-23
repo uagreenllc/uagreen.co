@@ -14,6 +14,8 @@ public sealed class GospodarOptions
     public int TimeoutSeconds { get; set; } = 30;
     /// How often to poll Gospodar's session-epoch endpoint (deploy cutoff). Min 5s.
     public int SessionEpochPollSeconds { get; set; } = 60;
+    /// The site's integration key in Gospodar (`X-Api-Key`): leads and audit bookings. Empty = those calls are skipped.
+    public string ApiKey { get; set; } = "";
 }
 
 public sealed class AppOptions

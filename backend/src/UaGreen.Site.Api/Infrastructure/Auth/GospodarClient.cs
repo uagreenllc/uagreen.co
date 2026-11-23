@@ -25,15 +25,19 @@ public sealed record GospodarUserPayload(
     bool IsActive,
     string[] Roles);
 
+/// Body of Gospodar's POST /api/integration/leads (idempotent by ExternalId).
+public sealed record GospodarLead(string ExternalId, string? Name, string? Phone, string? Email, string? Comment, string? ProductInterest);
+
 /// One user as returned by Gospodar's GET /api/users.
 public sealed record GospodarUserDto(Guid Id, string? Email, string? FullName, bool IsActive, IReadOnlyList<string>? Roles);
 
 /// Gospodar (erp.uagreen.co) is the identity provider: login/refresh are proxied,
 /// user listing uses a short-lived service token signed with the shared key —
 /// a trimmed copy of TTApp's GospodarClient.
-public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt)
+public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IOptions<GospodarOptions> opts, ILogger<GospodarClient> log)
 {
     private readonly JwtOptions _jwt = jwt.Value;
+    private readonly string _apiKey = opts.Value.ApiKey;
 
     public Task<GospodarProxyResponse> LoginAsync(string email, string password, CancellationToken ct)
         => PostAsync("/api/auth/login", new { email, password }, ct);
@@ -72,6 +76,47 @@ public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt)
         {
             return null;
         }
+    }
+
+    /// A lead in Gospodar's CRM. False when the key is not configured or Gospodar did not accept it —
+    /// the caller has already saved the request and emails managers either way.
+    public async Task<bool> PushLeadAsync(GospodarLead lead, CancellationToken ct)
+    {
+        using var req = Integration(HttpMethod.Post, "/api/integration/leads");
+        if (req is null) return false;
+        req.Content = JsonContent.Create(lead);
+        using var resp = await SendAsync(req, "lead", ct);
+        return resp is not null;
+    }
+
+    /// Null when the site has no integration key: integration calls are then skipped, not failed.
+    private HttpRequestMessage? Integration(HttpMethod method, string path)
+    {
+        if (string.IsNullOrWhiteSpace(_apiKey))
+        {
+            log.LogInformation("Gospodar integration key not configured, skipping {Path}", path);
+            return null;
+        }
+        var req = new HttpRequestMessage(method, path);
+        req.Headers.Add("X-Api-Key", _apiKey);
+        return req;
+    }
+
+    /// The response on 2xx, null (logged) on anything else — the visitor's request never fails because of Gospodar.
+    private async Task<HttpResponseMessage?> SendAsync(HttpRequestMessage req, string what, CancellationToken ct)
+    {
+        try
+        {
+            var resp = await http.SendAsync(req, ct);
+            if (resp.IsSuccessStatusCode) return resp;
+            log.LogWarning("Gospodar {What}: {Status} {Body}", what, (int)resp.StatusCode, await resp.Content.ReadAsStringAsync(ct));
+            resp.Dispose();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            log.LogWarning(ex, "Gospodar {What} failed", what);
+        }
+        return null;
     }
 
     // Platform service principal (Admin + platform scope), 5-minute shared-key token —

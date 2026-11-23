@@ -202,6 +202,10 @@
     "consultText": "Leave your number — an engineer will call, ask about your site and tell you whether an audit makes sense.",
     "bookTitle": "Pay and schedule the audit now",
     "bookText": "Pick a free date, pay online — and a specialist comes on the day you chose.",
-    "choose": "What suits you?"
+    "choose": "What suits you?",
+    "consultLead": "Leave your number — we will call within a business day.",
+    "callMe": "Call me back",
+    "consultDone": "Thank you! We will call you.",
+    "back": "Back to the audit"
   }
 }
