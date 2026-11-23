@@ -53,6 +53,7 @@ builder.Services.AddHttpClient<GospodarChatClient>((sp, http) =>
     http.BaseAddress = new Uri(sp.GetRequiredService<IOptions<GospodarOptions>>().Value.BaseUrl);
     http.Timeout = TimeSpan.FromSeconds(10);
 }).AddStandardResilienceHandler(o => o.Retry.DisableForUnsafeHttpMethods()); // no retried POSTs: duplicate messages
+builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<SessionEpochCache>();
 builder.Services.AddHostedService<SessionEpochRefresher>();
 
@@ -170,6 +171,7 @@ UaGreen.Site.Api.Features.Orders.OrdersEndpoints.Map(app);
 UaGreen.Site.Api.Features.Forms.FormsEndpoints.Map(app);
 UaGreen.Site.Api.Features.Audit.AuditEndpoints.Map(app);
 UaGreen.Site.Api.Features.Stats.StatsEndpoints.Map(app);
+UaGreen.Site.Api.Features.Chat.ChatEndpoints.Map(app);
 
 AdminCatalogEndpoints.Map(app);
 AdminBlogEndpoints.Map(app);
