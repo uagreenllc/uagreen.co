@@ -285,7 +285,7 @@ onBeforeUnmount(() => story?.destroy())
 
           <!-- assembled rotor + generator -->
           <g id="k5-asm" transform="translate(470 1400)">
-            <!-- z-order: far blades, generator, shaft (in front of the generator's stub), near blades, hub on top of every strut end.
+            <!-- z-order: far blades, generator, shaft (in front of the generator's stub), near struts, hub (over every strut end), near blades.
                  Both rotor groups hold a full set of struts + blades; drawBlades shows each blade in the group matching its depth. -->
             <g id="k5-rotor-back" opacity="0">
               <template v-for="(s, i) in struts0" :key="i">
@@ -311,10 +311,11 @@ onBeforeUnmount(() => story?.destroy())
               <template v-for="(s, i) in struts0" :key="i">
                 <path data-k="f-strut-top" :d="s.top" fill="none" stroke="var(--metal)" stroke-width="6" stroke-linecap="round" />
                 <path data-k="f-strut-bot" :d="s.bot" fill="none" stroke="var(--metal)" stroke-width="6" stroke-linecap="round" />
-                <path data-k="f-blade" :d="blades0[i]" fill="#fff" stroke="var(--green)" stroke-width="2.5" opacity="0" />
               </template>
+              <!-- the hub sits between the near struts and the near blades, so a blade passing in front hides it -->
+              <rect id="k5-hub" x="-10" y="-210" width="20" height="20" rx="3" fill="#3b423d" opacity="0" />
+              <path v-for="(d, i) in blades0" :key="i" data-k="f-blade" :d="d" fill="#fff" stroke="var(--green)" stroke-width="2.5" opacity="0" />
             </g>
-            <rect id="k5-hub" x="-10" y="-210" width="20" height="20" rx="3" fill="#3b423d" opacity="0" />
           </g>
         </svg>
       </div>
