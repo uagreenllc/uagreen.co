@@ -94,6 +94,7 @@
     "payment_LiqPay_hint": "Visa / Mastercard přes LiqPay, hned po potvrzení.",
     "payment_Invoice": "Bankovním převodem na fakturu",
     "payment_Invoice_hint": "Fakturu vám pošleme e-mailem nebo přes messenger.",
+    "payment_Invoice_hintIban": "Převod na IBAN společnosti z jakékoli banky — údaje zobrazíme hned po odeslání objednávky.",
     "payment_Credit": "Úvěr s 0 % úrokem",
     "payment_Credit_hint": "Splátky přes partnerské banky; ozve se vám náš manažer.",
     "comment": "Poznámka",
@@ -111,6 +112,19 @@
     "thanksPaid": "Platba přijata. Děkujeme! Ozveme se vám ohledně odeslání.",
     "thanksInvoice": "Děkujeme! Fakturu vám pošleme e-mailem nebo přes messenger.",
     "thanksCredit": "Děkujeme! Ohledně úvěru vás bude kontaktovat náš manažer.",
+    "thanksTransfer": "Děkujeme! Zaplaťte prosím převodem podle údajů níže — odešleme, jakmile platba dorazí.",
+    "bank": {
+      "title": "Platební údaje",
+      "recipient": "Příjemce",
+      "edrpou": "IČ (EDRPOU)",
+      "iban": "IBAN",
+      "bank": "Banka",
+      "amount": "Částka",
+      "purpose": "Účel platby",
+      "purposeDefault": "Platba za objednávku č. {n}",
+      "copy": "Kopírovat",
+      "copied": "Zkopírováno"
+    },
     "status": {
       "New": "Nová",
       "AwaitingPayment": "Čeká na platbu",

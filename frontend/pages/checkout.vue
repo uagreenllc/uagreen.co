@@ -9,10 +9,13 @@ const { t, locale } = useI18n()
 usePageHead({ title: t('checkout.title') })
 
 const deliveries: DeliveryMethod[] = ['NovaPoshta', 'Ukrposhta', 'Pickup']
-const payments: PaymentMethod[] = ['LiqPay', 'Invoice', 'Credit']
+// Admin → Платіжні системи: pay_<method> = "off" hides a method (the API refuses it too).
+const settings = useSettings()
+const payments = (['LiqPay', 'Invoice', 'Credit'] as PaymentMethod[]).filter(p => settings.value?.[`pay_${p}`] !== 'off')
+const hint = (p: PaymentMethod) => t(`checkout.payment_${p}_hint${p === 'Invoice' && settings.value?.pay_iban ? 'Iban' : ''}`)
 const f = reactive({
   name: '', phone: '', email: '', delivery: 'NovaPoshta' as DeliveryMethod, city: '', warehouse: '',
-  payment: 'LiqPay' as PaymentMethod, comment: '', website: '',
+  payment: payments[0], comment: '', website: '',
 })
 const errors = reactive<Record<string, string>>({})
 const needsAddress = computed(() => f.delivery !== 'Pickup')
@@ -96,7 +99,7 @@ function submit() {
           <div class="choices">
             <label v-for="pm in payments" :key="pm">
               <input v-model="f.payment" type="radio" name="payment" :value="pm">
-              <span>{{ $t(`checkout.payment_${pm}`) }}<small>{{ $t(`checkout.payment_${pm}_hint`) }}</small></span>
+              <span>{{ $t(`checkout.payment_${pm}`) }}<small>{{ hint(pm) }}</small></span>
             </label>
           </div>
 

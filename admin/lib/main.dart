@@ -23,6 +23,7 @@ final sections = [
   Section('Замовлення', Icons.receipt_long, ['Sales'], () => const OrdersPage()),
   Section('Товари', Icons.inventory_2, ['Sales'], productsPage),
   Section('Категорії', Icons.category, ['Sales'], categoriesPage),
+  Section('Платіжні системи', Icons.payments, ['Admin'], () => const PaymentsPage()),
   Section('Контактні запити', Icons.mail, ['Sales', 'Editor'], contactsPage),
   Section('Блог', Icons.article, ['Editor'], blogPage),
   Section('Контент сторінок', Icons.web, ['Editor'], contentPage),

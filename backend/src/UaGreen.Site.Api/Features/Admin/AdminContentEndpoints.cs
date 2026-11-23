@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
 using UaGreen.Site.Api.Features.Content;
+using UaGreen.Site.Api.Features.Orders;
 using UaGreen.Site.Api.Infrastructure.Auth;
 using UaGreen.Site.Api.Infrastructure.Persistence;
 using static UaGreen.Site.Api.Features.Admin.AdminCommon;
@@ -75,25 +76,36 @@ public static class AdminContentEndpoints
             return Results.NoContent();
         });
 
-        g.MapGet("/settings", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, code: false, ct));
+        g.MapGet("/settings", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, null, ct));
 
         // Partial update: only the keys sent change; an empty value deletes the key.
         g.MapPut("/settings", async (Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
         {
-            if (req.Keys.Any(k => k.StartsWith(CodePrefix))) throw ProblemException.Forbidden("Сторонній код — лише для адміна");
+            if (req.Keys.Any(k => k.StartsWith(CodePrefix) || k.StartsWith(PaymentSettings.Prefix)))
+                throw ProblemException.Forbidden("Сторонній код і платіжні системи — лише для адміна");
             await UpsertAsync(req, db, cache, ct);
-            return Results.Ok(await SettingsAsync(db, code: false, ct));
+            return Results.Ok(await SettingsAsync(db, null, ct));
         });
 
         // Сторонній код: raw HTML/JS/CSS the Nuxt server pastes into every page (server/plugins/site-code.ts).
         // Script injection on the public site, so Admin only, unlike the rest of the settings.
         var a = app.MapGroup("/api/admin/code").RequireAuthorization(Policies.Admin);
-        a.MapGet("", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, code: true, ct));
+        a.MapGet("", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, CodePrefix, ct));
         a.MapPut("", async (Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
         {
             if (req.Keys.Any(k => !CodeKeys.Contains(k))) throw ProblemException.BadRequest($"Keys: {string.Join(", ", CodeKeys)}");
             await UpsertAsync(req, db, cache, ct);
-            return Results.Ok(await SettingsAsync(db, code: true, ct));
+            return Results.Ok(await SettingsAsync(db, CodePrefix, ct));
+        });
+
+        // Платіжні системи: which checkout methods are on + company requisites for the IBAN transfer.
+        var p = app.MapGroup("/api/admin/payments").RequireAuthorization(Policies.Admin);
+        p.MapGet("", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, PaymentSettings.Prefix, ct));
+        p.MapPut("", async (Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            PaymentSettings.Validate(req);
+            await UpsertAsync(req, db, cache, ct);
+            return Results.Ok(await SettingsAsync(db, PaymentSettings.Prefix, ct));
         });
 
         g.MapGet("/redirects", async (AppDbContext db, CancellationToken ct) =>
@@ -127,9 +139,12 @@ public static class AdminContentEndpoints
     const string CodePrefix = "code_";
     static readonly string[] CodeKeys = ["code_head", "code_body_start", "code_body_end", "code_css"];
 
-    static Task<Dictionary<string, string>> SettingsAsync(AppDbContext db, bool code, CancellationToken ct) =>
-        db.Settings.AsNoTracking().Where(s => s.Key.StartsWith(CodePrefix) == code).OrderBy(s => s.Key)
-            .ToDictionaryAsync(s => s.Key, s => s.Value, ct);
+    /// prefix null → the plain settings (neither Сторонній код nor Платіжні системи).
+    static Task<Dictionary<string, string>> SettingsAsync(AppDbContext db, string? prefix, CancellationToken ct) =>
+        (prefix is null
+            ? db.Settings.Where(s => !s.Key.StartsWith(CodePrefix) && !s.Key.StartsWith(PaymentSettings.Prefix))
+            : db.Settings.Where(s => s.Key.StartsWith(prefix)))
+        .AsNoTracking().OrderBy(s => s.Key).ToDictionaryAsync(s => s.Key, s => s.Value, ct);
 
     static async Task UpsertAsync(Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct)
     {

@@ -50,6 +50,9 @@ public static class OrdersEndpoints
         if (phone.Length is < 7 or > 30) throw ProblemException.BadRequest("Phone is required");
         if (!Enum.TryParse<PaymentMethod>(req.PaymentMethod, true, out var payment))
             throw ProblemException.BadRequest("Unknown payment method");
+        var offKey = PaymentSettings.OffKey(payment);
+        if (await db.Settings.AnyAsync(s => s.Key == offKey && s.Value == PaymentSettings.Off, ct))
+            throw ProblemException.BadRequest("Payment method is turned off");
         if (!Enum.TryParse<DeliveryMethod>(req.Delivery?.Method, true, out var delivery))
             throw ProblemException.BadRequest("Unknown delivery method");
         if (req.Items is null) throw ProblemException.BadRequest("Order has no items");
