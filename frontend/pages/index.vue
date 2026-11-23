@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import type { ContentBlock, Page, PostCard, ProductCard } from '~/types/api'
+import type { ContentBlock, Page, PostCard, ProductCard, Review } from '~/types/api'
 
-// In parallel: a slow API costs one timeout, not three.
-const [{ data: products }, { data: blocks }, { data: posts }] = await Promise.all([
+// In parallel: a slow API costs one timeout, not four.
+const [{ data: products }, { data: blocks }, { data: reviews }, { data: posts }] = await Promise.all([
   useApiFetch<ProductCard[]>('products-featured', '/catalog/products', { featured: true }),
-  useApiFetch<ContentBlock[]>('home-blocks', '/content', { keys: 'home.projects,home.testimonials' }),
+  useApiFetch<ContentBlock[]>('home-blocks', '/content', { keys: 'home.projects' }),
+  useApiFetch<Review[]>('reviews', '/reviews'),
   useApiFetch<Page<PostCard>>('posts-latest', '/blog', { pageSize: 3 }),
 ])
 
@@ -35,7 +36,7 @@ useHead({ script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(org)
     <FeaturedProducts :products="list" />
     <WhyVertical :image="lead?.image ?? null" />
     <ContentBlock :block="block('home.projects')" />
-    <ContentBlock :block="block('home.testimonials')" />
+    <Reviews :reviews="reviews ?? []" />
     <LatestPosts :posts="posts?.items ?? []" />
     <ContactCta />
   </div>

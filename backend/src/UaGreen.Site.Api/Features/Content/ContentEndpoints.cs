@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Infrastructure.Persistence;
+using UaGreen.Site.Api.Infrastructure.Storage;
 
 namespace UaGreen.Site.Api.Features.Content;
 
 public sealed record ContentDto(string Key, string Lang, string? Title, string BodyHtml);
+public sealed record ReviewDto(string? Photo, string Text, string Author);
 public sealed record RedirectDto(string From, string To);
 
 /// Editable text blocks, public settings and the old-URL redirect table.
@@ -35,6 +37,14 @@ public static class ContentEndpoints
                 ?? await db.Content.AsNoTracking().FirstOrDefaultAsync(x => x.Key == key && x.Lang == "uk", ct)
                 ?? throw ProblemException.NotFound("Content not found");
             return new ContentDto(c.Key, c.Lang, c.Title, c.BodyHtml);
+        });
+
+        g.MapGet("/reviews", async (string? lang, AppDbContext db, CancellationToken ct) =>
+        {
+            var l = Lang.Norm(lang);
+            var rows = await db.Reviews.AsNoTracking().Where(r => r.Published).OrderBy(r => r.Sort).ToListAsync(ct);
+            return rows.Select(r => new ReviewDto(r.PhotoKey is null ? null : FileStorage.Url(r.PhotoKey),
+                Lang.PickReq(r.TextUk, r.TextEn, l), Lang.PickReq(r.AuthorUk, r.AuthorEn, l)));
         });
 
         g.MapGet("/settings/public", async (AppDbContext db, CancellationToken ct) =>

@@ -89,6 +89,12 @@ export interface ContentBlock {
   bodyHtml: string
 }
 
+export interface Review {
+  photo: string | null
+  text: string
+  author: string
+}
+
 export interface Redirect { from: string; to: string }
 
 /** The API's error body ({ code, message }); ofetch exposes it as `error.data`. */

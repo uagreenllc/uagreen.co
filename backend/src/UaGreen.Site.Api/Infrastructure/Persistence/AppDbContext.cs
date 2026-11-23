@@ -18,6 +18,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<ContentBlock> Content => Set<ContentBlock>();
+    public DbSet<Review> Reviews => Set<Review>();
     public DbSet<Setting> Settings => Set<Setting>();
     public DbSet<Redirect> Redirects => Set<Redirect>();
     public DbSet<SiteUser> SiteUsers => Set<SiteUser>();

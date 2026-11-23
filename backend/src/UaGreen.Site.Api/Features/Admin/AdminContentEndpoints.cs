@@ -10,8 +10,9 @@ using static UaGreen.Site.Api.Features.Admin.AdminCommon;
 namespace UaGreen.Site.Api.Features.Admin;
 
 public sealed record ContentUpsert(string? Title, string BodyHtml);
+public sealed record ReviewUpsert(string? PhotoKey, string TextUk, string? TextEn, string AuthorUk, string? AuthorEn, bool Published, int Sort);
 
-/// Text blocks, public settings and the redirect table — Editor.
+/// Text blocks, testimonials, public settings and the redirect table — Editor.
 public static class AdminContentEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
@@ -40,6 +41,36 @@ public static class AdminContentEndpoints
         g.MapDelete("/content/{key}/{lang}", async (string key, string lang, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
         {
             if (await db.Content.Where(x => x.Key == key && x.Lang == lang).ExecuteDeleteAsync(ct) == 0) throw ProblemException.NotFound("Content not found");
+            await EvictPublicAsync(cache, ct);
+            return Results.NoContent();
+        });
+
+        // ponytail: the entity is the admin DTO — flat, no navigations.
+        g.MapGet("/reviews", async (AppDbContext db, CancellationToken ct) =>
+            await db.Reviews.AsNoTracking().OrderBy(r => r.Sort).ToListAsync(ct));
+
+        g.MapPost("/reviews", async (ReviewUpsert req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            var r = new Review { Id = Guid.NewGuid() };
+            Apply(r, req);
+            db.Reviews.Add(r);
+            await db.SaveChangesAsync(ct);
+            await EvictPublicAsync(cache, ct);
+            return Results.Created($"/api/admin/reviews/{r.Id}", r);
+        });
+
+        g.MapPut("/reviews/{id:guid}", async (Guid id, ReviewUpsert req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            var r = await db.Reviews.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw ProblemException.NotFound("Review not found");
+            Apply(r, req);
+            await db.SaveChangesAsync(ct);
+            await EvictPublicAsync(cache, ct);
+            return Results.Ok(r);
+        });
+
+        g.MapDelete("/reviews/{id:guid}", async (Guid id, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            if (await db.Reviews.Where(x => x.Id == id).ExecuteDeleteAsync(ct) == 0) throw ProblemException.NotFound("Review not found");
             await EvictPublicAsync(cache, ct);
             return Results.NoContent();
         });
@@ -78,5 +109,16 @@ public static class AdminContentEndpoints
             await EvictPublicAsync(cache, ct);
             return Results.Ok(req.Count);
         });
+    }
+
+    private static void Apply(Review r, ReviewUpsert req)
+    {
+        if (string.IsNullOrWhiteSpace(req.TextUk)) throw ProblemException.BadRequest("textUk is required");
+        if (string.IsNullOrWhiteSpace(req.AuthorUk)) throw ProblemException.BadRequest("authorUk is required");
+        r.PhotoKey = Clean(req.PhotoKey);
+        r.TextUk = req.TextUk.Trim(); r.TextEn = Clean(req.TextEn);
+        r.AuthorUk = req.AuthorUk.Trim(); r.AuthorEn = Clean(req.AuthorEn);
+        r.Published = req.Published; r.Sort = req.Sort;
+        r.UpdatedAt = DateTime.UtcNow;
     }
 }
