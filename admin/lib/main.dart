@@ -27,6 +27,7 @@ final sections = [
   Section('Блог', Icons.article, ['Editor'], blogPage),
   Section('Контент сторінок', Icons.web, ['Editor'], contentPage),
   Section('Налаштування', Icons.settings, ['Editor'], () => const SettingsPage()),
+  Section('Сторонній код', Icons.code, ['Admin'], () => const CodePage()),
   Section('Вакансії', Icons.work, ['Hr'], vacanciesPage),
   Section('Відгуки на вакансії', Icons.badge, ['Hr'], applicationsPage),
   Section('Користувачі', Icons.manage_accounts, ['Admin'], () => const UsersPage()),

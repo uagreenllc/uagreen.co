@@ -561,6 +561,114 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
+/// Сторонній код (as on Weblium): raw HTML/JS/CSS the site server pastes into every page.
+class CodePage extends StatefulWidget {
+  const CodePage({super.key});
+  @override
+  State<CodePage> createState() => _CodePageState();
+}
+
+class _CodePageState extends State<CodePage> {
+  static const _tabs = {
+    'code_head': '<HEAD>',
+    'code_body_start': 'After <BODY>',
+    'code_body_end': 'Before </BODY>',
+    'code_css': 'CSS',
+  };
+  final _c = {for (final k in _tabs.keys) k: TextEditingController()};
+  Object? _error;
+  bool _busy = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    for (final c in _c.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      _show(await api.get('/admin/code') as J);
+    } catch (e) {
+      _error = e;
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  void _show(J m) {
+    for (final e in _c.entries) {
+      e.value.text = m[e.key] ?? '';
+    }
+  }
+
+  Future<void> _save() async {
+    setState(() => _busy = true);
+    try {
+      _show(await api.put('/admin/code', {for (final e in _c.entries) e.key: e.value.text}) as J);
+      if (mounted) toast(context, 'Збережено — діє з наступного завантаження сторінки сайту');
+    } catch (e) {
+      if (mounted) toast(context, '$e');
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) return Center(child: Text('$_error'));
+    if (_busy && _c.values.every((c) => c.text.isEmpty)) return const Center(child: CircularProgressIndicator());
+    return DefaultTabController(
+      length: _tabs.length,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Код вставляється як є на кожну сторінку сайту (лічильники, віджети, пікселі). '
+              'CSS — без тегу <style>. Помилка в скрипті може зламати сайт.',
+            ),
+            TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [for (final t in _tabs.values) Tab(text: t)]),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  for (final c in _c.values)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: TextField(
+                        controller: c,
+                        expands: true,
+                        maxLines: null,
+                        textAlignVertical: TextAlignVertical.top,
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                        decoration: const InputDecoration(border: OutlineInputBorder()),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: _busy ? null : _save,
+                icon: const Icon(Icons.save),
+                label: const Text('Зберегти'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Inbox ──
 
 /// Full text in a dialog; opening marks the row read.
