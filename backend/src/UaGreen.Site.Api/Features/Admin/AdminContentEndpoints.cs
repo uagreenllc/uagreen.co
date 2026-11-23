@@ -44,23 +44,25 @@ public static class AdminContentEndpoints
             return Results.NoContent();
         });
 
-        g.MapGet("/settings", async (AppDbContext db, CancellationToken ct) =>
-            await db.Settings.AsNoTracking().OrderBy(s => s.Key).ToDictionaryAsync(s => s.Key, s => s.Value, ct));
+        g.MapGet("/settings", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, code: false, ct));
 
         // Partial update: only the keys sent change; an empty value deletes the key.
         g.MapPut("/settings", async (Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
         {
-            foreach (var (key, value) in req)
-            {
-                if (key.Length is 0 or > 80) throw ProblemException.BadRequest("Bad setting key");
-                var row = await db.Settings.FirstOrDefaultAsync(s => s.Key == key, ct);
-                if (string.IsNullOrWhiteSpace(value)) { if (row is not null) db.Settings.Remove(row); continue; }
-                if (row is null) db.Settings.Add(new Setting { Key = key, Value = value.Trim() });
-                else row.Value = value.Trim();
-            }
-            await db.SaveChangesAsync(ct);
-            await EvictPublicAsync(cache, ct);
-            return Results.Ok(await db.Settings.AsNoTracking().ToDictionaryAsync(s => s.Key, s => s.Value, ct));
+            if (req.Keys.Any(k => k.StartsWith(CodePrefix))) throw ProblemException.Forbidden("Сторонній код — лише для адміна");
+            await UpsertAsync(req, db, cache, ct);
+            return Results.Ok(await SettingsAsync(db, code: false, ct));
+        });
+
+        // Сторонній код: raw HTML/JS/CSS the Nuxt server pastes into every page (server/plugins/site-code.ts).
+        // Script injection on the public site, so Admin only, unlike the rest of the settings.
+        var a = app.MapGroup("/api/admin/code").RequireAuthorization(Policies.Admin);
+        a.MapGet("", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, code: true, ct));
+        a.MapPut("", async (Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            if (req.Keys.Any(k => !CodeKeys.Contains(k))) throw ProblemException.BadRequest($"Keys: {string.Join(", ", CodeKeys)}");
+            await UpsertAsync(req, db, cache, ct);
+            return Results.Ok(await SettingsAsync(db, code: true, ct));
         });
 
         g.MapGet("/redirects", async (AppDbContext db, CancellationToken ct) =>
@@ -78,5 +80,26 @@ public static class AdminContentEndpoints
             await EvictPublicAsync(cache, ct);
             return Results.Ok(req.Count);
         });
+    }
+
+    const string CodePrefix = "code_";
+    static readonly string[] CodeKeys = ["code_head", "code_body_start", "code_body_end", "code_css"];
+
+    static Task<Dictionary<string, string>> SettingsAsync(AppDbContext db, bool code, CancellationToken ct) =>
+        db.Settings.AsNoTracking().Where(s => s.Key.StartsWith(CodePrefix) == code).OrderBy(s => s.Key)
+            .ToDictionaryAsync(s => s.Key, s => s.Value, ct);
+
+    static async Task UpsertAsync(Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct)
+    {
+        foreach (var (key, value) in req)
+        {
+            if (key.Length is 0 or > 80) throw ProblemException.BadRequest("Bad setting key");
+            var row = await db.Settings.FirstOrDefaultAsync(s => s.Key == key, ct);
+            if (string.IsNullOrWhiteSpace(value)) { if (row is not null) db.Settings.Remove(row); continue; }
+            if (row is null) db.Settings.Add(new Setting { Key = key, Value = value.Trim() });
+            else row.Value = value.Trim();
+        }
+        await db.SaveChangesAsync(ct);
+        await EvictPublicAsync(cache, ct);
     }
 }
