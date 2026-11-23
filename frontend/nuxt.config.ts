@@ -16,6 +16,7 @@ export default defineNuxtConfig({
     locales: [
       { code: 'uk', language: 'uk-UA', file: 'uk.json', name: 'Українська' },
       { code: 'en', language: 'en-US', file: 'en.json', name: 'English' },
+      { code: 'cs', language: 'cs-CZ', file: 'cs.json', name: 'Čeština' },
     ],
     defaultLocale: 'uk',
     strategy: 'prefix_except_default',
@@ -25,7 +26,7 @@ export default defineNuxtConfig({
   site: { url: siteUrl },
   sitemap: {
     sources: ['/_sitemap/urls'],
-    exclude: ['/cart', '/checkout', '/order/**', '/en/cart', '/en/checkout', '/en/order/**'],
+    exclude: ['', '/en', '/cs'].flatMap(p => [`${p}/cart`, `${p}/checkout`, `${p}/order/**`]),
   },
   // Dev only: the browser talks to the API and its static media through the Nuxt dev server.
   // Nitro honours `proxy` here (verified), Nuxt's typed subset of route rules just omits it.

@@ -17,7 +17,7 @@
     "payment": "Оплата і доставка",
     "rights": "© {year} UA GREEN"
   },
-  "lang": { "uk": "Укр", "en": "Eng" },
+  "lang": { "uk": "Укр", "en": "Eng", "cs": "Čes" },
   "pages": {
     "aboutTitle": "Про нас",
     "contactsTitle": "Контакти",

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const localePath = useLocalePath()
 const switchLocalePath = useSwitchLocalePath()
-const { locale } = useI18n()
+const { locale, locales } = useI18n()
 const settings = useSettings()
 
 const links = [
@@ -11,7 +11,7 @@ const links = [
   ['vacancies', '/vacancies'],
   ['contacts', '/contacts'],
 ] as const
-const other = computed(() => (locale.value === 'uk' ? 'en' : 'uk'))
+const others = computed(() => locales.value.map(l => l.code).filter(c => c !== locale.value))
 const phone = computed(() => splitList(settings.value?.phones)[0] ?? '')
 </script>
 
@@ -22,7 +22,7 @@ const phone = computed(() => splitList(settings.value?.phones)[0] ?? '')
     <nav class="nav-desktop" aria-label="Main">
       <NuxtLink v-for="[key, to] in links" :key="key" :to="localePath(to)">{{ $t(`nav.${key}`) }}</NuxtLink>
       <CartBadge />
-      <NuxtLink :to="switchLocalePath(other)" class="lang">{{ $t(`lang.${other}`) }}</NuxtLink>
+      <NuxtLink v-for="c in others" :key="c" :to="switchLocalePath(c)" class="lang">{{ $t(`lang.${c}`) }}</NuxtLink>
       <a v-if="phone" :href="`tel:${phone}`" class="pill">{{ formatPhone(phone) }}</a>
     </nav>
 
@@ -31,7 +31,7 @@ const phone = computed(() => splitList(settings.value?.phones)[0] ?? '')
       <ul>
         <li v-for="[key, to] in links" :key="key"><NuxtLink :to="localePath(to)">{{ $t(`nav.${key}`) }}</NuxtLink></li>
         <li><CartBadge /></li>
-        <li><NuxtLink :to="switchLocalePath(other)">{{ $t(`lang.${other}`) }}</NuxtLink></li>
+        <li v-for="c in others" :key="c"><NuxtLink :to="switchLocalePath(c)">{{ $t(`lang.${c}`) }}</NuxtLink></li>
         <li v-if="phone"><a :href="`tel:${phone}`">{{ formatPhone(phone) }}</a></li>
       </ul>
     </details>

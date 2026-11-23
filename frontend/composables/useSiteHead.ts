@@ -1,18 +1,16 @@
 /** Title/description/OG from settings (overridable per page) + i18n lang, dir and hreflang links. */
 export function useSiteHead(opts: { title?: string; description?: string; image?: string | null } = {}) {
   const settings = useSettings()
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
   const config = useRuntimeConfig()
   const i18nHead = useLocaleHead({ dir: true, lang: true, seo: true })
 
+  // UK copy is editable in settings; other locales use i18n `site.*`.
   const title = computed(() =>
-    opts.title ?? (locale.value === 'en' ? 'UA GREEN | Wind turbines and equipment' : settings.value?.site_title_uk ?? 'UA GREEN'),
+    opts.title ?? (locale.value === 'uk' ? settings.value?.site_title_uk ?? 'UA GREEN' : t('site.title')),
   )
   const description = computed(() =>
-    opts.description
-    ?? (locale.value === 'en'
-      ? 'Ukrainian manufacturer of vertical-axis wind turbines and the equipment around them.'
-      : settings.value?.site_description_uk ?? ''),
+    opts.description ?? (locale.value === 'uk' ? settings.value?.site_description_uk ?? '' : t('site.description')),
   )
   const image = computed(() => (opts.image ? new URL(opts.image, config.public.siteUrl).toString() : undefined))
 

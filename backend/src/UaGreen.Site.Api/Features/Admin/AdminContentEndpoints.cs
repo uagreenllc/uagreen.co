@@ -27,7 +27,7 @@ public static class AdminContentEndpoints
         {
             if (!Slug.IsValid(key.Replace('.', '-')) || key.Length > 80) throw ProblemException.BadRequest("Bad content key");
             var l = Lang.Norm(lang);
-            if (l != lang) throw ProblemException.BadRequest("lang must be uk or en");
+            if (l != lang) throw ProblemException.BadRequest("lang must be uk, en or cs");
             var c = await db.Content.FirstOrDefaultAsync(x => x.Key == key && x.Lang == l, ct);
             if (c is null) db.Content.Add(c = new ContentBlock { Key = key, Lang = l });
             c.Title = Clean(req.Title);
