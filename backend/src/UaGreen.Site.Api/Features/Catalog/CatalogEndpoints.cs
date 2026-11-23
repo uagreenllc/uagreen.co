@@ -6,7 +6,8 @@ using UaGreen.Site.Api.Infrastructure.Storage;
 
 namespace UaGreen.Site.Api.Features.Catalog;
 
-public sealed record CategoryDto(string Slug, string Name, string? Image, int ProductCount);
+public sealed record CategoryDto(string Slug, string Name, string? Image, int ProductCount,
+    string? DescriptionHtml, string? SeoTitle, string? SeoDesc);
 public sealed record ImageDto(string Url, string? Alt);
 public sealed record FileDto(string Url, string Title);
 public sealed record OptionValueDto(Guid Id, string Value, decimal PriceDelta);
@@ -32,10 +33,12 @@ public static class CatalogEndpoints
             var l = Lang.Norm(lang);
             var rows = await db.Categories.AsNoTracking()
                 .OrderBy(c => c.Sort).ThenBy(c => c.NameUk)
-                .Select(c => new { c.Slug, c.NameUk, c.NameEn, c.ImageKey, Count = c.Products.Count(p => p.Published) })
+                .Select(c => new { c, Count = c.Products.Count(p => p.Published) })
                 .ToListAsync(ct);
-            return rows.Select(c => new CategoryDto(c.Slug, Lang.PickReq(c.NameUk, c.NameEn, l),
-                c.ImageKey is null ? null : FileStorage.Url(c.ImageKey), c.Count));
+            return rows.Select(x => new CategoryDto(x.c.Slug, Lang.PickReq(x.c.NameUk, x.c.NameEn, l, x.c.NameCs),
+                x.c.ImageKey is null ? null : FileStorage.Url(x.c.ImageKey), x.Count,
+                Lang.Pick(x.c.DescriptionHtmlUk, x.c.DescriptionHtmlEn, l),
+                Lang.Pick(x.c.SeoTitleUk, x.c.SeoTitleEn, l), Lang.Pick(x.c.SeoDescUk, x.c.SeoDescEn, l)));
         });
 
         g.MapGet("/products", async (string? lang, string? category, bool? featured, AppDbContext db, CancellationToken ct) =>
@@ -59,7 +62,7 @@ public static class CatalogEndpoints
             return new ProductDto(
                 p.Slug, p.Sku, Lang.PickReq(p.NameUk, p.NameEn, l), Lang.Pick(p.ShortDescUk, p.ShortDescEn, l),
                 p.Price, p.OldPrice, p.InStock, p.IsFeatured, p.Category?.Slug,
-                p.Category is null ? null : Lang.PickReq(p.Category.NameUk, p.Category.NameEn, l),
+                p.Category is null ? null : Lang.PickReq(p.Category.NameUk, p.Category.NameEn, l, p.Category.NameCs),
                 Lang.Pick(p.DescriptionHtmlUk, p.DescriptionHtmlEn, l),
                 Lang.Pick(p.SpecsHtmlUk, p.SpecsHtmlEn, l),
                 Lang.Pick(p.FaqHtmlUk, p.FaqHtmlEn, l),
@@ -75,5 +78,5 @@ public static class CatalogEndpoints
         p.Slug, p.Sku, Lang.PickReq(p.NameUk, p.NameEn, l), Lang.Pick(p.ShortDescUk, p.ShortDescEn, l),
         p.Price, p.OldPrice, p.InStock, p.IsFeatured,
         p.Images.OrderBy(i => i.Sort).Select(i => FileStorage.Url(i.Key)).FirstOrDefault(),
-        p.Category?.Slug, p.Category is null ? null : Lang.PickReq(p.Category.NameUk, p.Category.NameEn, l));
+        p.Category?.Slug, p.Category is null ? null : Lang.PickReq(p.Category.NameUk, p.Category.NameEn, l, p.Category.NameCs));
 }

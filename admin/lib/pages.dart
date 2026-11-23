@@ -272,9 +272,16 @@ Widget categoriesPage() => crud(
   fields: const [
     F('nameUk', 'Назва (UK)', required: true),
     F('nameEn', 'Назва (EN)'),
+    F('nameCs', 'Назва (CS)'),
     F('slug', 'Slug (адреса /shop/cat/...)', t: T.slug, required: true),
     F('sort', 'Порядок', t: T.int),
     F('imageKey', 'Зображення', t: T.image, folder: 'categories'),
+    F('descriptionHtmlUk', 'Опис (UK)', t: T.html, folder: 'categories'),
+    F('descriptionHtmlEn', 'Опис (EN)', t: T.html, folder: 'categories'),
+    F('seoTitleUk', 'SEO title (UK)'),
+    F('seoTitleEn', 'SEO title (EN)'),
+    F('seoDescUk', 'SEO description (UK)', t: T.multiline),
+    F('seoDescEn', 'SEO description (EN)', t: T.multiline),
   ],
 );
 

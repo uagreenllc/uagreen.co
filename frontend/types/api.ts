@@ -18,6 +18,9 @@ export interface Category {
   name: string
   image: string | null
   productCount: number
+  descriptionHtml: string | null
+  seoTitle: string | null
+  seoDesc: string | null
 }
 
 export interface OptionValue { id: string; value: string; priceDelta: number }
