@@ -50,15 +50,23 @@ function onEnter(e: KeyboardEvent) {
   submit()
 }
 
+const answerText = ref('')
 async function answer() {
   const q = teaser.value
-  if (!q) return
+  const v = answerText.value.trim()
+  if (!q || !v || sending.value) return
+  answerText.value = ''
   open()
   failed.value = false
-  if (!(await chat.send(q.text, q.id)) && !unavailable.value) {
-    text.value = q.text
+  if (!(await chat.send(v, q.id)) && !unavailable.value) {
+    text.value = v
     failed.value = true
   }
+}
+function onTeaserEnter(e: KeyboardEvent) {
+  if (e.shiftKey || e.isComposing) return
+  e.preventDefault()
+  answer()
 }
 function dismiss() {
   chatStorage.setDismissedAt(Date.now())
@@ -136,7 +144,9 @@ onBeforeUnmount(() => {
     <div v-if="teaser && !isOpen && !isTeaserBlockedPath(route.path)" class="chat-teaser">
       <button type="button" class="chat-x" :aria-label="t('chat.close')" @click="dismiss">×</button>
       <p>{{ teaser.text }}</p>
-      <button type="button" class="btn" @click="answer">{{ t('chat.send') }}</button>
+      <label class="sr-only" for="chat-teaser-input">{{ t('chat.placeholder') }}</label>
+      <textarea id="chat-teaser-input" v-model="answerText" rows="2" maxlength="2000" :placeholder="t('chat.placeholder')" @keydown.enter="onTeaserEnter" />
+      <button type="button" class="btn" :disabled="sending || !answerText.trim()" @click="answer">{{ t('chat.send') }}</button>
     </div>
 
     <button ref="btn" type="button" class="chat-fab" :aria-label="t('chat.open')" :aria-expanded="isOpen" @click="isOpen ? close() : open()">
@@ -172,6 +182,7 @@ onBeforeUnmount(() => {
 .chat-note.err { color: var(--copper); }
 .chat-fallback { overflow-y: auto; padding: 0 12px 12px; border-top: 1px solid var(--line); }
 .chat-teaser { position: relative; width: 280px; max-width: calc(100vw - 40px); padding: 14px 16px; display: grid; gap: 10px; }
+.chat-teaser textarea { font: inherit; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; resize: none; }
 .chat-teaser p { margin: 0; padding-right: 20px; overflow-wrap: anywhere; }
 .chat-teaser .chat-x { position: absolute; top: 4px; right: 6px; color: var(--ink-2); }
 .chat-teaser .btn { justify-self: start; padding: 10px 18px; font-size: 15px; }
