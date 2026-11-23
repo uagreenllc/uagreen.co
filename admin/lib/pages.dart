@@ -454,6 +454,127 @@ Widget contentPage() {
   );
 }
 
+/// (settings key, title, field label, example, format) — the keys frontend/composables/useAnalytics.ts reads.
+final _analytics = [
+  ('ga4_id', 'Google Аналітика', 'ID потоку даних GA4', 'G-XXXXXXXXXX', RegExp(r'^G-[A-Z0-9]+$')),
+  ('google_ads_id', 'Google Ads', 'Тег Google Ads (конверсії, ремаркетинг)', 'AW-1234567890', RegExp(r'^AW-\d+$')),
+  ('fb_pixel_id', 'Піксель Facebook', 'ID пікселя Meta', '1234567890123456', RegExp(r'^\d+$')),
+];
+
+/// Analytics ids as named fields; they are plain settings, so an empty field deletes the key = disconnects.
+class AnalyticsPage extends StatefulWidget {
+  const AnalyticsPage({super.key});
+  @override
+  State<AnalyticsPage> createState() => _AnalyticsPageState();
+}
+
+class _AnalyticsPageState extends State<AnalyticsPage> {
+  final _form = GlobalKey<FormState>();
+  final _c = {for (final a in _analytics) a.$1: TextEditingController()};
+  J _saved = {};
+  Object? _error;
+  bool _busy = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      _show(await api.get('/admin/settings') as J);
+    } catch (e) {
+      _error = e;
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  void _show(J m) {
+    _saved = m;
+    for (final MapEntry(:key, :value) in _c.entries) {
+      value.text = '${m[key] ?? ''}';
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_form.currentState!.validate()) return;
+    setState(() => _busy = true);
+    try {
+      _show(
+        await api.put('/admin/settings', {for (final MapEntry(:key, :value) in _c.entries) key: value.text.trim()})
+            as J,
+      );
+      if (mounted) toast(context, 'Збережено');
+    } catch (e) {
+      if (mounted) toast(context, '$e');
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) return Center(child: Text('$_error'));
+    if (_busy && _saved.isEmpty) return const Center(child: CircularProgressIndicator());
+    return Form(
+      key: _form,
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: SizedBox(
+          width: 680,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              const Text('Сайт додає ці лічильники на всі сторінки. Порожнє поле — сервіс відключено.'),
+              const SizedBox(height: 16),
+              for (final (key, title, label, example, format) in _analytics)
+                Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium)),
+                            if (_saved[key] != null)
+                              const Tooltip(
+                                message: 'Підключено',
+                                child: Icon(Icons.check_circle, color: Colors.green),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _c[key],
+                          decoration: InputDecoration(
+                            labelText: label,
+                            hintText: example,
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (v) => v!.trim().isEmpty || format.hasMatch(v.trim()) ? null : 'Формат: $example',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.icon(
+                  onPressed: _busy ? null : _save,
+                  icon: const Icon(Icons.save),
+                  label: const Text('Зберегти'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Key/value site settings (phones, address, socials, analytics ids).
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
