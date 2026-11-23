@@ -28,12 +28,28 @@ public sealed record GospodarUserPayload(
 /// One user as returned by Gospodar's GET /api/users.
 public sealed record GospodarUserDto(Guid Id, string? Email, string? FullName, bool IsActive, IReadOnlyList<string>? Roles);
 
+/// A site form request as a Gospodar CRM lead (POST /api/integration/leads).
+public sealed record GospodarLead(string ExternalId, string Name, string Phone, string? Email, string? Comment, string Source);
+
 /// Gospodar (erp.uagreen.co) is the identity provider: login/refresh are proxied,
 /// user listing uses a short-lived service token signed with the shared key —
-/// a trimmed copy of TTApp's GospodarClient.
-public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt)
+/// a trimmed copy of TTApp's GospodarClient. Also the CRM that site leads go to.
+public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IOptions<GospodarOptions> gospodar)
 {
     private readonly JwtOptions _jwt = jwt.Value;
+
+    /// Creates (or, for a repeated ExternalId, finds) the CRM deal; throws on any non-2xx.
+    public async Task<Guid> CreateLeadAsync(GospodarLead lead, CancellationToken ct)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/integration/leads") { Content = JsonContent.Create(lead) };
+        req.Headers.Add("X-Api-Key", gospodar.Value.IntegrationKey);
+        using var resp = await http.SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode)
+            throw new HttpRequestException($"Gospodar lead {lead.ExternalId}: {(int)resp.StatusCode} {await resp.Content.ReadAsStringAsync(ct)}");
+        return (await resp.Content.ReadFromJsonAsync<LeadCreated>(ct))!.DealId;
+    }
+
+    private sealed record LeadCreated(Guid DealId);
 
     public Task<GospodarProxyResponse> LoginAsync(string email, string password, CancellationToken ct)
         => PostAsync("/api/auth/login", new { email, password }, ct);

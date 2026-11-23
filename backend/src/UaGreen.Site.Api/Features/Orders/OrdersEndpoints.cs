@@ -2,6 +2,8 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
+using UaGreen.Site.Api.Features.Forms;
+using UaGreen.Site.Api.Infrastructure.Captcha;
 using UaGreen.Site.Api.Infrastructure.Email;
 using UaGreen.Site.Api.Infrastructure.Payments;
 using UaGreen.Site.Api.Infrastructure.Persistence;
@@ -14,7 +16,7 @@ public sealed record DeliveryDto(string Method, string? City, string? Warehouse)
 /// `Website` is a honeypot: humans never see the field, bots fill it.
 public sealed record CreateOrderRequest(
     CustomerDto Customer, DeliveryDto Delivery, string PaymentMethod, string? Comment,
-    List<OrderLineRequest> Items, string? Lang, string? Website);
+    List<OrderLineRequest> Items, string? Lang, string? Website, string? Captcha);
 
 public sealed record LiqPayCheckoutDto(string CheckoutUrl, string Data, string Signature);
 public sealed record OrderItemDto(string ProductName, string? OptionsText, int Qty, decimal UnitPrice, decimal LineTotal);
@@ -39,7 +41,7 @@ public static class OrdersEndpoints
     }
 
     private static async Task<IResult> CreateAsync(
-        CreateOrderRequest req, AppDbContext db, LiqPayService liqpay, Notifier notifier, CancellationToken ct)
+        CreateOrderRequest req, AppDbContext db, LiqPayService liqpay, Notifier notifier, Turnstile captcha, CancellationToken ct)
     {
         if (!string.IsNullOrEmpty(req.Website)) // bot: pretend it worked, store nothing
             return Results.Ok(new { id = Guid.NewGuid(), number = 0, status = "New" });
@@ -50,13 +52,17 @@ public static class OrdersEndpoints
         if (phone.Length is < 7 or > 30) throw ProblemException.BadRequest("Phone is required");
         if (!Enum.TryParse<PaymentMethod>(req.PaymentMethod, true, out var payment))
             throw ProblemException.BadRequest("Unknown payment method");
-        var offKey = PaymentSettings.OffKey(payment);
-        if (await db.Settings.AnyAsync(s => s.Key == offKey && s.Value == PaymentSettings.Off, ct))
+        var payOffKey = PaymentSettings.OffKey(payment); // set in admin → Платіжні системи
+        if (await db.Settings.AnyAsync(s => s.Key == payOffKey && s.Value == PaymentSettings.Off, ct))
             throw ProblemException.BadRequest("Payment method is turned off");
         if (!Enum.TryParse<DeliveryMethod>(req.Delivery?.Method, true, out var delivery))
             throw ProblemException.BadRequest("Unknown delivery method");
+        var offKey = $"delivery.{delivery}.off"; // set in admin → Доставка
+        if (await db.Settings.AnyAsync(s => s.Key == offKey, ct))
+            throw ProblemException.BadRequest("Delivery method is turned off");
         if (req.Items is null) throw ProblemException.BadRequest("Order has no items");
         var lang = Lang.Norm(req.Lang);
+        await captcha.EnsureHumanAsync(req.Captcha, ct);
 
         var ids = req.Items.Select(i => i.ProductId).Distinct().ToList();
         var products = await db.Products.AsNoTracking()
@@ -76,11 +82,11 @@ public static class OrdersEndpoints
             },
             CustomerName = name,
             Phone = phone,
-            Email = string.IsNullOrWhiteSpace(req.Customer!.Email) ? null : req.Customer.Email.Trim(),
+            Email = FormsEndpoints.Trimmed(req.Customer!.Email),
             DeliveryMethod = delivery,
-            DeliveryCity = req.Delivery!.City?.Trim(),
-            DeliveryWarehouse = req.Delivery.Warehouse?.Trim(),
-            Comment = req.Comment?.Trim(),
+            DeliveryCity = FormsEndpoints.Trimmed(req.Delivery!.City),
+            DeliveryWarehouse = FormsEndpoints.Trimmed(req.Delivery.Warehouse),
+            Comment = FormsEndpoints.Trimmed(req.Comment, 2000),
             PaymentMethod = payment,
             Subtotal = subtotal,
             DeliveryCost = 0,

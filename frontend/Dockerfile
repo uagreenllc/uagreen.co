@@ -3,6 +3,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+# Baked into i18n baseUrl / site-config at build time; the sitemap ignores a runtime override.
+ARG NUXT_PUBLIC_SITE_URL
 RUN npm run build
 
 FROM node:22-alpine
