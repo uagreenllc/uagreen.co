@@ -6,7 +6,16 @@ public static class AuditWindow
 {
     public const string ProductSlug = "audit-vitrovih-resursiv";
     private const int FirstDay = 7, LastDay = 30;
-    private static readonly TimeZoneInfo Kyiv = TimeZoneInfo.FindSystemTimeZoneById("Europe/Kyiv");
+    // InvariantGlobalization is on: Linux reads IANA ids straight from tzdata (older tzdata only knows
+    // "Europe/Kiev"), Windows can't map IANA → Windows ids without ICU and needs its own "FLE Standard Time".
+    private static readonly TimeZoneInfo Kyiv = Find("Europe/Kyiv", "Europe/Kiev", "FLE Standard Time");
+
+    private static TimeZoneInfo Find(params string[] ids)
+    {
+        foreach (var id in ids)
+            if (TimeZoneInfo.TryFindSystemTimeZoneById(id, out var tz)) return tz;
+        throw new TimeZoneNotFoundException($"None of {string.Join(", ", ids)} found");
+    }
 
     public static (DateOnly From, DateOnly To) For(DateTime utcNow)
     {
