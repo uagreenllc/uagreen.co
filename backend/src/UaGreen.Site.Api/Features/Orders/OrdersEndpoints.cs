@@ -136,11 +136,16 @@ public static class OrdersEndpoints
         }
         await db.SaveChangesAsync(ct);
 
-        // After the save: a Gospodar failure must never lose the paid status.
-        if (AuditBooking.ShouldBook(order))
+        // After the save: a Gospodar failure must never lose the paid status. Only a valid paid callback books
+        // (a refund or mismatched-amount callback must not), and on its own token: LiqPay hanging up must not
+        // cancel the booking or the manager email.
+        var paidCallback = LiqPayService.IsPaid(cb.Status) && cb.Amount == order.Total
+            && string.Equals(cb.Currency, "UAH", StringComparison.OrdinalIgnoreCase);
+        if (paidCallback && AuditBooking.ShouldBook(order))
         {
-            await AuditBooking.SendAsync(order, cb.PaymentId, gospodar, notifier, ct);
-            await db.SaveChangesAsync(ct);
+            using var bookCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            await AuditBooking.SendAsync(order, cb.PaymentId, gospodar, notifier, bookCts.Token);
+            await db.SaveChangesAsync(bookCts.Token);
         }
         return Results.Ok();
     }

@@ -134,6 +134,15 @@ public class GospodarIntegrationTests
     }
 
     [Fact]
+    public async Task GetAuditSlots_returns_null_on_polly_rejection()
+    {
+        // The real pipeline throws this on its 30 s total timeout (and BrokenCircuitException on an open circuit).
+        var (client, _) = Make("k1", _ => throw new Polly.Timeout.TimeoutRejectedException());
+
+        Assert.Null(await client.GetAuditSlotsAsync(new DateOnly(2026, 12, 8), new DateOnly(2026, 12, 31), CancellationToken.None));
+    }
+
+    [Fact]
     public async Task PushLead_returns_false_on_503()
     {
         var (client, _) = Make("k1", _ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));

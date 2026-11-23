@@ -164,7 +164,8 @@ public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IO
             log.LogWarning("Gospodar {What}: {Status} {Body}", what, (int)resp.StatusCode, await resp.Content.ReadAsStringAsync(ct));
             resp.Dispose();
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        // Polly's own rejections (total timeout, open circuit) come from AddStandardResilienceHandler, not HttpClient.
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or Polly.ExecutionRejectedException)
         {
             log.LogWarning(ex, "Gospodar {What} failed", what);
         }

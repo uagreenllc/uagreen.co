@@ -26,7 +26,7 @@ public static class AuditBooking
         if (booked is null)
         {
             await notifier.NotifyManagersAsync($"Аудит №{o.Number} оплачено, але НЕ передано в Господар",
-                "Забронюйте вручну:\n" +
+                "Спершу перевірте в Господарі (після таймауту бронювання могло створитися), інакше забронюйте вручну:\n" +
                 $"Клієнт: {req.Name}, {req.Phone}{(req.Email is null ? "" : ", " + req.Email)}\n" +
                 $"Адреса: {req.Address}\nДата: {req.Date:dd.MM.yyyy}\n" +
                 $"{(req.Comment is null ? "" : $"Коментар: {req.Comment}\n")}" +
