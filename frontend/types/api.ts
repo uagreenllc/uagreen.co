@@ -105,6 +105,7 @@ export interface CreateOrder {
   items: { productId: string; qty: number; optionValueIds: string[] }[]
   lang: string
   website: string
+  captcha: string
 }
 
 export interface OrderItem { productName: string; optionsText: string | null; qty: number; unitPrice: number; lineTotal: number }

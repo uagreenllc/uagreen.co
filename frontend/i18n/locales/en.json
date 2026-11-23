@@ -35,7 +35,8 @@
     "sent": "Thank you, we'll be in touch.",
     "required": "This field is required",
     "phoneInvalid": "Enter a phone number",
-    "failed": "Could not send. Try again or call us."
+    "failed": "Could not send. Try again or call us.",
+    "captchaFailed": "Could not verify that you are human. Wait a few seconds and send again."
   },
   "blog": {
     "title": "Blog",
