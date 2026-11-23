@@ -12,7 +12,14 @@ const list = computed(() => products.value ?? [])
 const lead = computed(() => list.value.find(p => p.slug === 'k5v1') ?? list.value[0])
 const block = (key: string) => blocks.value?.find(b => b.key === key) ?? null
 
-usePageHead({ image: lead.value?.image })
+const { t } = useI18n()
+const money = useMoney()
+const price = lead.value ? money(lead.value.price) : ''
+usePageHead({
+  title: t('home.seo.title'),
+  description: price ? t('home.seo.description', { price }) : null, // no price → site default
+  image: lead.value?.image,
+})
 
 const settings = useSettings()
 const config = useRuntimeConfig()
@@ -37,6 +44,7 @@ useHead({ script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(org)
     <ContentBlock :block="block('home.projects')" />
     <ContentBlock :block="block('home.testimonials')" />
     <LatestPosts :posts="posts?.items ?? []" />
+    <HomeFaq v-if="price" :price="price" />
     <ContactCta />
   </div>
 </template>
