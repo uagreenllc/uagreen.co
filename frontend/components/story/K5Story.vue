@@ -123,7 +123,7 @@ const goTo = (i: number) => story?.goTo(i)
 
       <div class="copy">
         <div class="step" :class="{ active: active === 0 }">
-          <h1>{{ $t('story.title') }}</h1>
+          <h1><span class="kicker">{{ $t('story.kicker') }}</span>{{ $t('story.title') }}</h1>
           <p>{{ $t('story.lead') }}</p>
           <span class="hint"><svg width="14" height="18" viewBox="0 0 14 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 1v15M1 10l6 7 6-7" /></svg>{{ $t('story.hint') }}</span>
         </div>
@@ -352,6 +352,7 @@ const goTo = (i: number) => story?.goTo(i)
 .step.active ~ .step { transform: translateY(18px); }
 .step.active { opacity: 1; transform: none; pointer-events: auto; transition-duration: 0.45s; transition-delay: 0.12s; }
 .step h1 { font-size: clamp(38px, 4.4vw, 64px); line-height: 1.05; margin: 0 0 18px; letter-spacing: -0.02em; font-weight: 600; }
+.step h1 .kicker { display: block; font-size: 15px; line-height: 1.4; letter-spacing: 0.01em; font-weight: 600; color: var(--green); margin-bottom: 14px; }
 .step h2 { font-size: clamp(26px, 2.5vw, 36px); margin: 0 0 14px; }
 .step p { margin: 0 0 18px; color: var(--ink-2); font-size: 17px; max-width: 44ch; }
 .facts { padding-top: 14px; border-top: 1px solid var(--line); font-size: 15px; color: var(--ink-2); }

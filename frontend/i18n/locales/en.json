@@ -159,9 +159,27 @@
       "h": "Let's talk about your site",
       "p": "Write or call: we'll size the wind, the mast and the kit for your site.",
       "btn": "Contacts"
+    },
+    "seo": {
+      "title": "5 kW vertical-axis wind turbine from the maker — UA GREEN",
+      "description": "K5 5 kW vertical-axis wind turbine made in Ukraine, from {price}. 1.5 m/s cut-in, 38 dB, 12–24 m mast, installation in 21 regions of Ukraine."
+    },
+    "faq": {
+      "h": "5 kW wind turbine questions",
+      "items": [
+        { "q": "How much does a 5 kW vertical-axis wind turbine cost?", "a": "The K5 costs {price}. The kit has the 5 kW 48 V turbine, a 5 kW MPPT charge controller, a 5 kW ballast load and 50 m of cable. A 12, 18 or 24 m mast and installation are options on the product page." },
+        { "q": "How much electricity does a 5 kW wind turbine produce?", "a": "The K5 reaches its rated 5 kW (6.5 kW peak) at 12 m/s. Its year-round average output is 1.3–2 kW, roughly 11–17 MWh a year; winter output is about 30 % higher than summer. A wind audit gives the exact figure for your site." },
+        { "q": "What wind does the K5 need?", "a": "The rotor starts at 1.5 m/s, works from 2 to 25 m/s and is rated at 12 m/s. It withstands winds up to 45 m/s, and in strong wind the ballast load brakes the rotor." },
+        { "q": "Vertical or horizontal: which is better for a home?", "a": "A horizontal turbine yields more in strong, steady wind. A vertical one takes wind from any direction with no tail vane or yawing, handles gusts, turns slowly (125 rpm) and quietly at 38 dB, so it suits a house with people around." },
+        { "q": "What mast and foundation are needed?", "a": "The 12, 18 or 24 m mast is built from 6 m flanged sections with a service ladder. It stands on a reinforced concrete foundation with an anchor plate." },
+        { "q": "How does it connect to a house and solar panels?", "a": "The MPPT controller charges 48 V batteries and a hybrid inverter powers the house. Solar panels can join the same inverter for a wind-solar system. We size the kit to your consumption." },
+        { "q": "How often does it need service, and when does it pay back?", "a": "Service is once a year or every 12–15 MWh, from the ladder on the mast. The generator is gearless, so little can wear. Payback depends on the tariff: on average 1–2 years for a business and 5–6 years for a household." },
+        { "q": "Where is the K5 made and how do I get one?", "a": "We build the generator and blades ourselves in Ukraine; 80 % of the parts are Ukrainian. We deliver across Ukraine or you collect in Lviv, and we install in 21 regions. Pay by card, invoice or 0 % credit." }
+      ]
     }
   },
   "story": {
+    "kicker": "K5 vertical-axis wind turbine · 5 kW",
     "title": "From raw stock to wind.",
     "lead": "We build the K5 vertical-axis wind turbine ourselves, from winding the stator to installing it on your site. Scroll and watch how.",
     "hint": "Scroll",
