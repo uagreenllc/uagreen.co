@@ -23,10 +23,10 @@ public static class AdminInboxEndpoints
     {
         var a = app.MapGroup("/api/admin/applications").RequireAuthorization(Policies.Hr);
 
-        a.MapGet("/", async (string? q, Guid? vacancyId, int? page, int? pageSize, AppDbContext db, CancellationToken ct) =>
+        // Only what never reached Gospodar HR: delivered applications are worked there, not here.
+        a.MapGet("/", async (string? q, int? page, int? pageSize, AppDbContext db, CancellationToken ct) =>
         {
-            var rows = db.Applications.AsNoTracking();
-            if (vacancyId is not null) rows = rows.Where(x => x.VacancyId == vacancyId);
+            var rows = db.Applications.AsNoTracking().Where(x => x.GospodarCandidateId == null);
             if (!string.IsNullOrWhiteSpace(q))
                 rows = rows.Where(x => EF.Functions.ILike(x.Name, Like(q)) || x.Phone.Contains(q.Trim()) || (x.Email != null && EF.Functions.ILike(x.Email, Like(q))));
             var query = from x in rows
@@ -44,6 +44,18 @@ public static class AdminInboxEndpoints
             if (x.CvKey is null) throw ProblemException.NotFound("CV не додано");
             var stream = storage.OpenPrivate(x.CvKey) ?? throw ProblemException.NotFound("Файл CV зник зі сховища");
             return Results.File(stream, FileStorage.ContentTypeFor(x.CvKey), x.CvFileName ?? "cv" + Path.GetExtension(x.CvKey));
+        });
+
+        // Send to Gospodar now, with a fresh set of automatic retries after it.
+        a.MapPost("/{id:guid}/resend", async (Guid id, CrmSync sync, AppDbContext db, CancellationToken ct) =>
+        {
+            var x = await db.Applications.FirstOrDefaultAsync(z => z.Id == id, ct) ?? throw ProblemException.NotFound("Відгук не знайдено");
+            var v = x.VacancyId is null ? null : await db.Vacancies.AsNoTracking().FirstOrDefaultAsync(z => z.Id == x.VacancyId, ct);
+            x.GospodarAttempts = 0;
+            x.GospodarLastAttemptAt = null;
+            await sync.PushAsync(x, v, ct);
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(ToDto(x, v?.TitleUk));
         });
 
         a.MapDelete("/{id:guid}", async (Guid id, AppDbContext db, FileStorage storage, CancellationToken ct) =>
