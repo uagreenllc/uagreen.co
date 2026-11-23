@@ -42,6 +42,17 @@ public sealed class FileStorage
         Directory.CreateDirectory(_private);
     }
 
+    /// Do the first bytes (up to 1024) really look like the declared document type? Mirrors
+    /// Gospodar's FileMagicByteValidator: a CV it refuses would block the application forever.
+    public static bool ContentMatches(string contentType, ReadOnlySpan<byte> head) => contentType switch
+    {
+        // The PDF header may sit anywhere in the first 1024 bytes (BOM / blank line before it).
+        "application/pdf" => head[..Math.Min(head.Length, 1024)].IndexOf("%PDF-"u8) >= 0,
+        "application/msword" => head.StartsWith((ReadOnlySpan<byte>)[0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1]),
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => head.StartsWith("PK\u0003\u0004"u8),
+        _ => false,
+    };
+
     public static string Url(string key) => "/media/" + key;
 
     public static string NewKey(string folder, string contentType)
