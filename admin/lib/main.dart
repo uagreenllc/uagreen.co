@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'api.dart';
 import 'pages.dart';
+import 'stats.dart';
 
 void main() {
   runApp(const AdminApp());
@@ -20,16 +21,19 @@ class Section {
 }
 
 final sections = [
+  Section('Статистика', Icons.bar_chart, ['Sales', 'Editor'], () => const StatsPage()),
   Section('Замовлення', Icons.receipt_long, ['Sales'], () => const OrdersPage()),
   Section('Товари', Icons.inventory_2, ['Sales'], productsPage),
   Section('Категорії', Icons.category, ['Sales'], categoriesPage),
   // ponytail: Editor, because it saves through /admin/settings (Editor policy).
   Section('Доставка', Icons.local_shipping, ['Editor'], () => const DeliveryPage()),
+  Section('Канали збуту', Icons.storefront, ['Sales'], () => const FeedsPage()),
   Section('Контактні запити', Icons.mail, ['Sales', 'Editor'], contactsPage),
   Section('Блог', Icons.article, ['Editor'], blogPage),
   Section('Контент сторінок', Icons.web, ['Editor'], contentPage),
   Section('Відгуки клієнтів', Icons.reviews, ['Editor'], reviewsPage),
   Section('Налаштування', Icons.settings, ['Editor'], () => const SettingsPage()),
+  Section('Аналітика', Icons.insights, ['Editor'], () => const AnalyticsPage()),
   Section('Сторонній код', Icons.code, ['Admin'], () => const CodePage()),
   Section('Вакансії', Icons.work, ['Hr'], vacanciesPage),
   Section('Відгуки на вакансії', Icons.badge, ['Hr'], applicationsPage),
@@ -137,6 +141,15 @@ class Shell extends StatefulWidget {
 class _ShellState extends State<Shell> {
   final _visible = sectionsFor(api.roles);
   int _i = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    openSection = (title) {
+      final i = _visible.indexWhere((s) => s.title == title);
+      if (i >= 0) setState(() => _i = i);
+    };
+  }
 
   @override
   Widget build(BuildContext context) {

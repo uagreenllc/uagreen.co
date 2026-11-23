@@ -12,6 +12,8 @@ public static class RateLimitingExtensions
     /// Public POSTs: orders, applications, contact.
     public const string Forms = "forms";
     public const string Uploads = "uploads";
+    /// Page-view beacons from the site.
+    public const string Stats = "stats";
 
     public static IServiceCollection AddAppRateLimiting(this IServiceCollection s, IConfiguration cfg)
     {
@@ -47,6 +49,13 @@ public static class RateLimitingExtensions
             {
                 PermitLimit = cfg.GetValue("RateLimiting:Forms:PermitLimit", 10),
                 Window = cfg.GetValue("RateLimiting:Forms:Window", TimeSpan.FromHours(1)),
+                QueueLimit = 0,
+            }));
+
+            o.AddPolicy(Stats, ctx => RateLimitPartition.GetFixedWindowLimiter(Ip(ctx), _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = cfg.GetValue("RateLimiting:Stats:PermitLimit", 120),
+                Window = cfg.GetValue("RateLimiting:Stats:Window", TimeSpan.FromMinutes(1)),
                 QueueLimit = 0,
             }));
 

@@ -17,11 +17,12 @@ const deliveryNote = (d: DeliveryMethod) => langs.slice(Math.max(0, langs.indexO
 const payments: PaymentMethod[] = ['LiqPay', 'Invoice', 'Credit']
 const f = reactive({
   name: '', phone: '', email: '', delivery: deliveries[0]!, city: '', warehouse: '',
-  payment: 'LiqPay' as PaymentMethod, comment: '', website: '',
+  payment: 'LiqPay' as PaymentMethod, comment: '', website: '', captcha: '',
 })
 const errors = reactive<Record<string, string>>({})
 const needsAddress = computed(() => f.delivery !== 'Pickup')
 const liqPay = ref<Order['liqPay']>(null)
+const captchaEl = ref<{ reset(): void }>()
 
 const { pending, error, run } = useForm<typeof f>(async (v) => {
   const body: CreateOrder = {
@@ -32,12 +33,14 @@ const { pending, error, run } = useForm<typeof f>(async (v) => {
     items: cart.items.map(l => ({ productId: l.productId, qty: l.qty, optionValueIds: l.optionValueIds })),
     lang: locale.value,
     website: v.website,
+    captcha: v.captcha,
   }
   const order = await $fetch<Order>(apiUrl('/orders'), { method: 'POST', body })
   cart.clear()
   if (order.liqPay) liqPay.value = order.liqPay
   else await navigateTo(localePath(`/order/${order.id}`))
 })
+watch(error, e => e && captchaEl.value?.reset())
 
 function submit() {
   errors.name = f.name.trim().length < 2 ? t('form.required') : ''
@@ -113,6 +116,7 @@ function submit() {
             <textarea v-model="f.comment" name="comment" rows="3" maxlength="2000" />
           </label>
           <label class="hp" aria-hidden="true"><span>Website</span><input v-model="f.website" name="website" tabindex="-1" autocomplete="off"></label>
+          <Captcha ref="captchaEl" v-model="f.captcha" />
 
           <p v-if="error" class="form-error">{{ error }}</p>
           <button class="btn" type="submit" :disabled="pending">{{ pending ? $t('form.sending') : $t('checkout.place') }}</button>

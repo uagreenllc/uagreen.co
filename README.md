@@ -43,6 +43,10 @@ Old-URL audit (every Weblium URL must answer 200 or 301→200): `python tools/ch
 - Media: plain files on the `media_data` volume (`Storage__Root`), served by nginx as
   `/media/<key>`; the admin uploads with `POST /api/admin/media` (multipart `file` + `folder`).
   CVs go to the `private_data` volume and are streamed via `GET /api/admin/applications/{id}/cv`.
+- Site statistics: `frontend/plugins/stats.client.ts` posts each page view to `POST /api/stats/hit`
+  (table `page_views`, no IP kept); the admin reads `GET /api/admin/stats`. Country comes from the
+  free DB-IP country CSV, which the API downloads monthly into `private_data/geo/` (outbound HTTPS
+  to download.db-ip.com). Setting `stats_disabled` turns the counter off.
 - Weblium export JSON contract: see `tools/scrape_weblium.py` / `docs/PLAN.md`.
 
 ## Deploy
