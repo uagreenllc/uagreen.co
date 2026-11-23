@@ -60,7 +60,11 @@
     "faq": "FAQ",
     "files": "Documents",
     "price": "Price",
-    "withOptions": "with selected options"
+    "withOptions": "with selected options",
+    "zoom": "Enlarge photo",
+    "close": "Close",
+    "prevPhoto": "Previous photo",
+    "nextPhoto": "Next photo"
   },
   "cart": {
     "title": "Cart",
