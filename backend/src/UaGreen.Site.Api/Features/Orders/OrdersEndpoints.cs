@@ -2,6 +2,8 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
+using UaGreen.Site.Api.Features.Audit;
+using UaGreen.Site.Api.Infrastructure.Auth;
 using UaGreen.Site.Api.Infrastructure.Email;
 using UaGreen.Site.Api.Infrastructure.Payments;
 using UaGreen.Site.Api.Infrastructure.Persistence;
@@ -102,7 +104,7 @@ public static class OrdersEndpoints
     }
 
     private static async Task<IResult> LiqPayCallbackAsync(
-        HttpRequest request, AppDbContext db, LiqPayService liqpay, Notifier notifier, ILoggerFactory lf, CancellationToken ct)
+        HttpRequest request, AppDbContext db, LiqPayService liqpay, GospodarClient gospodar, Notifier notifier, ILoggerFactory lf, CancellationToken ct)
     {
         var log = lf.CreateLogger("LiqPay");
         var form = await request.ReadFormAsync(ct);
@@ -133,6 +135,13 @@ public static class OrdersEndpoints
             }
         }
         await db.SaveChangesAsync(ct);
+
+        // After the save: a Gospodar failure must never lose the paid status.
+        if (AuditBooking.ShouldBook(order))
+        {
+            await AuditBooking.SendAsync(order, cb.PaymentId, gospodar, notifier, ct);
+            await db.SaveChangesAsync(ct);
+        }
         return Results.Ok();
     }
 

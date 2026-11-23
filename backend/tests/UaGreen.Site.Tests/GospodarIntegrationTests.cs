@@ -87,6 +87,33 @@ public class GospodarIntegrationTests
     }
 
     [Fact]
+    public async Task BookAudit_parses_response()
+    {
+        var (client, stub) = Make("k1", _ => new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent(
+                """{"dealId":"11111111-1111-1111-1111-111111111111","orderId":"22222222-2222-2222-2222-222222222222","tripId":"33333333-3333-3333-3333-333333333333","dateWasFree":false}""",
+                System.Text.Encoding.UTF8, "application/json"),
+        });
+        var booking = new GospodarAuditBooking("ext-1", "Олена", "+380501112233", null, "с. Хроли", null,
+            new DateOnly(2026, 12, 8), 15000m, new DateTime(2026, 11, 23, 10, 0, 0, DateTimeKind.Utc), "liqpay:123",
+            new DateTime(2026, 11, 23, 9, 58, 0, DateTimeKind.Utc));
+
+        var r = await client.BookAuditAsync(booking, CancellationToken.None);
+
+        Assert.NotNull(r);
+        Assert.False(r.DateWasFree);
+        Assert.Equal(Guid.Parse("33333333-3333-3333-3333-333333333333"), r.TripId);
+        var (req, body) = Assert.Single(stub.Calls);
+        Assert.Equal("/api/integration/audit-bookings", req.RequestUri!.AbsolutePath);
+        using var json = JsonDocument.Parse(body!);
+        Assert.Equal("ext-1", json.RootElement.GetProperty("externalId").GetString());
+        Assert.Equal("2026-12-08", json.RootElement.GetProperty("date").GetString());
+        Assert.Equal("liqpay:123", json.RootElement.GetProperty("paymentRef").GetString());
+        Assert.Equal(15000m, json.RootElement.GetProperty("amount").GetDecimal());
+    }
+
+    [Fact]
     public async Task PushLead_returns_false_on_503()
     {
         var (client, _) = Make("k1", _ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));

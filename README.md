@@ -52,3 +52,7 @@ bash infra/scripts/deploy.sh          # re-deploy
 bash infra/scripts/deploy.sh --ssl    # first deploy of a domain (vhost + certbot)
 DOMAIN=new.uagreen.co ADMIN_DOMAIN=admin-new.uagreen.co bash infra/scripts/deploy.sh --ssl   # staging
 ```
+
+Before a prod deploy: `LIQPAY_SANDBOX=false` — LiqPay's `sandbox` status counts as paid, so a sandbox
+payment for a site audit would book a real trip in Gospodar. Staging uses the Gospodar test company's
+`GOSPODAR_API_KEY`, prod the UA GREEN one.

@@ -28,6 +28,13 @@ public sealed record GospodarUserPayload(
 /// Body of Gospodar's POST /api/integration/leads (idempotent by ExternalId).
 public sealed record GospodarLead(string ExternalId, string? Name, string? Phone, string? Email, string? Comment, string? ProductInterest);
 
+/// Body of Gospodar's POST /api/integration/audit-bookings — a paid site audit (idempotent by ExternalId).
+public sealed record GospodarAuditBooking(string ExternalId, string Name, string Phone, string? Email, string Address, string? Comment,
+    DateOnly Date, decimal Amount, DateTime PaidAt, string PaymentRef, DateTime OfferAcceptedAt);
+
+/// Gospodar's answer: DateWasFree = false when the day was taken meanwhile (booked anyway, manager reschedules).
+public sealed record GospodarAuditBooked(Guid DealId, Guid OrderId, Guid TripId, bool DateWasFree);
+
 /// One user as returned by Gospodar's GET /api/users.
 public sealed record GospodarUserDto(Guid Id, string? Email, string? FullName, bool IsActive, IReadOnlyList<string>? Roles);
 
@@ -109,6 +116,25 @@ public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IO
     }
 
     private sealed record AuditSlotsPayload(List<DateOnly> Dates);
+
+    /// Books a paid audit; null when it didn't happen (no key, Gospodar down or refused) — the caller emails managers.
+    public async Task<GospodarAuditBooked?> BookAuditAsync(GospodarAuditBooking booking, CancellationToken ct)
+    {
+        using var req = Integration(HttpMethod.Post, "/api/integration/audit-bookings");
+        if (req is null) return null;
+        req.Content = JsonContent.Create(booking);
+        using var resp = await SendAsync(req, "audit-booking", ct);
+        if (resp is null) return null;
+        try
+        {
+            return await resp.Content.ReadFromJsonAsync<GospodarAuditBooked>(ct);
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            log.LogWarning(ex, "Gospodar audit-booking: malformed response");
+            return null;
+        }
+    }
 
     /// Null when the site has no integration key: integration calls are then skipped, not failed.
     private HttpRequestMessage? Integration(HttpMethod method, string path)
