@@ -48,6 +48,8 @@ public sealed class Vacancy
     public int Sort { get; set; }
     public DateTime PublishedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    /// The Gospodar vacancy applications to this one land on; null = Gospodar's «Відгуки з сайту».
+    public Guid? GospodarVacancyId { get; set; }
 }
 
 /// Editable page / home-section text. Key like "page.about" or "home.hero"; one row per lang.

@@ -10,7 +10,7 @@ using static UaGreen.Site.Api.Features.Admin.AdminCommon;
 namespace UaGreen.Site.Api.Features.Admin;
 
 public sealed record ApplicationAdminDto(Guid Id, Guid? VacancyId, string? VacancyTitle, string Name, string Phone, string? Email,
-    string? Message, bool HasCv, string? CvFileName, bool IsRead, string Status, string? Note, DateTime CreatedAt);
+    string? Message, bool HasCv, string? CvFileName, DateTime CreatedAt, string? GospodarError, int GospodarAttempts);
 public sealed record ContactAdminDto(Guid Id, string Name, string Phone, string? Email, string Message, bool IsRead, string? Note,
     CrmStateDto Crm, DateTime CreatedAt);
 /// Partial update; null = leave as is. Note "" clears it.
@@ -23,12 +23,10 @@ public static class AdminInboxEndpoints
     {
         var a = app.MapGroup("/api/admin/applications").RequireAuthorization(Policies.Hr);
 
-        a.MapGet("/", async (bool? unread, string? q, Guid? vacancyId, string? status, int? page, int? pageSize, AppDbContext db, CancellationToken ct) =>
+        a.MapGet("/", async (string? q, Guid? vacancyId, int? page, int? pageSize, AppDbContext db, CancellationToken ct) =>
         {
             var rows = db.Applications.AsNoTracking();
-            if (unread == true) rows = rows.Where(x => !x.IsRead);
             if (vacancyId is not null) rows = rows.Where(x => x.VacancyId == vacancyId);
-            if (Enum.TryParse<ApplicationStatus>(status, true, out var st)) rows = rows.Where(x => x.Status == st);
             if (!string.IsNullOrWhiteSpace(q))
                 rows = rows.Where(x => EF.Functions.ILike(x.Name, Like(q)) || x.Phone.Contains(q.Trim()) || (x.Email != null && EF.Functions.ILike(x.Email, Like(q))));
             var query = from x in rows
@@ -46,18 +44,6 @@ public static class AdminInboxEndpoints
             if (x.CvKey is null) throw ProblemException.NotFound("CV не додано");
             var stream = storage.OpenPrivate(x.CvKey) ?? throw ProblemException.NotFound("Файл CV зник зі сховища");
             return Results.File(stream, FileStorage.ContentTypeFor(x.CvKey), x.CvFileName ?? "cv" + Path.GetExtension(x.CvKey));
-        });
-
-        a.MapPatch("/{id:guid}", async (Guid id, InboxPatch req, AppDbContext db, CancellationToken ct) =>
-        {
-            var x = await db.Applications.FirstOrDefaultAsync(z => z.Id == id, ct) ?? throw ProblemException.NotFound("Відгук не знайдено");
-            x.IsRead = req.IsRead ?? x.IsRead;
-            if (req.Note is not null) x.Note = Clean(req.Note);
-            if (req.Status is not null)
-                x.Status = Enum.TryParse<ApplicationStatus>(req.Status, true, out var st) ? st : throw ProblemException.BadRequest("Невідомий статус");
-            await db.SaveChangesAsync(ct);
-            var title = x.VacancyId is null ? null : await db.Vacancies.Where(v => v.Id == x.VacancyId).Select(v => v.TitleUk).FirstOrDefaultAsync(ct);
-            return Results.Ok(ToDto(x, title));
         });
 
         a.MapDelete("/{id:guid}", async (Guid id, AppDbContext db, FileStorage storage, CancellationToken ct) =>
@@ -107,7 +93,7 @@ public static class AdminInboxEndpoints
     }
 
     private static ApplicationAdminDto ToDto(Application x, string? vacancyTitle) => new(x.Id, x.VacancyId, vacancyTitle, x.Name, x.Phone, x.Email,
-        x.Message, x.CvKey != null, x.CvFileName, x.IsRead, x.Status.ToString(), x.Note, x.CreatedAt);
+        x.Message, x.CvKey != null, x.CvFileName, x.CreatedAt, x.GospodarError, x.GospodarAttempts);
 
     private static ContactAdminDto ToDto(ContactRequest x) => new(x.Id, x.Name, x.Phone, x.Email, x.Message, x.IsRead, x.Note,
         new CrmStateDto(x.CrmDealId, x.CrmSyncedAt, x.CrmError, x.CrmAttempts), x.CreatedAt);
