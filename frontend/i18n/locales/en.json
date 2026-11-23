@@ -95,6 +95,7 @@
     "payment_LiqPay_hint": "Visa / Mastercard via LiqPay, right after you confirm.",
     "payment_Invoice": "Bank transfer by invoice",
     "payment_Invoice_hint": "We'll send the invoice by email or messenger.",
+    "payment_Invoice_hintIban": "Transfer to our company IBAN from any bank — we'll show the details right after you place the order.",
     "payment_Credit": "0 % credit",
     "payment_Credit_hint": "Instalments via partner banks; a manager will contact you.",
     "comment": "Comment",
@@ -112,6 +113,19 @@
     "thanksPaid": "Payment received. Thank you! We'll be in touch about shipping.",
     "thanksInvoice": "Thank you! We'll send the invoice by email or messenger.",
     "thanksCredit": "Thank you! A manager will contact you about the credit.",
+    "thanksTransfer": "Thank you! Please pay by bank transfer using the details below — we'll ship as soon as the payment arrives.",
+    "bank": {
+      "title": "Payment details",
+      "recipient": "Recipient",
+      "edrpou": "Company code (EDRPOU)",
+      "iban": "IBAN",
+      "bank": "Bank",
+      "amount": "Amount",
+      "purpose": "Payment reference",
+      "purposeDefault": "Payment for order No. {n}",
+      "copy": "Copy",
+      "copied": "Copied"
+    },
     "status": {
       "New": "New",
       "AwaitingPayment": "Awaiting payment",

@@ -20,8 +20,11 @@ class F {
   final Future<List<(Object?, String)>> Function()? choices;
 }
 
-void toast(BuildContext context, String text) =>
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+/// Replaces the current snackbar: with accessibility on, snackbars never time out and would queue
+/// a later error behind an old "Збережено".
+void toast(BuildContext context, String text) => ScaffoldMessenger.of(context)
+  ..hideCurrentSnackBar()
+  ..showSnackBar(SnackBar(content: Text(text)));
 
 Future<bool> confirm(BuildContext context, String text) async =>
     await showDialog<bool>(

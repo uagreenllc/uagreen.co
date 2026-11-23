@@ -52,6 +52,9 @@ public static class OrdersEndpoints
         if (phone.Length is < 7 or > 30) throw ProblemException.BadRequest("Phone is required");
         if (!Enum.TryParse<PaymentMethod>(req.PaymentMethod, true, out var payment))
             throw ProblemException.BadRequest("Unknown payment method");
+        var payOffKey = PaymentSettings.OffKey(payment); // set in admin → Платіжні системи
+        if (await db.Settings.AnyAsync(s => s.Key == payOffKey && s.Value == PaymentSettings.Off, ct))
+            throw ProblemException.BadRequest("Payment method is turned off");
         if (!Enum.TryParse<DeliveryMethod>(req.Delivery?.Method, true, out var delivery))
             throw ProblemException.BadRequest("Unknown delivery method");
         var offKey = $"delivery.{delivery}.off"; // set in admin → Доставка
