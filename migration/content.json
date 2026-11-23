@@ -36,18 +36,6 @@
     "body_html": "<p>Our clients turn to us for complete, end-to-end energy solutions for their households, homes, businesses, and offices.</p><p><img src=\"/media/66a31a9394e0ee54cbf9b482.jpg\"></p><h3>Household</h3><p>During power outages, it is important to ensure the stable operation of your household. We offer a comprehensive solution for your comfort.</p><ul><li>1 kW Wind Power System;</li><li>4.2 kW Hybrid Inverter;</li><li>Batteries for 6 Hours of Backup Power;</li><li>Installation.</li></ul><p><img src=\"/media/66a31beb94e0ee54cbf9b5ce.jpg\"></p><h3>Private Enterprise</h3><p>The stable operation of your business is key to the economic success of the entire country. Our company will provide you with a reliable energy source 24/7, all year round!</p><ul><li>15 kW Wind-Solar Power System;</li><li>3 Hybrid Inverters;</li><li>Batteries for 12 Hours of Backup Power;</li><li>Installation.</li></ul><p><a href=\"/about-us#projects\">Більше проєктів</a></p>"
   },
   {
-    "key": "home.testimonials",
-    "lang": "uk",
-    "title": null,
-    "body_html": "<p><img src=\"/media/642bdd1bf08dbf000dfe2403.jpg\"></p><p><em>\"Я була приємно здивована таким зручним процесом замовлення. Доставка нашої вітроелектростанції на 1 кВт була вчасною. Усі задоволені ціною та якістю нашої нової енергетичної системи. Дякуємо вам!\"</em></p><p>- Анна -</p><p><img src=\"/media/6a3a72b89cc6e9c73c4258d4.jpg\"></p><p><em>\"Знайшов компанію в TikTok і звернувся за консультацією щодо вітрогенерації. Мені детально пояснили всі нюанси та допомогли обрати оптимальний вітрогенератор для приватного будинку. Робота команди залишила лише позитивні враження — професійно, якісно та без зайвих обіцянок. Рекомендую всім, хто шукає надійне рішення для енергонезалежності.\"</em></p><p>- ВАлерій, Кременчук -</p>"
-  },
-  {
-    "key": "home.testimonials",
-    "lang": "en",
-    "title": null,
-    "body_html": "<p><img src=\"/media/642bdd1bf08dbf000dfe2403.jpg\"></p><p><em>\"I was pleasantly surprised by how easy the ordering process was. Our 1 kW wind power system was delivered on time. We are very satisfied with the price and quality of our new energy system. Thank you!\"</em></p><p>- ANNA -</p><p><img src=\"/media/6a3a72b89cc6e9c73c4258d4.jpg\"></p><p><em>\"I found the company on TikTok and reached out for advice on wind power generation. They explained all the details clearly and helped me choose the right wind turbine for my private home. I had a great experience with the team — professional, high-quality service, and no empty promises. I highly recommend them to anyone looking for a reliable energy independence solution.\"</em></p><p>- Valeriy, Kremenchuk -</p>"
-  },
-  {
     "key": "home.about",
     "lang": "uk",
     "title": "Про UA GREEN",

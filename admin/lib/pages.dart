@@ -575,6 +575,28 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   }
 }
 
+Widget reviewsPage() => crud(
+  path: '/admin/reviews',
+  noun: 'відгук',
+  cols: [
+    Col('', (r) => thumb(r['photoKey'])),
+    Col('Автор', (r) => r['authorUk']),
+    Col('Текст', (r) => r['textUk']),
+    Col('Порядок', (r) => r['sort']),
+    Col('На сайті', (r) => yes(r['published'])),
+  ],
+  blank: () => {'published': true, 'sort': 0},
+  fields: const [
+    F('authorUk', "Ім'я, місто (UK)", required: true),
+    F('authorEn', "Ім'я, місто (EN)"),
+    F('textUk', 'Текст відгуку (UK)', t: T.multiline, required: true),
+    F('textEn', 'Текст відгуку (EN)', t: T.multiline),
+    F('photoKey', 'Фото', t: T.image, folder: 'content'),
+    F('published', 'Показувати на сайті', t: T.bool),
+    F('sort', 'Порядок', t: T.int),
+  ],
+);
+
 /// Key/value site settings (phones, address, socials, analytics ids).
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});

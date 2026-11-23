@@ -55,6 +55,21 @@ public sealed class ContentBlock
     public DateTime UpdatedAt { get; set; }
 }
 
+/// Customer testimonial on the home page.
+public sealed class Review
+{
+    public Guid Id { get; set; }
+    public string? PhotoKey { get; set; }
+    public string TextUk { get; set; } = "";
+    public string? TextEn { get; set; }
+    /// Name and city as shown, e.g. "Валерій, Кременчук".
+    public string AuthorUk { get; set; } = "";
+    public string? AuthorEn { get; set; }
+    public bool Published { get; set; } = true;
+    public int Sort { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
 /// Public site settings (phones, socials, analytics ids). Never secrets — those live in env.
 public sealed class Setting
 {
