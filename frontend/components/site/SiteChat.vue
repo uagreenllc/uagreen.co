@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { chatStorage } from '~/utils/chatStorage'
-import { TEASER_DELAY_MS, pickQuestion, teaserAllowed } from '~/utils/chatTeaser'
+import { TEASER_DELAY_MS, isTeaserBlockedPath, pickQuestion, teaserAllowed } from '~/utils/chatTeaser'
 import type { ChatQuestion } from '~/types/chat'
 
 const { t } = useI18n()
@@ -38,9 +38,10 @@ function close() {
 }
 
 async function submit() {
+  if (sending.value) return
   failed.value = false
   const v = text.value
-  if (await chat.send(v)) text.value = ''
+  if (await chat.send(v)) { if (text.value === v) text.value = '' }
   else if (!unavailable.value && v.trim()) failed.value = true
 }
 function onEnter(e: KeyboardEvent) {
@@ -53,7 +54,11 @@ async function answer() {
   const q = teaser.value
   if (!q) return
   open()
-  await chat.send(q.text, q.id)
+  failed.value = false
+  if (!(await chat.send(q.text, q.id)) && !unavailable.value) {
+    text.value = q.text
+    failed.value = true
+  }
 }
 function dismiss() {
   chatStorage.setDismissedAt(Date.now())
@@ -128,7 +133,7 @@ onBeforeUnmount(() => {
       </template>
     </section>
 
-    <div v-if="teaser && !isOpen" class="chat-teaser">
+    <div v-if="teaser && !isOpen && !isTeaserBlockedPath(route.path)" class="chat-teaser">
       <button type="button" class="chat-x" :aria-label="t('chat.close')" @click="dismiss">×</button>
       <p>{{ teaser.text }}</p>
       <button type="button" class="btn" @click="answer">{{ t('chat.send') }}</button>

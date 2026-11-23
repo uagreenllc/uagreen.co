@@ -28,6 +28,7 @@ export function useChat() {
   let timer: ReturnType<typeof setTimeout> | undefined
   let stopped = false
   let polling = false
+  let unwatchLocale: (() => void) | undefined
 
   const headers = () => ({ 'X-Chat-Token': conv.value?.token ?? '' })
   const url = (suffix: string) => apiUrl(`/chat/conversations/${conv.value?.conversationId}${suffix}`)
@@ -91,6 +92,14 @@ export function useChat() {
     }
     if (!enabled.value) return
     document.addEventListener('visibilitychange', onVisible)
+    // questions are served in one language: refetch when the visitor switches it
+    unwatchLocale = watch(locale, async (l) => {
+      try {
+        questions.value = (await $fetch<{ questions: ChatQuestion[] }>(apiUrl('/chat/questions'), { query: { lang: l } })).questions ?? []
+      } catch {
+        questions.value = []
+      }
+    })
     if (conv.value) {
       try {
         messages.value = await $fetch<ChatMsg[]>(url('/messages'), { headers: headers() })
@@ -155,6 +164,7 @@ export function useChat() {
   function stop() {
     stopped = true
     clearTimeout(timer)
+    unwatchLocale?.()
     document.removeEventListener('visibilitychange', onVisible)
   }
 
