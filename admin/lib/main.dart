@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'api.dart';
+import 'blog.dart';
 import 'pages.dart';
 import 'stats.dart';
 
@@ -30,7 +31,7 @@ final sections = [
   Section('Доставка', Icons.local_shipping, ['Editor'], () => const DeliveryPage()),
   Section('Канали збуту', Icons.storefront, ['Sales'], () => const FeedsPage()),
   Section('Контактні запити', Icons.mail, ['Sales', 'Editor'], contactsPage),
-  Section('Блог', Icons.article, ['Editor'], blogPage),
+  Section('Блог', Icons.article, ['Editor'], () => const BlogPage()),
   Section('Контент сторінок', Icons.web, ['Editor'], contentPage),
   Section('Відгуки клієнтів', Icons.reviews, ['Editor'], reviewsPage),
   Section('Налаштування', Icons.settings, ['Editor'], () => const SettingsPage()),

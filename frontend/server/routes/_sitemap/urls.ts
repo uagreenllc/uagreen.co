@@ -13,7 +13,8 @@ export default defineSitemapEventHandler(async (event) => {
   const [products, categories, posts, vacancies] = await Promise.all([
     get<{ slug: string }>('/catalog/products'),
     get<{ slug: string }>('/catalog/categories'),
-    $fetch<{ items: { slug: string }[] }>(`${base}/blog?pageSize=500`, { timeout: 4000 }).then(p => p.items, () => []),
+    $fetch<{ items: { slug: string; noIndex: boolean }[] }>(`${base}/blog?pageSize=500`, { timeout: 4000 })
+      .then(p => p.items.filter(i => !i.noIndex), () => []),
     get<{ slug: string }>('/vacancies'),
   ])
   return [

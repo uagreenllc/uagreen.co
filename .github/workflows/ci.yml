@@ -58,5 +58,6 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter analyze
+      - run: flutter test
       # Same command as infra/scripts/deploy.sh.
       - run: flutter build web --release --pwa-strategy=none --dart-define=API_HOST=https://admin.uagreen.co

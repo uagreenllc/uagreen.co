@@ -670,35 +670,6 @@ class _DeliveryPageState extends State<DeliveryPage> {
 
 // ── Content (Editor) ──
 
-Widget blogPage() => crud(
-  path: '/admin/blog',
-  noun: 'стаття',
-  cols: [
-    Col('', (r) => thumb(r['coverUrl'])),
-    Col('Заголовок', (r) => r['titleUk']),
-    Col('Дата', (r) => fmtDate(r['publishedAt'], time: false)),
-    Col('На сайті', (r) => yes(r['published'])),
-  ],
-  blank: () => {'published': false, 'bodyHtmlUk': ''},
-  fields: const [
-    F('titleUk', 'Заголовок (UK)', required: true),
-    F('titleEn', 'Заголовок (EN)'),
-    F('slug', 'Slug (адреса /blog/...)', t: T.slug, required: true),
-    F('publishedAt', 'Дата публікації', t: T.date),
-    F('author', 'Автор'),
-    F('published', 'Опубліковано', t: T.bool),
-    F('coverKey', 'Обкладинка', t: T.image, folder: 'blog'),
-    F('excerptUk', 'Анонс (UK)', t: T.multiline),
-    F('excerptEn', 'Анонс (EN)', t: T.multiline),
-    F('bodyHtmlUk', 'Текст (UK)', t: T.html, required: true, folder: 'blog'),
-    F('bodyHtmlEn', 'Текст (EN)', t: T.html, folder: 'blog'),
-    F('seoTitleUk', 'SEO title (UK)'),
-    F('seoTitleEn', 'SEO title (EN)'),
-    F('seoDescUk', 'SEO description (UK)', t: T.multiline),
-    F('seoDescEn', 'SEO description (EN)', t: T.multiline),
-  ],
-);
-
 Widget contentPage() {
   const body = [F('title', 'Заголовок'), F('bodyHtml', 'Текст', t: T.html, folder: 'content')];
   Future<void> save(J d) =>

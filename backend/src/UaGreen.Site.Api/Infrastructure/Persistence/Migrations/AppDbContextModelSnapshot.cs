@@ -105,6 +105,14 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("excerpt_uk");
 
+                    b.Property<bool>("NoFollow")
+                        .HasColumnType("boolean")
+                        .HasColumnName("no_follow");
+
+                    b.Property<bool>("NoIndex")
+                        .HasColumnType("boolean")
+                        .HasColumnName("no_index");
+
                     b.Property<bool>("Published")
                         .HasColumnType("boolean")
                         .HasColumnName("published");
@@ -120,6 +128,14 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<string>("SeoDescUk")
                         .HasColumnType("text")
                         .HasColumnName("seo_desc_uk");
+
+                    b.Property<string>("SeoKeywordsEn")
+                        .HasColumnType("text")
+                        .HasColumnName("seo_keywords_en");
+
+                    b.Property<string>("SeoKeywordsUk")
+                        .HasColumnType("text")
+                        .HasColumnName("seo_keywords_uk");
 
                     b.Property<string>("SeoTitleEn")
                         .HasColumnType("text")
