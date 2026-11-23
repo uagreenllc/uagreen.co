@@ -1,6 +1,11 @@
+/** No personal data here: name and phone go to Gospodar only. */
 export interface StoredChat {
   conversationId: string
   token: string
+  /** `at` of the last message the visitor has seen; later replies count as unread. */
+  seenAt?: string
+  /** The phone prompt was answered. */
+  contactSaved?: boolean
 }
 
 const KEY = 'uag_chat'
@@ -13,8 +18,15 @@ export function parseStoredChat(raw: string | null): StoredChat | null {
   try {
     const v: unknown = JSON.parse(raw)
     if (!v || typeof v !== 'object' || Array.isArray(v)) return null
-    const { conversationId, token } = v as Record<string, unknown>
-    return typeof conversationId === 'string' && typeof token === 'string' ? { conversationId, token } : null
+    const { conversationId, token, seenAt, contactSaved } = v as Record<string, unknown>
+    if (typeof conversationId !== 'string' || typeof token !== 'string') return null
+    // older records have only conversationId + token
+    return {
+      conversationId,
+      token,
+      ...(typeof seenAt === 'string' && { seenAt }),
+      ...(contactSaved === true && { contactSaved }),
+    }
   } catch {
     return null
   }
@@ -39,7 +51,7 @@ const write = (key: string, value: string | null) => {
 
 export const chatStorage = {
   load: (): StoredChat | null => parseStoredChat(read(KEY)),
-  save: (c: StoredChat) => write(KEY, JSON.stringify({ conversationId: c.conversationId, token: c.token })),
+  save: (c: StoredChat) => write(KEY, JSON.stringify({ conversationId: c.conversationId, token: c.token, seenAt: c.seenAt, contactSaved: c.contactSaved })),
   clear: () => write(KEY, null),
   questionId: (): string | null => read(QUESTION_KEY),
   setQuestionId: (id: string) => write(QUESTION_KEY, id),

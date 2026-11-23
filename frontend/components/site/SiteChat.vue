@@ -8,7 +8,8 @@ const route = useRoute()
 const chat = useChat()
 const { enabled, questions, messages, isOpen, unread, sending, unavailable, contactSaved, hasConversation } = chat
 
-const text = ref('')
+const text = ref('') // also the in-flight message: the ContactForm fallback starts from it
+const website = ref('') // honeypot, both forms
 const failed = ref(false)
 const teaser = ref<ChatQuestion | null>(null)
 const contact = reactive({ name: '', phone: '' })
@@ -41,7 +42,7 @@ async function submit() {
   if (sending.value) return
   failed.value = false
   const v = text.value
-  if (await chat.send(v)) { if (text.value === v) text.value = '' }
+  if (await chat.send(v, { website: website.value })) { if (text.value === v) text.value = '' }
   else if (!unavailable.value && v.trim()) failed.value = true
 }
 function onEnter(e: KeyboardEvent) {
@@ -56,12 +57,11 @@ async function answer() {
   const v = answerText.value.trim()
   if (!q || !v || sending.value) return
   answerText.value = ''
+  text.value = v // set before sending: a 503 swaps the form for ContactForm, which starts from it
   open()
   failed.value = false
-  if (!(await chat.send(v, q.id)) && !unavailable.value) {
-    text.value = v
-    failed.value = true
-  }
+  if (await chat.send(v, { questionId: q.id, website: website.value })) { if (text.value === v) text.value = '' }
+  else if (!unavailable.value) failed.value = true
 }
 function onTeaserEnter(e: KeyboardEvent) {
   if (e.shiftKey || e.isComposing) return
@@ -84,7 +84,9 @@ onMounted(async () => {
   if (!enabled.value) return
   teaserTimer = setTimeout(() => {
     const q = pickQuestion(questions.value, chatStorage.questionId())
-    if (!q || isOpen.value || !teaserAllowed({ path: route.path, hasConversation: hasConversation.value, dismissedAt: chatStorage.dismissedAt(), now: Date.now(), hasQuestion: true })) return
+    // chatStorage.load(): another tab may have started a conversation since this one loaded
+    const anyConversation = hasConversation.value || chatStorage.load() !== null
+    if (!q || isOpen.value || !teaserAllowed({ path: route.path, hasConversation: anyConversation, dismissedAt: chatStorage.dismissedAt(), now: Date.now(), hasQuestion: true })) return
     chatStorage.setQuestionId(q.id)
     chat.recordImpression(q.id)
     teaser.value = q
@@ -122,13 +124,15 @@ onBeforeUnmount(() => {
         <p>{{ t('chat.contactPrompt') }}</p>
         <input v-model="contact.name" :placeholder="t('chat.contactName')" :aria-label="t('chat.contactName')" autocomplete="name" maxlength="120">
         <input v-model="contact.phone" type="tel" :placeholder="t('chat.contactPhone')" :aria-label="t('chat.contactPhone')" autocomplete="tel" maxlength="30" :aria-invalid="contactError">
+        <em v-if="contactError" role="alert">{{ t('form.phoneInvalid') }}</em>
         <button class="btn" type="submit">{{ t('chat.contactSave') }}</button>
+        <PrivacyNote />
       </form>
       <p v-else-if="contactSaved" class="chat-note ok">{{ t('chat.contactSaved') }}</p>
 
       <div v-if="unavailable && !hasConversation" class="chat-fallback">
         <p class="chat-note">{{ t('chat.unavailable') }}</p>
-        <ContactForm />
+        <ContactForm :initial-message="text" />
       </div>
       <template v-else>
         <p v-if="unavailable" class="chat-note">{{ t('chat.unavailable') }}</p>
@@ -136,6 +140,7 @@ onBeforeUnmount(() => {
         <form class="chat-form" @submit.prevent="submit">
           <label class="sr-only" for="chat-input">{{ t('chat.placeholder') }}</label>
           <textarea id="chat-input" ref="input" v-model="text" rows="2" maxlength="2000" :placeholder="t('chat.placeholder')" @keydown.enter="onEnter" />
+          <label class="hp" aria-hidden="true"><span>Website</span><input v-model="website" name="website" tabindex="-1" autocomplete="off"></label>
           <button class="btn" type="submit" :disabled="sending || !text.trim()">{{ t('chat.send') }}</button>
         </form>
       </template>
@@ -146,10 +151,11 @@ onBeforeUnmount(() => {
       <p>{{ teaser.text }}</p>
       <label class="sr-only" for="chat-teaser-input">{{ t('chat.placeholder') }}</label>
       <textarea id="chat-teaser-input" v-model="answerText" rows="2" maxlength="2000" :placeholder="t('chat.placeholder')" @keydown.enter="onTeaserEnter" />
+      <label class="hp" aria-hidden="true"><span>Website</span><input v-model="website" name="website" tabindex="-1" autocomplete="off"></label>
       <button type="button" class="btn" :disabled="sending || !answerText.trim()" @click="answer">{{ t('chat.send') }}</button>
     </div>
 
-    <button ref="btn" type="button" class="chat-fab" :aria-label="t('chat.open')" :aria-expanded="isOpen" @click="isOpen ? close() : open()">
+    <button ref="btn" type="button" class="chat-fab" :aria-label="unread ? `${t('chat.open')} (${unread})` : t('chat.open')" :aria-expanded="isOpen" @click="isOpen ? close() : open()">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" /></svg>
       <span v-if="unread" class="chat-badge">{{ unread }}</span>
     </button>
@@ -174,6 +180,8 @@ onBeforeUnmount(() => {
 .chat-contact p { margin: 0; font-size: 14px; color: var(--ink-2); }
 .chat-contact input, .chat-form textarea { font: inherit; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; }
 .chat-contact input[aria-invalid='true'] { border-color: var(--copper); }
+.chat-contact em { font-style: normal; font-size: 14px; color: var(--copper); }
+.chat-contact .privacy-note { margin: 0; font-size: 12px; }
 .chat-contact .btn, .chat-form .btn { padding: 10px 16px; font-size: 15px; }
 .chat-form { display: flex; gap: 8px; align-items: flex-end; padding: 10px 12px; border-top: 1px solid var(--line); }
 .chat-form textarea { flex: 1; resize: none; }
@@ -187,6 +195,8 @@ onBeforeUnmount(() => {
 .chat-teaser .chat-x { position: absolute; top: 4px; right: 6px; color: var(--ink-2); }
 .chat-teaser .btn { justify-self: start; padding: 10px 18px; font-size: 15px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* iOS Safari zooms into any field under 16px; :deep reaches the ContactForm fallback too */
+.chat :deep(input), .chat :deep(textarea) { font-size: 16px; }
 @media (max-width: 639px) {
   .chat { right: 12px; bottom: 12px; }
   .chat-panel { position: fixed; left: 0; right: 0; bottom: 0; width: auto; max-width: none; border-radius: 14px 14px 0 0; max-height: 80vh; }
