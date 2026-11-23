@@ -67,13 +67,15 @@ class _DashboardPageState extends State<DashboardPage> {
             tint: n(contacts['unread']) > 0 ? (color: theme.colorScheme.primary, strength: 0.5) : null,
             onTap: () => nav.go('contacts', {'unread': '1'}),
           ),
-        if (apps != null)
+        // Delivered applications live in Gospodar HR; only the ones that didn't arrive need the site admin.
+        if (n(apps?['undelivered']) > 0)
           KpiTile(
-            icon: Icons.badge_outlined,
-            accent: theme.colorScheme.primary,
-            value: '${n(apps['unread'])}',
-            label: 'Нові відгуки на вакансії',
-            onTap: () => nav.go('applications', {'unread': '1'}),
+            icon: Icons.sync_problem_outlined,
+            accent: theme.colorScheme.error,
+            value: '${n(apps!['undelivered'])}',
+            label: 'Відгуки не доставлені в Господар',
+            tint: (color: theme.colorScheme.error, strength: 0.6),
+            onTap: () => nav.go('applications'),
           ),
         if (crmFailed > 0)
           KpiTile(
