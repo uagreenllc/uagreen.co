@@ -209,6 +209,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid?>("CrmDealId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("crm_deal_id");
+
                     b.Property<string>("Email")
                         .HasColumnType("text")
                         .HasColumnName("email");

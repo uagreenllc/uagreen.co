@@ -14,6 +14,9 @@ public sealed class GospodarOptions
     public int TimeoutSeconds { get; set; } = 30;
     /// How often to poll Gospodar's session-epoch endpoint (deploy cutoff). Min 5s.
     public int SessionEpochPollSeconds { get; set; } = 60;
+    /// Company integration key (Компанії → ключ інтеграції in Gospodar) for pushing
+    /// contact-form requests to the CRM. Empty = CRM push is off.
+    public string IntegrationKey { get; set; } = "";
 }
 
 public sealed class AppOptions

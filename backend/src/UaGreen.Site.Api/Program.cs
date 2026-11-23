@@ -100,6 +100,7 @@ builder.Services.AddSingleton<FileStorage>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddSingleton<LiqPayService>();
 builder.Services.AddHostedService<ImportRunner>();
+builder.Services.AddHostedService<UaGreen.Site.Api.Features.Forms.CrmLeadSync>();
 builder.Services.AddSingleton<GeoIp>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<GeoIp>());
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
