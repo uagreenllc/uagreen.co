@@ -12,7 +12,7 @@ using UaGreen.Site.Api.Infrastructure.Persistence;
 namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261123043931_CategoryDetails")]
+    [Migration("20261123101721_CategoryDetails")]
     partial class CategoryDetails
     {
         /// <inheritdoc />
@@ -240,6 +240,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid?>("CrmDealId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("crm_deal_id");
+
                     b.Property<string>("Email")
                         .HasColumnType("text")
                         .HasColumnName("email");
@@ -444,6 +448,53 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_order_items_order_id");
 
                     b.ToTable("order_items", (string)null);
+                });
+
+            modelBuilder.Entity("UaGreen.Site.Api.Domain.PageView", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country");
+
+                    b.Property<bool>("Entry")
+                        .HasColumnType("boolean")
+                        .HasColumnName("entry");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("path");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("source");
+
+                    b.Property<Guid>("VisitorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("visitor_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_page_views");
+
+                    b.HasIndex("At")
+                        .HasDatabaseName("ix_page_views_at");
+
+                    b.ToTable("page_views", (string)null);
                 });
 
             modelBuilder.Entity("UaGreen.Site.Api.Domain.Product", b =>
