@@ -89,6 +89,12 @@ export interface ContentBlock {
   bodyHtml: string
 }
 
+export interface Review {
+  photo: string | null
+  text: string
+  author: string
+}
+
 export interface Redirect { from: string; to: string }
 
 /** The API's error body ({ code, message }); ofetch exposes it as `error.data`. */
@@ -105,6 +111,7 @@ export interface CreateOrder {
   items: { productId: string; qty: number; optionValueIds: string[] }[]
   lang: string
   website: string
+  captcha: string
 }
 
 export interface OrderItem { productName: string; optionsText: string | null; qty: number; unitPrice: number; lineTotal: number }

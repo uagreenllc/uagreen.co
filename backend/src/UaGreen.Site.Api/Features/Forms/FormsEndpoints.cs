@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
+using UaGreen.Site.Api.Infrastructure.Captcha;
 using UaGreen.Site.Api.Infrastructure.Email;
 using UaGreen.Site.Api.Infrastructure.Persistence;
 using UaGreen.Site.Api.Infrastructure.RateLimiting;
@@ -8,17 +9,17 @@ using UaGreen.Site.Api.Infrastructure.Storage;
 
 namespace UaGreen.Site.Api.Features.Forms;
 
-public sealed record ContactRequestDto(string Name, string Phone, string? Email, string Message, string? Website);
+public sealed record ContactRequestDto(string Name, string Phone, string? Email, string Message, string? Website, string? Captcha);
 
 /// Job applications (multipart, optional CV) and the contact form. Both are
-/// honeypot-guarded (`website` field) and rate-limited per IP.
+/// honeypot-guarded (`website` field), Turnstile-checked (`captcha`) and rate-limited per IP.
 public static class FormsEndpoints
 {
     private const long MaxCvBytes = 10L * 1024 * 1024;
 
     public static void Map(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/applications", async (HttpRequest request, AppDbContext db, FileStorage storage, Notifier notifier, CancellationToken ct) =>
+        app.MapPost("/api/applications", async (HttpRequest request, AppDbContext db, FileStorage storage, Notifier notifier, Turnstile captcha, CancellationToken ct) =>
         {
             var form = await request.ReadFormAsync(ct);
             if (!string.IsNullOrEmpty(form["website"])) return Results.Ok(new { ok = true });
@@ -27,6 +28,7 @@ public static class FormsEndpoints
             var phone = form["phone"].ToString().Trim();
             if (name.Length is < 2 or > 120) throw ProblemException.BadRequest("Name is required");
             if (phone.Length is < 7 or > 30) throw ProblemException.BadRequest("Phone is required");
+            await captcha.EnsureHumanAsync(form["captcha"], ct);
 
             Vacancy? vacancy = null;
             var slug = form["vacancySlug"].ToString();
@@ -63,7 +65,7 @@ public static class FormsEndpoints
             return Results.Ok(new { ok = true });
         }).AllowAnonymous().DisableAntiforgery().RequireRateLimiting(RateLimitingExtensions.Forms);
 
-        app.MapPost("/api/contact", async (ContactRequestDto req, AppDbContext db, Notifier notifier, CancellationToken ct) =>
+        app.MapPost("/api/contact", async (ContactRequestDto req, AppDbContext db, Notifier notifier, Turnstile captcha, CancellationToken ct) =>
         {
             if (!string.IsNullOrEmpty(req.Website)) return Results.Ok(new { ok = true });
             var name = (req.Name ?? "").Trim();
@@ -72,6 +74,7 @@ public static class FormsEndpoints
             if (name.Length is < 2 or > 120) throw ProblemException.BadRequest("Name is required");
             if (phone.Length is < 7 or > 30) throw ProblemException.BadRequest("Phone is required");
             if (message.Length is < 1 or > 4000) throw ProblemException.BadRequest("Message is required");
+            await captcha.EnsureHumanAsync(req.Captcha, ct);
 
             var c = new ContactRequest
             {
@@ -90,7 +93,7 @@ public static class FormsEndpoints
         }).AllowAnonymous().RequireRateLimiting(RateLimitingExtensions.Forms);
     }
 
-    private static string? Trimmed(string? s, int max = 200)
+    internal static string? Trimmed(string? s, int max = 200)
     {
         var t = s?.Trim();
         if (string.IsNullOrEmpty(t)) return null;

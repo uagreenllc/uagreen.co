@@ -18,7 +18,6 @@ const steps = computed(() => [1, 2, 3, 4, 5].map(i => ({
 const rail = computed(() => (tm('story.rail') as string[]).map(s => rt(s)))
 
 const active = ref(0)
-const railFill = ref(0)
 const isStatic = ref(false)
 const sectionEl = ref<HTMLElement>()
 const svgEl = ref<SVGSVGElement>()
@@ -100,27 +99,31 @@ onMounted(async () => {
   }
   story = buildTimeline(refs, gsap, ScrollTrigger, {
     reduce,
-    onStep: (idx, fill) => { active.value = idx; railFill.value = fill },
+    // the fill changes every frame: a CSS variable, not a ref, so Vue doesn't re-render the whole SVG each scroll tick
+    onStep: (idx, fill) => { active.value = idx; sectionEl.value?.style.setProperty('--rail', fill.toFixed(4)) },
   })
   if (reduce) active.value = 5
   if (import.meta.dev) (window as unknown as { __k5: unknown }).__k5 = { tl: story.tl, seek: (u: number) => story!.seek(u) }
 })
 onBeforeUnmount(() => story?.destroy())
+const goTo = (i: number) => story?.goTo(i)
 </script>
 
 <template>
   <section ref="sectionEl" class="story" :class="{ 'story--static': isStatic }">
     <div class="stage">
-      <aside class="rail" aria-hidden="true">
-        <div class="line" /><div class="fill" :style="{ transform: `scaleY(${railFill})` }" />
+      <nav class="rail" :aria-label="$t('story.railLabel')">
+        <div class="line" /><div class="fill" />
         <ol>
-          <li v-for="(label, i) in rail" :key="label" :class="{ active: active === i + 1, done: active > i + 1 }">{{ label }}</li>
+          <li v-for="(label, i) in rail" :key="label" :class="{ active: active === i + 1, done: active > i + 1 }">
+            <button type="button" :aria-current="active === i + 1 ? 'step' : undefined" @click="goTo(i + 1)">{{ label }}</button>
+          </li>
         </ol>
-      </aside>
+      </nav>
 
       <div class="copy">
         <div class="step" :class="{ active: active === 0 }">
-          <h1>{{ $t('story.title') }}</h1>
+          <h1><span class="kicker">{{ $t('story.kicker') }}</span>{{ $t('story.title') }}</h1>
           <p>{{ $t('story.lead') }}</p>
           <span class="hint"><svg width="14" height="18" viewBox="0 0 14 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 1v15M1 10l6 7 6-7" /></svg>{{ $t('story.hint') }}</span>
         </div>
@@ -324,24 +327,32 @@ onBeforeUnmount(() => story?.destroy())
 </template>
 
 <style scoped>
-.story { height: 100vh; position: relative; overflow: hidden; }
+/* svh: on phones the pinned frame fits above the browser toolbar, so the copy and CTA at the bottom stay visible */
+.story { height: 100vh; height: 100svh; position: relative; overflow: hidden; }
 .stage { height: 100%; display: grid; grid-template-columns: 150px minmax(300px, 36%) 1fr; gap: 32px; padding: 88px 40px 32px; }
 
 .rail { position: relative; }
 .rail .line, .rail .fill { position: absolute; left: 11px; top: 10px; bottom: 10px; width: 2px; background: var(--line); }
-.rail .fill { background: var(--green); transform-origin: top; transform: scaleY(0); }
+.rail .fill { background: var(--green); transform-origin: top; transform: scaleY(var(--rail, 0)); }
 .rail ol { list-style: none; margin: 0; padding: 0; position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
-.rail li { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
-.rail li::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--bg); border: 2px solid var(--line); margin-left: 7px; flex: none; }
-.rail li.done::before { border-color: var(--green); }
-.rail li.active { color: var(--green); font-weight: 600; }
-.rail li.active::before { border-color: var(--green); background: var(--green); }
+.rail li { display: flex; }
+.rail button { display: flex; align-items: center; gap: 12px; padding: 0; border: 0; background: none; font: inherit; font-size: 12px; color: var(--ink-2); white-space: nowrap; cursor: pointer; }
+.rail button::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--bg); border: 2px solid var(--line); margin-left: 7px; flex: none; transition: background 0.2s, border-color 0.2s; }
+.rail button:hover { color: var(--ink); }
+.rail button:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; border-radius: 4px; }
+.rail .done button::before { border-color: var(--green); }
+.rail .active button { color: var(--green); font-weight: 600; }
+.rail .active button::before { border-color: var(--green); background: var(--green); }
 
-/* Steps stack in one grid cell, so the row is as tall as the tallest step on every viewport. */
+/* Steps stack in one grid cell, so the row is as tall as the tallest step on every viewport.
+   Past steps wait above, future ones below: scrolling down the old text leaves upwards and the new one rises
+   from below, scrolling up reverses it. The old one goes fast, the new one starts a beat later, so the two never overlap. */
 .copy { display: grid; align-items: center; }
-.step { grid-area: 1 / 1; opacity: 0; transform: translateY(18px); transition: opacity 0.45s var(--ease), transform 0.45s var(--ease); pointer-events: none; }
-.step.active { opacity: 1; transform: none; pointer-events: auto; }
+.step { grid-area: 1 / 1; opacity: 0; transform: translateY(-18px); transition: opacity 0.2s var(--ease), transform 0.2s var(--ease); pointer-events: none; }
+.step.active ~ .step { transform: translateY(18px); }
+.step.active { opacity: 1; transform: none; pointer-events: auto; transition-duration: 0.45s; transition-delay: 0.12s; }
 .step h1 { font-size: clamp(38px, 4.4vw, 64px); line-height: 1.05; margin: 0 0 18px; letter-spacing: -0.02em; font-weight: 600; }
+.step h1 .kicker { display: block; font-size: 15px; line-height: 1.4; letter-spacing: 0.01em; font-weight: 600; color: var(--green); margin-bottom: 14px; }
 .step h2 { font-size: clamp(26px, 2.5vw, 36px); margin: 0 0 14px; }
 .step p { margin: 0 0 18px; color: var(--ink-2); font-size: 17px; max-width: 44ch; }
 .facts { padding-top: 14px; border-top: 1px solid var(--line); font-size: 15px; color: var(--ink-2); }
@@ -360,7 +371,7 @@ onBeforeUnmount(() => story?.destroy())
 .story--static .stage { height: auto; grid-template-columns: 1fr; padding-top: 88px; }
 .story--static .rail { display: none; }
 .story--static .copy { display: block; }
-.story--static .step { opacity: 1; transform: none; pointer-events: auto; margin-bottom: 48px; transition: none; }
+.story--static .step, .story--static .step.active ~ .step { opacity: 1; transform: none; pointer-events: auto; margin-bottom: 48px; transition: none; }
 .story--static .scene { height: 80vh; }
 .story--static .hint { display: none; }
 

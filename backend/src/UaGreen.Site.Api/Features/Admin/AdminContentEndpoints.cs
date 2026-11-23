@@ -10,8 +10,9 @@ using static UaGreen.Site.Api.Features.Admin.AdminCommon;
 namespace UaGreen.Site.Api.Features.Admin;
 
 public sealed record ContentUpsert(string? Title, string BodyHtml);
+public sealed record ReviewUpsert(string? PhotoKey, string TextUk, string? TextEn, string AuthorUk, string? AuthorEn, bool Published, int Sort);
 
-/// Text blocks, public settings and the redirect table — Editor.
+/// Text blocks, testimonials, public settings and the redirect table — Editor.
 public static class AdminContentEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
@@ -26,7 +27,7 @@ public static class AdminContentEndpoints
         {
             if (!Slug.IsValid(key.Replace('.', '-')) || key.Length > 80) throw ProblemException.BadRequest("Bad content key");
             var l = Lang.Norm(lang);
-            if (l != lang) throw ProblemException.BadRequest("lang must be uk or en");
+            if (l != lang) throw ProblemException.BadRequest("lang must be uk, en or cs");
             var c = await db.Content.FirstOrDefaultAsync(x => x.Key == key && x.Lang == l, ct);
             if (c is null) db.Content.Add(c = new ContentBlock { Key = key, Lang = l });
             c.Title = Clean(req.Title);
@@ -44,23 +45,55 @@ public static class AdminContentEndpoints
             return Results.NoContent();
         });
 
-        g.MapGet("/settings", async (AppDbContext db, CancellationToken ct) =>
-            await db.Settings.AsNoTracking().OrderBy(s => s.Key).ToDictionaryAsync(s => s.Key, s => s.Value, ct));
+        // ponytail: the entity is the admin DTO — flat, no navigations.
+        g.MapGet("/reviews", async (AppDbContext db, CancellationToken ct) =>
+            await db.Reviews.AsNoTracking().OrderBy(r => r.Sort).ToListAsync(ct));
+
+        g.MapPost("/reviews", async (ReviewUpsert req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            var r = new Review { Id = Guid.NewGuid() };
+            Apply(r, req);
+            db.Reviews.Add(r);
+            await db.SaveChangesAsync(ct);
+            await EvictPublicAsync(cache, ct);
+            return Results.Created($"/api/admin/reviews/{r.Id}", r);
+        });
+
+        g.MapPut("/reviews/{id:guid}", async (Guid id, ReviewUpsert req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            var r = await db.Reviews.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw ProblemException.NotFound("Review not found");
+            Apply(r, req);
+            await db.SaveChangesAsync(ct);
+            await EvictPublicAsync(cache, ct);
+            return Results.Ok(r);
+        });
+
+        g.MapDelete("/reviews/{id:guid}", async (Guid id, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            if (await db.Reviews.Where(x => x.Id == id).ExecuteDeleteAsync(ct) == 0) throw ProblemException.NotFound("Review not found");
+            await EvictPublicAsync(cache, ct);
+            return Results.NoContent();
+        });
+
+        g.MapGet("/settings", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, code: false, ct));
 
         // Partial update: only the keys sent change; an empty value deletes the key.
         g.MapPut("/settings", async (Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
         {
-            foreach (var (key, value) in req)
-            {
-                if (key.Length is 0 or > 80) throw ProblemException.BadRequest("Bad setting key");
-                var row = await db.Settings.FirstOrDefaultAsync(s => s.Key == key, ct);
-                if (string.IsNullOrWhiteSpace(value)) { if (row is not null) db.Settings.Remove(row); continue; }
-                if (row is null) db.Settings.Add(new Setting { Key = key, Value = value.Trim() });
-                else row.Value = value.Trim();
-            }
-            await db.SaveChangesAsync(ct);
-            await EvictPublicAsync(cache, ct);
-            return Results.Ok(await db.Settings.AsNoTracking().ToDictionaryAsync(s => s.Key, s => s.Value, ct));
+            if (req.Keys.Any(k => k.StartsWith(CodePrefix))) throw ProblemException.Forbidden("Сторонній код — лише для адміна");
+            await UpsertAsync(req, db, cache, ct);
+            return Results.Ok(await SettingsAsync(db, code: false, ct));
+        });
+
+        // Сторонній код: raw HTML/JS/CSS the Nuxt server pastes into every page (server/plugins/site-code.ts).
+        // Script injection on the public site, so Admin only, unlike the rest of the settings.
+        var a = app.MapGroup("/api/admin/code").RequireAuthorization(Policies.Admin);
+        a.MapGet("", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, code: true, ct));
+        a.MapPut("", async (Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            if (req.Keys.Any(k => !CodeKeys.Contains(k))) throw ProblemException.BadRequest($"Keys: {string.Join(", ", CodeKeys)}");
+            await UpsertAsync(req, db, cache, ct);
+            return Results.Ok(await SettingsAsync(db, code: true, ct));
         });
 
         g.MapGet("/redirects", async (AppDbContext db, CancellationToken ct) =>
@@ -78,5 +111,37 @@ public static class AdminContentEndpoints
             await EvictPublicAsync(cache, ct);
             return Results.Ok(req.Count);
         });
+    }
+
+    private static void Apply(Review r, ReviewUpsert req)
+    {
+        if (string.IsNullOrWhiteSpace(req.TextUk)) throw ProblemException.BadRequest("textUk is required");
+        if (string.IsNullOrWhiteSpace(req.AuthorUk)) throw ProblemException.BadRequest("authorUk is required");
+        r.PhotoKey = Clean(req.PhotoKey);
+        r.TextUk = req.TextUk.Trim(); r.TextEn = Clean(req.TextEn);
+        r.AuthorUk = req.AuthorUk.Trim(); r.AuthorEn = Clean(req.AuthorEn);
+        r.Published = req.Published; r.Sort = req.Sort;
+        r.UpdatedAt = DateTime.UtcNow;
+    }
+
+    const string CodePrefix = "code_";
+    static readonly string[] CodeKeys = ["code_head", "code_body_start", "code_body_end", "code_css"];
+
+    static Task<Dictionary<string, string>> SettingsAsync(AppDbContext db, bool code, CancellationToken ct) =>
+        db.Settings.AsNoTracking().Where(s => s.Key.StartsWith(CodePrefix) == code).OrderBy(s => s.Key)
+            .ToDictionaryAsync(s => s.Key, s => s.Value, ct);
+
+    static async Task UpsertAsync(Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct)
+    {
+        foreach (var (key, value) in req)
+        {
+            if (key.Length is 0 or > 80) throw ProblemException.BadRequest("Bad setting key");
+            var row = await db.Settings.FirstOrDefaultAsync(s => s.Key == key, ct);
+            if (string.IsNullOrWhiteSpace(value)) { if (row is not null) db.Settings.Remove(row); continue; }
+            if (row is null) db.Settings.Add(new Setting { Key = key, Value = value.Trim() });
+            else row.Value = value.Trim();
+        }
+        await db.SaveChangesAsync(ct);
+        await EvictPublicAsync(cache, ct);
     }
 }
