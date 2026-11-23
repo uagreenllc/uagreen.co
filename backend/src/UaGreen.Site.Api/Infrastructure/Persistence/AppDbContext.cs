@@ -89,6 +89,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.Property(x => x.Subtotal).HasPrecision(12, 2);
             e.Property(x => x.DeliveryCost).HasPrecision(12, 2);
             e.Property(x => x.Total).HasPrecision(12, 2);
+            e.Property(x => x.AuditAddress).HasMaxLength(300);
             e.HasMany(x => x.Items).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
         });
         b.Entity<OrderItem>(e =>

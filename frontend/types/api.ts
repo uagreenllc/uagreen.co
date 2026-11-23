@@ -120,4 +120,9 @@ export interface Order {
   createdAt: string
   items: OrderItem[]
   liqPay: { checkoutUrl: string; data: string; signature: string } | null
+  /** Site audit orders only (ISO date); null on shop orders. */
+  auditDate: string | null
+  auditAddress: string | null
+  /** True once Gospodar booked the chosen day; false/null = a manager confirms the date. */
+  auditConfirmed: boolean | null
 }

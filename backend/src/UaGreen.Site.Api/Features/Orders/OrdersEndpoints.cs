@@ -19,7 +19,8 @@ public sealed record CreateOrderRequest(
 public sealed record LiqPayCheckoutDto(string CheckoutUrl, string Data, string Signature);
 public sealed record OrderItemDto(string ProductName, string? OptionsText, int Qty, decimal UnitPrice, decimal LineTotal);
 public sealed record OrderDto(Guid Id, int Number, string Status, string PaymentMethod, decimal Subtotal, decimal DeliveryCost,
-    decimal Total, DateTime CreatedAt, IReadOnlyList<OrderItemDto> Items, LiqPayCheckoutDto? LiqPay);
+    decimal Total, DateTime CreatedAt, IReadOnlyList<OrderItemDto> Items, LiqPayCheckoutDto? LiqPay,
+    DateOnly? AuditDate, string? AuditAddress, bool? AuditConfirmed);
 
 public static class OrdersEndpoints
 {
@@ -137,7 +138,8 @@ public static class OrdersEndpoints
 
     public static OrderDto ToDto(Order o, LiqPayCheckoutDto? liqpay) => new(
         o.Id, o.Number, o.Status.ToString(), o.PaymentMethod.ToString(), o.Subtotal, o.DeliveryCost, o.Total, o.CreatedAt,
-        o.Items.Select(i => new OrderItemDto(i.ProductName, i.OptionsText, i.Qty, i.UnitPrice, i.LineTotal)).ToList(), liqpay);
+        o.Items.Select(i => new OrderItemDto(i.ProductName, i.OptionsText, i.Qty, i.UnitPrice, i.LineTotal)).ToList(), liqpay,
+        o.AuditDate, o.AuditAddress, o.AuditDate is null ? null : o.AuditDateWasFree == true);
 
     private static string Describe(Order o)
     {

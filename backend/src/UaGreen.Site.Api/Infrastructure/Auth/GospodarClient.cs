@@ -89,6 +89,27 @@ public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IO
         return resp is not null;
     }
 
+    /// Days in [from, to] with a free audit specialist. Null when Gospodar can't tell (no key, down, error) —
+    /// the booking page then shows its "can't show dates" fallback instead of an empty calendar.
+    public async Task<IReadOnlyList<DateOnly>?> GetAuditSlotsAsync(DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        using var req = Integration(HttpMethod.Get, $"/api/integration/audit-slots?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
+        if (req is null) return null;
+        using var resp = await SendAsync(req, "audit-slots", ct);
+        if (resp is null) return null;
+        try
+        {
+            return (await resp.Content.ReadFromJsonAsync<AuditSlotsPayload>(ct))?.Dates;
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            log.LogWarning(ex, "Gospodar audit-slots: malformed response");
+            return null;
+        }
+    }
+
+    private sealed record AuditSlotsPayload(List<DateOnly> Dates);
+
     /// Null when the site has no integration key: integration calls are then skipped, not failed.
     private HttpRequestMessage? Integration(HttpMethod method, string path)
     {

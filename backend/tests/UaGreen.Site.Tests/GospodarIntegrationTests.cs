@@ -61,6 +61,32 @@ public class GospodarIntegrationTests
     }
 
     [Fact]
+    public async Task GetAuditSlots_parses_dates_and_sends_key()
+    {
+        var (client, stub) = Make("k1", _ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""{"dates":["2026-12-08","2026-12-10"]}""", System.Text.Encoding.UTF8, "application/json"),
+        });
+
+        var dates = await client.GetAuditSlotsAsync(new DateOnly(2026, 12, 8), new DateOnly(2026, 12, 31), CancellationToken.None);
+
+        Assert.Equal([new DateOnly(2026, 12, 8), new DateOnly(2026, 12, 10)], dates);
+        var (req, _) = Assert.Single(stub.Calls);
+        Assert.Equal(HttpMethod.Get, req.Method);
+        Assert.Equal("/api/integration/audit-slots", req.RequestUri!.AbsolutePath);
+        Assert.Equal("?from=2026-12-08&to=2026-12-31", req.RequestUri.Query);
+        Assert.Equal("k1", Assert.Single(req.Headers.GetValues("X-Api-Key")));
+    }
+
+    [Fact]
+    public async Task GetAuditSlots_returns_null_when_gospodar_throws()
+    {
+        var (client, _) = Make("k1", _ => throw new HttpRequestException("down"));
+
+        Assert.Null(await client.GetAuditSlotsAsync(new DateOnly(2026, 12, 8), new DateOnly(2026, 12, 31), CancellationToken.None));
+    }
+
+    [Fact]
     public async Task PushLead_returns_false_on_503()
     {
         var (client, _) = Make("k1", _ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
