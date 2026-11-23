@@ -19,7 +19,7 @@ public sealed class GospodarChatClient(HttpClient http, IOptions<SiteChatOptions
             using var resp = await http.SendAsync(req, ct);
             return new ChatProxyResult((int)resp.StatusCode, await resp.Content.ReadAsStringAsync(ct));
         }
-        catch (Exception ex) when (!ct.IsCancellationRequested && ex is HttpRequestException or TaskCanceledException)
+        catch (Exception) when (!ct.IsCancellationRequested) // network, timeouts, open circuit (Polly) -> 503
         {
             return new ChatProxyResult(503, null);
         }
