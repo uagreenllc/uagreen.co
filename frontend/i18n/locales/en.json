@@ -145,7 +145,7 @@
       "h": "Why a vertical axis",
       "p1": "The K5 rotor turns slowly and almost silently, shrugs off gusts and shifting wind direction, and needs no tail vane or yawing.",
       "p2": "Gearless generator, ballast braking, IP54 enclosure: one service a year, from the ladder on the mast.",
-      "facts": [{ "v": "38 dB", "l": "" }, { "v": "1.5 m/s", "l": "cut-in" }, { "v": "250 rpm", "l": "" }, { "v": "−40…+60 °C", "l": "" }],
+      "facts": [{ "v": "38 dB", "l": "" }, { "v": "1.5 m/s", "l": "cut-in" }, { "v": "125 rpm", "l": "" }, { "v": "−40…+60 °C", "l": "" }],
       "alt": "K5 wind turbine on its mast"
     },
     "posts": { "h": "Blog", "all": "All posts" },
@@ -174,7 +174,7 @@
     "s3": {
       "h": "Assembled and turned for the first time.",
       "p": "Ø170 shaft, struts, blades onto the generator. The rotor has to start from 1.5 m/s.",
-      "facts": [{ "v": "1.5 m/s", "l": "cut-in" }, { "v": "250 rpm", "l": "" }, { "v": "300 kg", "l": "" }]
+      "facts": [{ "v": "1.5 m/s", "l": "cut-in" }, { "v": "125 rpm", "l": "" }, { "v": "300 kg", "l": "" }]
     },
     "s4": {
       "h": "Foundation, anchor plate, 6-metre sections.",
