@@ -12,6 +12,7 @@ using UaGreen.Site.Api.Features.Admin;
 using UaGreen.Site.Api.Infrastructure.Auth;
 using UaGreen.Site.Api.Infrastructure.Captcha;
 using UaGreen.Site.Api.Infrastructure.Email;
+using UaGreen.Site.Api.Infrastructure.Geo;
 using UaGreen.Site.Api.Infrastructure.Import;
 using UaGreen.Site.Api.Infrastructure.Payments;
 using UaGreen.Site.Api.Infrastructure.Persistence;
@@ -99,6 +100,8 @@ builder.Services.AddSingleton<FileStorage>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddSingleton<LiqPayService>();
 builder.Services.AddHostedService<ImportRunner>();
+builder.Services.AddSingleton<GeoIp>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<GeoIp>());
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
 var app = builder.Build();
@@ -153,6 +156,7 @@ UaGreen.Site.Api.Features.Vacancies.VacanciesEndpoints.Map(app);
 UaGreen.Site.Api.Features.Content.ContentEndpoints.Map(app);
 UaGreen.Site.Api.Features.Orders.OrdersEndpoints.Map(app);
 UaGreen.Site.Api.Features.Forms.FormsEndpoints.Map(app);
+UaGreen.Site.Api.Features.Stats.StatsEndpoints.Map(app);
 
 AdminCatalogEndpoints.Map(app);
 AdminBlogEndpoints.Map(app);
@@ -162,6 +166,7 @@ AdminContentEndpoints.Map(app);
 AdminInboxEndpoints.Map(app);
 AdminUsersEndpoints.Map(app);
 AdminMediaEndpoints.Map(app);
+AdminStatsEndpoints.Map(app);
 
 app.Run();
 

@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'api.dart';
 import 'pages.dart';
+import 'stats.dart';
 
 void main() {
   runApp(const AdminApp());
@@ -20,6 +21,7 @@ class Section {
 }
 
 final sections = [
+  Section('Статистика', Icons.bar_chart, ['Sales', 'Editor'], () => const StatsPage()),
   Section('Замовлення', Icons.receipt_long, ['Sales'], () => const OrdersPage()),
   Section('Товари', Icons.inventory_2, ['Sales'], productsPage),
   Section('Категорії', Icons.category, ['Sales'], categoriesPage),
@@ -137,6 +139,15 @@ class Shell extends StatefulWidget {
 class _ShellState extends State<Shell> {
   final _visible = sectionsFor(api.roles);
   int _i = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    openSection = (title) {
+      final i = _visible.indexWhere((s) => s.title == title);
+      if (i >= 0) setState(() => _i = i);
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
