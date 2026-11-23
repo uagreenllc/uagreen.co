@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
 using UaGreen.Site.Api.Features.Content;
+using UaGreen.Site.Api.Features.Orders;
 using UaGreen.Site.Api.Infrastructure.Auth;
 using UaGreen.Site.Api.Infrastructure.Persistence;
 using static UaGreen.Site.Api.Features.Admin.AdminCommon;
@@ -11,8 +12,9 @@ namespace UaGreen.Site.Api.Features.Admin;
 
 public sealed record ContentUpsert(string? Title, string BodyHtml);
 public sealed record RedirectUpsert(string From, string To, string? Original);
+public sealed record ReviewUpsert(string? PhotoKey, string TextUk, string? TextEn, string AuthorUk, string? AuthorEn, bool Published, int Sort);
 
-/// Text blocks, public settings and the redirect table — Editor.
+/// Text blocks, testimonials, public settings and the redirect table — Editor.
 public static class AdminContentEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
@@ -33,7 +35,7 @@ public static class AdminContentEndpoints
         {
             if (!Slug.IsValid(key.Replace('.', '-')) || key.Length > 80) throw ProblemException.BadRequest("Ключ: латиниця, цифри, крапки й дефіси (напр. page.about)");
             var l = Lang.Norm(lang);
-            if (l != lang) throw ProblemException.BadRequest("Мова — uk або en");
+            if (l != lang) throw ProblemException.BadRequest("Мова — uk, en або cs");
             var c = await db.Content.FirstOrDefaultAsync(x => x.Key == key && x.Lang == l, ct);
             if (c is null) db.Content.Add(c = new ContentBlock { Key = key, Lang = l });
             c.Title = Clean(req.Title);
@@ -51,25 +53,72 @@ public static class AdminContentEndpoints
             return Results.NoContent();
         });
 
-        g.MapGet("/settings", async (AppDbContext db, CancellationToken ct) =>
-            await db.Settings.AsNoTracking().OrderBy(s => s.Key).ToDictionaryAsync(s => s.Key, s => s.Value, ct));
+        // ponytail: the entity is the admin DTO — flat, no navigations.
+        g.MapGet("/reviews", async (string? q, int? page, int? pageSize, AppDbContext db, CancellationToken ct) =>
+        {
+            var query = db.Reviews.AsNoTracking();
+            if (!string.IsNullOrWhiteSpace(q)) query = query.Where(r => EF.Functions.ILike(r.AuthorUk, Like(q)) || EF.Functions.ILike(r.TextUk, Like(q)));
+            return await PageAsync(query.OrderBy(r => r.Sort), page, pageSize, r => r, ct);
+        });
+
+        g.MapPost("/reviews", async (ReviewUpsert req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            var r = new Review { Id = Guid.NewGuid() };
+            Apply(r, req);
+            db.Reviews.Add(r);
+            await db.SaveChangesAsync(ct);
+            await EvictPublicAsync(cache, ct);
+            return Results.Created($"/api/admin/reviews/{r.Id}", r);
+        });
+
+        g.MapPut("/reviews/{id:guid}", async (Guid id, ReviewUpsert req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            var r = await db.Reviews.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw ProblemException.NotFound("Відгук не знайдено");
+            Apply(r, req);
+            await db.SaveChangesAsync(ct);
+            await EvictPublicAsync(cache, ct);
+            return Results.Ok(r);
+        });
+
+        g.MapDelete("/reviews/{id:guid}", async (Guid id, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            if (await db.Reviews.Where(x => x.Id == id).ExecuteDeleteAsync(ct) == 0) throw ProblemException.NotFound("Відгук не знайдено");
+            await EvictPublicAsync(cache, ct);
+            return Results.NoContent();
+        });
+
+        g.MapGet("/settings", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, null, ct));
 
         // Partial update: only the keys sent change; an empty value deletes the key.
         g.MapPut("/settings", async (Dictionary<string, string?> req, HttpContext http, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
         {
+            if (req.Keys.Any(k => k.StartsWith(CodePrefix) || k.StartsWith(PaymentSettings.Prefix)))
+                throw ProblemException.Forbidden("Сторонній код і платіжні системи — лише для адміна");
             if (req.Keys.Any(k => k.StartsWith("admin.")) && !(await SiteRoles.EffectiveAsync(http.User, db, ct)).Contains(SiteRole.Admin))
                 throw ProblemException.Forbidden("Ключі admin.* змінює лише адміністратор");
-            foreach (var (key, value) in req)
-            {
-                if (key.Length is 0 or > 80) throw ProblemException.BadRequest($"Ключ «{key}»: від 1 до 80 символів");
-                var row = await db.Settings.FirstOrDefaultAsync(s => s.Key == key, ct);
-                if (string.IsNullOrWhiteSpace(value)) { if (row is not null) db.Settings.Remove(row); continue; }
-                if (row is null) db.Settings.Add(new Setting { Key = key, Value = value.Trim() });
-                else row.Value = value.Trim();
-            }
-            await db.SaveChangesAsync(ct);
-            await EvictPublicAsync(cache, ct);
-            return Results.Ok(await db.Settings.AsNoTracking().ToDictionaryAsync(s => s.Key, s => s.Value, ct));
+            await UpsertAsync(req, db, cache, ct);
+            return Results.Ok(await SettingsAsync(db, null, ct));
+        });
+
+        // Сторонній код: raw HTML/JS/CSS the Nuxt server pastes into every page (server/plugins/site-code.ts).
+        // Script injection on the public site, so Admin only, unlike the rest of the settings.
+        var a = app.MapGroup("/api/admin/code").RequireAuthorization(Policies.Admin);
+        a.MapGet("", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, CodePrefix, ct));
+        a.MapPut("", async (Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            if (req.Keys.Any(k => !CodeKeys.Contains(k))) throw ProblemException.BadRequest($"Keys: {string.Join(", ", CodeKeys)}");
+            await UpsertAsync(req, db, cache, ct);
+            return Results.Ok(await SettingsAsync(db, CodePrefix, ct));
+        });
+
+        // Платіжні системи: which checkout methods are on + company requisites for the IBAN transfer.
+        var p = app.MapGroup("/api/admin/payments").RequireAuthorization(Policies.Admin);
+        p.MapGet("", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, PaymentSettings.Prefix, ct));
+        p.MapPut("", async (Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
+        {
+            PaymentSettings.Validate(req);
+            await UpsertAsync(req, db, cache, ct);
+            return Results.Ok(await SettingsAsync(db, PaymentSettings.Prefix, ct));
         });
 
         g.MapGet("/redirects", async (string? q, int? page, int? pageSize, AppDbContext db, CancellationToken ct) =>
@@ -121,5 +170,40 @@ public static class AdminContentEndpoints
     {
         var t = (p ?? "").Trim();
         return t.Length > 1 ? t.TrimEnd('/') : t;
+    }
+
+    private static void Apply(Review r, ReviewUpsert req)
+    {
+        if (string.IsNullOrWhiteSpace(req.TextUk)) throw ProblemException.BadRequest("Вкажіть текст відгуку (UK)");
+        if (string.IsNullOrWhiteSpace(req.AuthorUk)) throw ProblemException.BadRequest("Вкажіть автора (UK)");
+        r.PhotoKey = Clean(req.PhotoKey);
+        r.TextUk = req.TextUk.Trim(); r.TextEn = Clean(req.TextEn);
+        r.AuthorUk = req.AuthorUk.Trim(); r.AuthorEn = Clean(req.AuthorEn);
+        r.Published = req.Published; r.Sort = req.Sort;
+        r.UpdatedAt = DateTime.UtcNow;
+    }
+
+    const string CodePrefix = "code_";
+    static readonly string[] CodeKeys = ["code_head", "code_body_start", "code_body_end", "code_css"];
+
+    /// prefix null → the plain settings (neither Сторонній код nor Платіжні системи).
+    static Task<Dictionary<string, string>> SettingsAsync(AppDbContext db, string? prefix, CancellationToken ct) =>
+        (prefix is null
+            ? db.Settings.Where(s => !s.Key.StartsWith(CodePrefix) && !s.Key.StartsWith(PaymentSettings.Prefix))
+            : db.Settings.Where(s => s.Key.StartsWith(prefix)))
+        .AsNoTracking().OrderBy(s => s.Key).ToDictionaryAsync(s => s.Key, s => s.Value, ct);
+
+    static async Task UpsertAsync(Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct)
+    {
+        foreach (var (key, value) in req)
+        {
+            if (key.Length is 0 or > 80) throw ProblemException.BadRequest($"Ключ «{key}»: від 1 до 80 символів");
+            var row = await db.Settings.FirstOrDefaultAsync(s => s.Key == key, ct);
+            if (string.IsNullOrWhiteSpace(value)) { if (row is not null) db.Settings.Remove(row); continue; }
+            if (row is null) db.Settings.Add(new Setting { Key = key, Value = value.Trim() });
+            else row.Value = value.Trim();
+        }
+        await db.SaveChangesAsync(ct);
+        await EvictPublicAsync(cache, ct);
     }
 }

@@ -1,4 +1,4 @@
-// Dynamic sitemap entries from the API; @nuxtjs/sitemap adds the uk/en variants (_i18nTransform).
+// Dynamic sitemap entries from the API; @nuxtjs/sitemap adds the per-locale variants (_i18nTransform).
 // Lives outside /api because the dev server proxies /api/** to the .NET API.
 export default defineSitemapEventHandler(async (event) => {
   const base = `${useRuntimeConfig(event).apiBase}/api`

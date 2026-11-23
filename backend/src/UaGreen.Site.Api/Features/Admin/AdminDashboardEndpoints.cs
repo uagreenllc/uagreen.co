@@ -82,7 +82,7 @@ public static class AdminDashboardEndpoints
                 Configured = sync.Configured,
                 gospodar.Value.BaseUrl,
                 OrdersSince = CrmSync.Since(s.GetValueOrDefault(CrmSync.OrdersKey)),
-                ContactsSince = CrmSync.Since(s.GetValueOrDefault(CrmSync.ContactsKey)),
+                ContactsOn = s.GetValueOrDefault(CrmSync.ContactsKey) != "off",
                 Orders = new
                 {
                     Sent = await db.Orders.CountAsync(o => o.CrmDealId != null, ct),
@@ -102,15 +102,17 @@ public static class AdminDashboardEndpoints
             return new { Ok = error is null, Error = error };
         });
 
-        // Switching a feed on stamps "since = now": history is not replayed into CRM.
+        // Orders on stamps "since = now" (history is not replayed into CRM); contacts are on
+        // by default and only an explicit "off" row pauses them.
         g.MapPut("/gospodar", async (CrmFeedsUpdate req, AppDbContext db, CancellationToken ct) =>
         {
-            foreach (var (key, on) in new[] { (CrmSync.OrdersKey, req.Orders), (CrmSync.ContactsKey, req.Contacts) })
-            {
-                var row = await db.Settings.FirstOrDefaultAsync(x => x.Key == key, ct);
-                if (!on) { if (row is not null) db.Settings.Remove(row); }
-                else if (row is null) db.Settings.Add(new Setting { Key = key, Value = DateTime.UtcNow.ToString("O") });
-            }
+            var orders = await db.Settings.FirstOrDefaultAsync(x => x.Key == CrmSync.OrdersKey, ct);
+            if (!req.Orders) { if (orders is not null) db.Settings.Remove(orders); }
+            else if (orders is null) db.Settings.Add(new Setting { Key = CrmSync.OrdersKey, Value = DateTime.UtcNow.ToString("O") });
+
+            var contacts = await db.Settings.FirstOrDefaultAsync(x => x.Key == CrmSync.ContactsKey, ct);
+            if (req.Contacts) { if (contacts is not null) db.Settings.Remove(contacts); }
+            else if (contacts is null) db.Settings.Add(new Setting { Key = CrmSync.ContactsKey, Value = "off" });
             await db.SaveChangesAsync(ct);
             return Results.NoContent();
         });

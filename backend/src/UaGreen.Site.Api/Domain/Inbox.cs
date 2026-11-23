@@ -30,6 +30,7 @@ public sealed class ContactRequest : ICrmLinked
     public string? Note { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    /// The Gospodar CRM deal this request became (CrmSync); null until pushed.
     public Guid? CrmDealId { get; set; }
     public DateTime? CrmSyncedAt { get; set; }
     public string? CrmError { get; set; }

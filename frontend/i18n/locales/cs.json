@@ -1,0 +1,264 @@
+{
+  "nav": {
+    "shop": "Obchod",
+    "about": "O nás",
+    "blog": "Blog",
+    "vacancies": "Kariéra",
+    "contacts": "Kontakty",
+    "cart": "Košík",
+    "menu": "Menu"
+  },
+  "footer": {
+    "address": "Adresa",
+    "phones": "Telefony",
+    "emails": "E-mail",
+    "legal": "Právní informace",
+    "terms": "Podmínky užívání",
+    "payment": "Platba a doprava",
+    "rights": "© {year} UA GREEN",
+    "offer": "Veřejná nabídka",
+    "privacy": "Zásady ochrany osobních údajů",
+    "oberig": "Zákaznický portál «Oberig»"
+  },
+  "oberig": {
+    "eyebrow": "Prediktivní údržba",
+    "calc": "Spočítat výrobu",
+    "portal": "Portál Oberig",
+    "loginNote": "Kalkulačka a monitoring jsou dostupné po přihlášení do portálu.",
+    "home": {
+      "h": "«Oberig» hlídá vaši větrnou elektrárnu 24/7",
+      "p": "«Oberig» je portál prediktivní údržby od UA GREEN. Nepřetržitě sleduje turbínu, včas odhalí opotřebení ložisek, potíže s listy či generátorem, předpovídá výrobu energie a hned pošle upozornění, jakmile se něco děje. Na portálu je také kalkulačka: odhadněte roční výrobu pro svůj pozemek podle dat větrného atlasu."
+    },
+    "product": {
+      "h": "Monitoring Oberig",
+      "p": "Tento model lze připojit k portálu «Oberig»: nepřetržitý dohled nad turbínou, prediktivní diagnostika ložisek, listů a generátoru, předpověď výroby a upozornění na jakékoli odchylky."
+    },
+    "order": {
+      "h": "Připojte elektrárnu k monitoringu «Oberig»",
+      "p": "Po instalaci připojte větrnou elektrárnu k portálu «Oberig»: bude ji hlídat 24/7, včas upozorní na opotřebení ložisek, listů či generátoru — dřív, než se z drobnosti stane oprava — a ukáže předpověď výroby."
+    }
+  },
+  "lang": { "uk": "Укр", "en": "Eng", "cs": "Čes" },
+  "site": {
+    "title": "UA GREEN | Větrné turbíny a vybavení",
+    "description": "Ukrajinský výrobce větrných turbín se svislou osou a vybavení k nim."
+  },
+  "pages": {
+    "aboutTitle": "O nás",
+    "contactsTitle": "Kontakty",
+    "paymentTitle": "Platba a doprava",
+    "termsTitle": "Podmínky užívání",
+    "offerTitle": "Veřejná nabídka",
+    "privacyTitle": "Zásady ochrany osobních údajů",
+    "write": "Napište nám"
+  },
+  "form": {
+    "name": "Jméno",
+    "phone": "Telefon",
+    "email": "E-mail",
+    "message": "Zpráva",
+    "send": "Odeslat",
+    "sending": "Odesílám…",
+    "sent": "Děkujeme, ozveme se vám.",
+    "required": "Toto pole je povinné",
+    "phoneInvalid": "Zadejte telefonní číslo",
+    "failed": "Odeslání se nezdařilo. Zkuste to znovu nebo nám zavolejte.",
+    "privacyNote": "Odesláním formuláře souhlasíte se {link}",
+    "privacyLink": "zásadami ochrany osobních údajů"
+  },
+  "blog": {
+    "title": "Blog",
+    "empty": "Zatím tu nejsou žádné příspěvky.",
+    "prev": "Novější",
+    "next": "Starší",
+    "back": "Všechny příspěvky"
+  },
+  "shop": {
+    "title": "Obchod",
+    "description": "Větrné turbíny K1 a K5 se svislou osou, generátory, listy, stožáry a služby přímo od výrobce.",
+    "all": "Všechny produkty",
+    "empty": "V této kategorii zatím nic není.",
+    "inStock": "Skladem",
+    "onOrder": "Na objednávku",
+    "sku": "Kód",
+    "addToCart": "Do košíku",
+    "added": "Přidáno do košíku",
+    "goToCart": "Přejít do košíku",
+    "about": "Popis",
+    "specs": "Technické parametry",
+    "faq": "Časté dotazy",
+    "files": "Dokumenty",
+    "price": "Cena",
+    "withOptions": "se zvolenými možnostmi",
+    "zoom": "Zvětšit fotografii",
+    "close": "Zavřít",
+    "prevPhoto": "Předchozí fotografie",
+    "nextPhoto": "Další fotografie"
+  },
+  "cart": {
+    "title": "Košík",
+    "empty": "Váš košík je prázdný.",
+    "toShop": "Přejít do obchodu",
+    "qty": "Množství",
+    "remove": "Odebrat",
+    "subtotal": "Mezisoučet",
+    "checkout": "K pokladně"
+  },
+  "checkout": {
+    "title": "Pokladna",
+    "customer": "Zákazník",
+    "delivery": "Doprava",
+    "delivery_NovaPoshta": "Nova Poshta",
+    "delivery_Ukrposhta": "Ukrposhta",
+    "delivery_Pickup": "Osobní odběr ve Lvově",
+    "city": "Město",
+    "warehouse": "Pobočka",
+    "deliveryNote": "Doprava podle ceníku dopravce, platí se při převzetí.",
+    "payment": "Platba",
+    "payment_LiqPay": "Kartou online",
+    "payment_LiqPay_hint": "Visa / Mastercard přes LiqPay, hned po potvrzení.",
+    "payment_Invoice": "Bankovním převodem na fakturu",
+    "payment_Invoice_hint": "Fakturu vám pošleme e-mailem nebo přes messenger.",
+    "payment_Invoice_hintIban": "Převod na IBAN společnosti z jakékoli banky — údaje zobrazíme hned po odeslání objednávky.",
+    "payment_Credit": "Úvěr s 0 % úrokem",
+    "payment_Credit_hint": "Splátky přes partnerské banky; ozve se vám náš manažer.",
+    "comment": "Poznámka",
+    "summary": "Vaše objednávka",
+    "editCart": "Upravit košík",
+    "place": "Odeslat objednávku",
+    "redirecting": "Přesměrováváme vás na platební stránku…",
+    "pay": "Přejít k platbě"
+  },
+  "order": {
+    "title": "Objednávka č. {n}",
+    "total": "Celkem",
+    "help": "Máte dotazy k objednávce?",
+    "waiting": "Čekáme, až LiqPay potvrdí platbu. Stránka se obnovuje sama.",
+    "thanksPaid": "Platba přijata. Děkujeme! Ozveme se vám ohledně odeslání.",
+    "thanksInvoice": "Děkujeme! Fakturu vám pošleme e-mailem nebo přes messenger.",
+    "thanksCredit": "Děkujeme! Ohledně úvěru vás bude kontaktovat náš manažer.",
+    "thanksTransfer": "Děkujeme! Zaplaťte prosím převodem podle údajů níže — odešleme, jakmile platba dorazí.",
+    "bank": {
+      "title": "Platební údaje",
+      "recipient": "Příjemce",
+      "edrpou": "IČ (EDRPOU)",
+      "iban": "IBAN",
+      "bank": "Banka",
+      "amount": "Částka",
+      "purpose": "Účel platby",
+      "purposeDefault": "Platba za objednávku č. {n}",
+      "copy": "Kopírovat",
+      "copied": "Zkopírováno"
+    },
+    "status": {
+      "New": "Nová",
+      "AwaitingPayment": "Čeká na platbu",
+      "Paid": "Zaplaceno",
+      "InvoiceSent": "Faktura odeslána",
+      "Credit": "Úvěr",
+      "Shipped": "Odesláno",
+      "Cancelled": "Zrušeno"
+    }
+  },
+  "vacancies": {
+    "title": "Volná místa",
+    "empty": "Momentálně nemáme žádné otevřené pozice.",
+    "all": "Všechna volná místa",
+    "apply": "Poslat přihlášku",
+    "requirements": "Požadavky",
+    "niceToHave": "Výhodou",
+    "conditions": "Co nabízíme",
+    "department": "Oddělení",
+    "employment": "Typ úvazku",
+    "city": "Město",
+    "experience": "Praxe",
+    "language": "Jazyky",
+    "cv": "Životopis (PDF nebo Word, do 10 MB)",
+    "cvTooBig": "Soubor je větší než 10 MB",
+    "cvType": "Pouze PDF nebo Word"
+  },
+  "error": {
+    "notFoundTitle": "Stránka nenalezena",
+    "home": "Na úvod",
+    "generic": "Něco se pokazilo"
+  },
+  "home": {
+    "products": { "h": "Vybavení", "more": "Podrobnosti", "all": "Celý obchod" },
+    "why": {
+      "h": "Proč svislá osa",
+      "p1": "Rotor K5 se otáčí pomalu a téměř neslyšně, nevadí mu nárazy větru ani měnící se směr a nepotřebuje směrovku ani natáčení.",
+      "p2": "Bezpřevodový generátor, brzdění balastní zátěží, krytí IP54: jeden servis ročně, přímo ze žebříku na stožáru.",
+      "facts": [{ "v": "38 dB", "l": "" }, { "v": "1,5 m/s", "l": "rozběh" }, { "v": "250 ot./min", "l": "" }, { "v": "−40…+60 °C", "l": "" }],
+      "alt": "Větrná turbína K5 na stožáru"
+    },
+    "posts": { "h": "Blog", "all": "Všechny příspěvky" },
+    "contact": {
+      "h": "Probereme vaši lokalitu",
+      "p": "Napište nebo zavolejte: posoudíme vítr a navrhneme stožár i sestavu pro vaše místo.",
+      "btn": "Kontakty"
+    }
+  },
+  "story": {
+    "title": "Od suroviny k větru.",
+    "lead": "Větrnou turbínu K5 se svislou osou vyrábíme sami, od navíjení statoru až po instalaci u vás. Posouvejte stránku a uvidíte jak.",
+    "hint": "Posouvejte",
+    "svgLabel": "Jak se vyrábí, montuje a instaluje větrná turbína K5",
+    "rail": ["Generátor", "Listy", "Montáž", "Stožár", "Instalace"],
+    "s1": {
+      "h": "Srdcem K5 je generátor s permanentními magnety.",
+      "p": "Stator z elektrotechnické oceli, měděné vinutí, 72 neodymových magnetů. Žádná převodovka, nic, co by se opotřebovalo.",
+      "facts": [{ "v": "5 kW", "l": "jmenovitě" }, { "v": "6,5 kW", "l": "špičkově" }, { "v": "48 V", "l": "" }]
+    },
+    "s2": {
+      "h": "Tři kompozitní listy, vrstva po vrstvě.",
+      "p": "Skelná tkanina od 48 do 400 g/m², epoxid, pěnový nosník. Kladeno do formy vrstvu po vrstvě, vytvrzeno, nalakováno, vyváženo.",
+      "facts": [{ "v": "4,75 m", "l": "list" }, { "v": "Ø5 m", "l": "rotor" }, { "v": "22 m²", "l": "plocha rotoru" }]
+    },
+    "s3": {
+      "h": "Smontováno a poprvé roztočeno.",
+      "p": "Hřídel Ø170, vzpěry, listy na generátor. Rotor se musí rozběhnout už od 1,5 m/s.",
+      "facts": [{ "v": "1,5 m/s", "l": "rozběh" }, { "v": "250 ot./min", "l": "" }, { "v": "300 kg", "l": "" }]
+    },
+    "s4": {
+      "h": "Základ, kotevní deska, šestimetrové sekce.",
+      "p": "Armokoš, beton, kotevní deska. Stožár 12, 18 nebo 24 m se sešroubuje na přírubách a má servisní žebřík.",
+      "facts": [{ "v": "12 / 18 / 24 m", "l": "stožár" }, { "v": "45 m/s", "l": "vydrží" }]
+    },
+    "s5": {
+      "h": "Rotor dosedá na stožár. Kabel vede dovnitř.",
+      "p": "MPPT regulátor, balastní zátěž, baterie. Odteď pracuje už jen vítr.",
+      "facts": [{ "v": "38 dB", "l": "" }, { "v": "−40…+60 °C", "l": "" }, { "v": "1,3–2 kW", "l": "roční průměr" }]
+    },
+    "auditAsk": "Chcete zjistit, zda se vám u vás větrná elektrárna vyplatí?",
+    "cta": "Objednat audit mého pozemku",
+    "shop": "K5 v obchodě — 295 000 ₴"
+  },
+  "audit": {
+    "title": "Audit větru na pozemku",
+    "consultTitle": "Objednat konzultaci",
+    "consultText": "Zanechte číslo — inženýr zavolá, zeptá se na pozemek a poradí, zda má audit smysl.",
+    "bookTitle": "Zaplatit a naplánovat audit hned",
+    "bookText": "Vyberte volný termín, zaplaťte online — a specialista přijede ve zvolený den.",
+    "choose": "Co vám vyhovuje?",
+    "consultLead": "Zanechte číslo — zavoláme vám během pracovního dne.",
+    "callMe": "Zavolejte mi",
+    "consultDone": "Děkujeme! Zavoláme vám.",
+    "back": "Zpět na audit",
+    "dateTitle": "Termín auditu",
+    "dataTitle": "Kontakt a adresa",
+    "picked": "Vybráno: {date}",
+    "pickDate": "Vyberte termín",
+    "address": "Adresa pozemku",
+    "addressHint": "Obec, ulice nebo orientační bod",
+    "addressRequired": "Zadejte adresu pozemku",
+    "comment": "Komentář (nepovinné)",
+    "offer": "Souhlasím s podmínkami {link}",
+    "offerLink": "veřejné nabídky",
+    "offerRequired": "Je nutný souhlas s podmínkami nabídky",
+    "pay": "Zaplatit {price}",
+    "noDates": "Volné termíny teď nemůžeme zobrazit. Zanechte číslo a termín domluvíme společně.",
+    "dateTaken": "Tento termín byl právě obsazen — vyberte jiný.",
+    "booked": "Audit je naplánován na {date}. Adresa: {address}.",
+    "paidPending": "Platba přijata. Manažer zavolá, aby potvrdil termín {date}."
+  }
+}

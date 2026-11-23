@@ -19,9 +19,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<OrderEvent> OrderEvents => Set<OrderEvent>();
     public DbSet<ContentBlock> Content => Set<ContentBlock>();
+    public DbSet<Review> Reviews => Set<Review>();
     public DbSet<Setting> Settings => Set<Setting>();
     public DbSet<Redirect> Redirects => Set<Redirect>();
     public DbSet<SiteUser> SiteUsers => Set<SiteUser>();
+    public DbSet<PageView> PageViews => Set<PageView>();
 
     /// Replace a product's images/files/options wholesale. Children get explicit
     /// Remove/Add calls: entities with a pre-set Guid key that EF discovers through a
@@ -90,6 +92,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.Property(x => x.Subtotal).HasPrecision(12, 2);
             e.Property(x => x.DeliveryCost).HasPrecision(12, 2);
             e.Property(x => x.Total).HasPrecision(12, 2);
+            e.Property(x => x.AuditAddress).HasMaxLength(300);
             e.HasMany(x => x.Items).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Events).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
             e.Property(x => x.AdminNote).HasMaxLength(4000);
@@ -145,6 +148,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                         v => v.Aggregate(0, (h, r) => HashCode.Combine(h, r)),
                         v => v.ToList()))
                 .HasMaxLength(100);
+        });
+        b.Entity<PageView>(e =>
+        {
+            e.HasIndex(x => x.At);
+            e.Property(x => x.Path).HasMaxLength(300);
+            e.Property(x => x.Source).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Country).HasMaxLength(2);
         });
     }
 }

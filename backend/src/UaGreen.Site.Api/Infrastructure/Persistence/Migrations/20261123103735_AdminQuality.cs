@@ -64,12 +64,6 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                 nullable: false,
                 defaultValue: 0);
 
-            migrationBuilder.AddColumn<Guid>(
-                name: "crm_deal_id",
-                table: "contact_requests",
-                type: "uuid",
-                nullable: true);
-
             migrationBuilder.AddColumn<string>(
                 name: "crm_error",
                 table: "contact_requests",
@@ -174,10 +168,6 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropColumn(
                 name: "crm_attempts",
-                table: "contact_requests");
-
-            migrationBuilder.DropColumn(
-                name: "crm_deal_id",
                 table: "contact_requests");
 
             migrationBuilder.DropColumn(

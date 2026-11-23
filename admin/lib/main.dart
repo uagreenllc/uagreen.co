@@ -12,6 +12,8 @@ import 'pages_catalog.dart';
 import 'pages_content.dart';
 import 'pages_inbox.dart';
 import 'pages_orders.dart';
+import 'pages_site.dart';
+import 'stats.dart';
 
 void main() {
   nav.key; // read #/section now: Flutter's URL strategy rewrites the address to "/" on start
@@ -20,8 +22,11 @@ void main() {
 }
 
 class Section {
-  const Section(this.key, this.title, this.icon, this.roles, this.build, {this.badge});
+  const Section(this.key, this.title, this.icon, this.roles, this.build, {this.badge, this.group});
   final String key, title;
+
+  /// Menu heading this item sits under; null = the top block (overview, stats).
+  final String? group;
   final IconData icon;
 
   /// Any of these (or Admin) — mirrors the backend policies in SiteRoles.cs.
@@ -34,22 +39,32 @@ class Section {
 
 int _n(Object? v) => (v as num?)?.toInt() ?? 0;
 
+const _sales = 'Продажі', _content = 'Контент', _shop = 'Магазин і сайт', _hr = 'HR', _access = 'Доступ';
+
 final sections = [
   Section('overview', 'Огляд', Icons.space_dashboard_outlined, const [], () => const DashboardPage()),
+  Section('stats', 'Статистика', Icons.bar_chart, const ['Sales', 'Editor'], () => const StatsPage()),
   Section('orders', 'Замовлення', Icons.receipt_long_outlined, const ['Sales'], () => const OrdersPage(),
-      badge: (s) => _n(s['orders']?['new'])),
-  Section('products', 'Товари', Icons.inventory_2_outlined, const ['Sales'], () => const ProductsPage()),
-  Section('categories', 'Категорії', Icons.category_outlined, const ['Sales'], () => const CategoriesPage()),
+      badge: (s) => _n(s['orders']?['new']), group: _sales),
   Section('contacts', 'Контактні запити', Icons.mail_outline, const ['Sales', 'Editor'], () => const ContactsPage(),
-      badge: (s) => _n(s['contacts']?['unread'])),
-  Section('blog', 'Блог', Icons.article_outlined, const ['Editor'], () => const BlogPage()),
-  Section('content', 'Контент сторінок', Icons.web_outlined, const ['Editor'], () => const ContentPage()),
-  Section('redirects', 'Редиректи', Icons.alt_route, const ['Editor'], () => const RedirectsPage()),
-  Section('settings', 'Налаштування', Icons.tune, const ['Editor'], () => const SettingsPage()),
-  Section('vacancies', 'Вакансії', Icons.work_outline, const ['Hr'], () => const VacanciesPage()),
+      badge: (s) => _n(s['contacts']?['unread']), group: _sales),
+  Section('products', 'Товари', Icons.inventory_2_outlined, const ['Sales'], () => const ProductsPage(), group: _sales),
+  Section('categories', 'Категорії', Icons.category_outlined, const ['Sales'], () => const CategoriesPage(), group: _sales),
+  Section('feeds', 'Канали збуту', Icons.storefront_outlined, const ['Sales'], () => const FeedsPage(), group: _sales),
+  Section('blog', 'Блог', Icons.article_outlined, const ['Editor'], () => const BlogPage(), group: _content),
+  Section('content', 'Контент сторінок', Icons.web_outlined, const ['Editor'], () => const ContentPage(), group: _content),
+  Section('reviews', 'Відгуки клієнтів', Icons.reviews_outlined, const ['Editor'], () => const ReviewsPage(), group: _content),
+  Section('redirects', 'Редиректи', Icons.alt_route, const ['Editor'], () => const RedirectsPage(), group: _content),
+  Section('payments', 'Платіжні системи', Icons.payments_outlined, const ['Admin'], () => const PaymentsPage(), group: _shop),
+  // Editor, because delivery saves through /admin/settings (Editor policy).
+  Section('delivery', 'Доставка', Icons.local_shipping_outlined, const ['Editor'], () => const DeliveryPage(), group: _shop),
+  Section('settings', 'Налаштування', Icons.tune, const ['Editor'], () => const SettingsPage(), group: _shop),
+  Section('analytics', 'Аналітика', Icons.insights_outlined, const ['Editor'], () => const AnalyticsPage(), group: _shop),
+  Section('code', 'Сторонній код', Icons.code, const ['Admin'], () => const CodePage(), group: _shop),
+  Section('vacancies', 'Вакансії', Icons.work_outline, const ['Hr'], () => const VacanciesPage(), group: _hr),
   Section('applications', 'Відгуки на вакансії', Icons.badge_outlined, const ['Hr'], () => const ApplicationsPage(),
-      badge: (s) => _n(s['applications']?['unread'])),
-  Section('users', 'Користувачі', Icons.manage_accounts_outlined, const ['Admin'], () => const UsersPage()),
+      badge: (s) => _n(s['applications']?['unread']), group: _hr),
+  Section('users', 'Користувачі', Icons.manage_accounts_outlined, const ['Admin'], () => const UsersPage(), group: _access),
 ];
 
 List<Section> sectionsFor(List<String> roles) =>
@@ -267,11 +282,18 @@ class _ShellState extends State<Shell> {
               ],
             ),
           ),
-          for (final x in _visible)
+          for (final (n, x) in _visible.indexed) ...[
+            if (x.group != null && (n == 0 || _visible[n - 1].group != x.group))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
+                child: Text(x.group!.toUpperCase(),
+                    style: theme.textTheme.labelSmall?.copyWith(color: context.palette.textTertiary, letterSpacing: 0.8)),
+              ),
             NavigationDrawerDestination(
               icon: _Badged(count: x.badge?.call(summary.data) ?? 0, child: Icon(x.icon)),
               label: Text(x.title),
             ),
+          ],
         ],
       ),
     );

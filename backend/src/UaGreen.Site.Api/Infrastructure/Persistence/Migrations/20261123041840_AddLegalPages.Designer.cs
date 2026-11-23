@@ -12,8 +12,8 @@ using UaGreen.Site.Api.Infrastructure.Persistence;
 namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261123044228_AdminQuality")]
-    partial class AdminQuality
+    [Migration("20261123041840_AddLegalPages")]
+    partial class AddLegalPages
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -61,21 +61,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<string>("Note")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("note");
-
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("phone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)")
-                        .HasColumnName("status");
 
                     b.Property<Guid?>("VacancyId")
                         .HasColumnType("uuid")
@@ -223,27 +212,6 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<int>("CrmAttempts")
-                        .HasColumnType("integer")
-                        .HasColumnName("crm_attempts");
-
-                    b.Property<Guid?>("CrmDealId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("crm_deal_id");
-
-                    b.Property<string>("CrmError")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("crm_error");
-
-                    b.Property<DateTime?>("CrmLastAttemptAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("crm_last_attempt_at");
-
-                    b.Property<DateTime?>("CrmSyncedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("crm_synced_at");
-
                     b.Property<string>("Email")
                         .HasColumnType("text")
                         .HasColumnName("email");
@@ -261,11 +229,6 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("note");
 
                     b.Property<string>("Phone")
                         .IsRequired()
@@ -316,11 +279,6 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("AdminNote")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("admin_note");
-
                     b.Property<string>("Comment")
                         .HasColumnType("text")
                         .HasColumnName("comment");
@@ -328,27 +286,6 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
-
-                    b.Property<int>("CrmAttempts")
-                        .HasColumnType("integer")
-                        .HasColumnName("crm_attempts");
-
-                    b.Property<Guid?>("CrmDealId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("crm_deal_id");
-
-                    b.Property<string>("CrmError")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("crm_error");
-
-                    b.Property<DateTime?>("CrmLastAttemptAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("crm_last_attempt_at");
-
-                    b.Property<DateTime?>("CrmSyncedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("crm_synced_at");
 
                     b.Property<string>("CustomerName")
                         .IsRequired()
@@ -432,42 +369,6 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_orders_number");
 
                     b.ToTable("orders", (string)null);
-                });
-
-            modelBuilder.Entity("UaGreen.Site.Api.Domain.OrderEvent", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Actor")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("actor");
-
-                    b.Property<DateTime>("At")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("at");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("order_id");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("text");
-
-                    b.HasKey("Id")
-                        .HasName("pk_order_events");
-
-                    b.HasIndex("OrderId", "At")
-                        .HasDatabaseName("ix_order_events_order_id_at");
-
-                    b.ToTable("order_events", (string)null);
                 });
 
             modelBuilder.Entity("UaGreen.Site.Api.Domain.OrderItem", b =>
@@ -564,10 +465,6 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name_uk");
-
-                    b.Property<bool>("OberigMonitoring")
-                        .HasColumnType("boolean")
-                        .HasColumnName("oberig_monitoring");
 
                     b.Property<decimal?>("OldPrice")
                         .HasPrecision(12, 2)
@@ -944,16 +841,6 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("vacancies", (string)null);
                 });
 
-            modelBuilder.Entity("UaGreen.Site.Api.Domain.OrderEvent", b =>
-                {
-                    b.HasOne("UaGreen.Site.Api.Domain.Order", null)
-                        .WithMany("Events")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_order_events_orders_order_id");
-                });
-
             modelBuilder.Entity("UaGreen.Site.Api.Domain.OrderItem", b =>
                 {
                     b.HasOne("UaGreen.Site.Api.Domain.Order", null)
@@ -1024,8 +911,6 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("UaGreen.Site.Api.Domain.Order", b =>
                 {
-                    b.Navigation("Events");
-
                     b.Navigation("Items");
                 });
 

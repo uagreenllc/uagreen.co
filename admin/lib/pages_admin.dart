@@ -40,11 +40,6 @@ final _groups = <(String, IconData, String?, List<_S>)>[
     _s('site_title_uk', 'Title сайту (UK)'),
     _s('site_description_uk', 'Description сайту (UK)', lines: 3),
   ]),
-  ('Аналітика', Icons.insights_outlined, 'Лише ідентифікатори — скрипти сайт підключає сам', [
-    _s('ga4_id', 'Google Analytics 4', hint: 'G-XXXXXXXXXX'),
-    _s('google_ads_id', 'Google Ads', hint: 'AW-XXXXXXXXXX'),
-    _s('fb_pixel_id', 'Meta Pixel', hint: 'Лише цифри'),
-  ]),
   ('Оберіг (портал моніторингу)', Icons.monitor_heart_outlined, 'Блоки й посилання на портал portal.uagreen.co на сайті', [
     _s('oberig.url', 'Адреса порталу', hint: 'Порожньо — https://portal.uagreen.co'),
     _s('oberig.calculator_url', 'Адреса калькулятора генерації', hint: 'Порожньо — <портал>/#/wind-calculator'),
@@ -69,6 +64,10 @@ class _SettingsPageState extends State<SettingsPage> {
   int _gen = 0;
 
   static final _known = {for (final g in _groups) ...g.$4.map((s) => s.key)};
+
+  /// Keys other screens own (CRM switches, Доставка, Аналітика): never shown or touched here.
+  static bool _elsewhere(String k) =>
+      k.startsWith('admin.') || k.startsWith('delivery.') || const {'ga4_id', 'google_ads_id', 'fb_pixel_id', 'stats_disabled'}.contains(k);
 
   bool get _dirty => jsonEncode(_collect()) != jsonEncode(_saved);
 
@@ -98,7 +97,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ..clear()
       ..addAll([
         for (final e in m.entries)
-          if (!_known.contains(e.key) && !e.key.startsWith('admin.'))
+          if (!_known.contains(e.key) && !_elsewhere(e.key))
             (TextEditingController(text: e.key), TextEditingController(text: e.value)),
       ]);
     _gen++;
@@ -110,7 +109,7 @@ class _SettingsPageState extends State<SettingsPage> {
       for (final e in _v.entries)
         if (_known.contains(e.key) && e.value.trim().isNotEmpty) e.key: e.value.trim(),
       for (final e in _saved.entries)
-        if (e.key.startsWith('admin.')) e.key: e.value,
+        if (_elsewhere(e.key)) e.key: e.value,
     };
     for (final (k, v) in _extra) {
       if (k.text.trim().isNotEmpty && v.text.trim().isNotEmpty) m[k.text.trim()] = v.text.trim();
@@ -323,14 +322,23 @@ class _GospodarCardState extends State<_GospodarCard> {
 
   Future<void> _set({bool? orders, bool? contacts}) async {
     final s = _s!;
-    final o = orders ?? s['ordersSince'] != null, c = contacts ?? s['contactsSince'] != null;
-    if ((orders == true || contacts == true) &&
+    final o = orders ?? s['ordersSince'] != null, c = contacts ?? s['contactsOn'] == true;
+    if (orders == true &&
         !await showConfirmDialog(context,
-            title: 'Увімкнути передачу в CRM Господаря?',
-            message: 'Нові ${orders == true ? 'замовлення' : 'запити з контактної форми'} автоматично ставатимуть угодами '
-                'на менеджера з продажу. Попередні записи не передаються — їх можна надіслати вручну з картки.',
+            title: 'Передавати замовлення в CRM Господаря?',
+            message: 'Нові замовлення автоматично ставатимуть угодами на менеджера з продажу. '
+                'Попередні не передаються — їх можна надіслати вручну з картки замовлення.',
             confirmLabel: 'Увімкнути',
             destructive: false)) {
+      return;
+    }
+    if (contacts == false &&
+        mounted &&
+        !await showConfirmDialog(context,
+            title: 'Призупинити передачу запитів у CRM?',
+            message: 'Нові запити з контактної форми й консультацій лишатимуться лише в адмінці та пошті, '
+                'менеджери в Господарі їх не побачать. Запит, що пролежав понад 3 дні, автоматично вже не піде.',
+            confirmLabel: 'Призупинити')) {
       return;
     }
     if (!mounted) return;
@@ -405,17 +413,18 @@ class _GospodarCardState extends State<_GospodarCard> {
                   ],
                 ),
                 const Divider(height: AppSpacing.xxl),
-                for (final (key, label, since, stats, section) in [
-                  ('orders', 'Замовлення → угоди', s['ordersSince'], s['orders'] as J, 'orders'),
-                  ('contacts', 'Запити з контактної форми → угоди', s['contactsSince'], s['contacts'] as J, 'contacts'),
+                for (final (key, label, on, state, stats, section) in [
+                  ('orders', 'Замовлення → угоди', s['ordersSince'] != null,
+                      s['ordersSince'] == null ? 'Вимкнено' : 'Увімкнено ${fmtDate(s['ordersSince'])}', s['orders'] as J, 'orders'),
+                  ('contacts', 'Запити з форм і консультацій → угоди', s['contactsOn'] == true,
+                      s['contactsOn'] == true ? 'Автоматично, щойно задано ключ' : 'Призупинено', s['contacts'] as J, 'contacts'),
                 ]) ...[
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(label),
-                    subtitle: Text(since == null
-                        ? 'Вимкнено'
-                        : 'Увімкнено ${fmtDate(since)} · передано ${stats['sent']}${(stats['failed'] as num) > 0 ? ' · помилок ${stats['failed']}' : ''}'),
-                    value: since != null,
+                    subtitle: Text('$state · передано ${stats['sent']}'
+                        '${(stats['failed'] as num) > 0 ? ' · помилок ${stats['failed']}' : ''}'),
+                    value: on,
                     onChanged: _busy || s['configured'] != true
                         ? null
                         : (on) => key == 'orders' ? _set(orders: on) : _set(contacts: on),

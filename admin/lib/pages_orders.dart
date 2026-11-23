@@ -28,7 +28,7 @@ const _statusTone = {
   'Shipped': 'success',
   'Cancelled': 'neutral',
 };
-const payments = {'LiqPay': 'LiqPay (картка)', 'Invoice': 'Безготівка (рахунок)', 'Credit': 'Кредит 0%'};
+const payments = {'LiqPay': 'LiqPay (картка)', 'Invoice': 'Вручну (переказ на IBAN)', 'Credit': 'Кредит 0%'};
 const deliveries = {'NovaPoshta': 'Нова пошта', 'Ukrposhta': 'Укрпошта', 'Pickup': 'Самовивіз'};
 
 Widget orderStatusChip(BuildContext context, String? s) =>

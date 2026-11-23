@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Infrastructure.Persistence;
+using UaGreen.Site.Api.Infrastructure.Storage;
 
 namespace UaGreen.Site.Api.Features.Content;
 
 public sealed record ContentDto(string Key, string Lang, string? Title, string BodyHtml);
+public sealed record ReviewDto(string? Photo, string Text, string Author);
 public sealed record RedirectDto(string From, string To);
 
 /// Editable text blocks, public settings and the old-URL redirect table.
@@ -17,24 +19,31 @@ public static class ContentEndpoints
         // ?keys=home.hero,home.services — one call for a whole page.
         g.MapGet("/content", async (string? keys, string? lang, AppDbContext db, CancellationToken ct) =>
         {
-            var l = Lang.Norm(lang);
+            var chain = Lang.Chain(Lang.Norm(lang));
             var wanted = (keys ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var q = db.Content.AsNoTracking().Where(c => c.Lang == l || c.Lang == "uk");
+            var q = db.Content.AsNoTracking().Where(c => chain.Contains(c.Lang));
             if (wanted.Length > 0) q = q.Where(c => wanted.Contains(c.Key));
             var rows = await q.ToListAsync(ct);
-            // EN falls back to UK per key.
+            // Per key, the best lang in the chain (CS → EN → UK).
             return rows.GroupBy(c => c.Key)
-                .Select(grp => grp.FirstOrDefault(c => c.Lang == l) ?? grp.First())
+                .Select(grp => grp.MinBy(c => Array.IndexOf(chain, c.Lang))!)
                 .Select(c => new ContentDto(c.Key, c.Lang, c.Title, c.BodyHtml));
         });
 
         g.MapGet("/content/{key}", async (string key, string? lang, AppDbContext db, CancellationToken ct) =>
         {
-            var l = Lang.Norm(lang);
-            var c = await db.Content.AsNoTracking().FirstOrDefaultAsync(x => x.Key == key && x.Lang == l, ct)
-                ?? await db.Content.AsNoTracking().FirstOrDefaultAsync(x => x.Key == key && x.Lang == "uk", ct)
-                ?? throw ProblemException.NotFound("Content not found");
+            var chain = Lang.Chain(Lang.Norm(lang));
+            var rows = await db.Content.AsNoTracking().Where(x => x.Key == key && chain.Contains(x.Lang)).ToListAsync(ct);
+            var c = rows.MinBy(x => Array.IndexOf(chain, x.Lang)) ?? throw ProblemException.NotFound("Content not found");
             return new ContentDto(c.Key, c.Lang, c.Title, c.BodyHtml);
+        });
+
+        g.MapGet("/reviews", async (string? lang, AppDbContext db, CancellationToken ct) =>
+        {
+            var l = Lang.Norm(lang);
+            var rows = await db.Reviews.AsNoTracking().Where(r => r.Published).OrderBy(r => r.Sort).ToListAsync(ct);
+            return rows.Select(r => new ReviewDto(r.PhotoKey is null ? null : FileStorage.Url(r.PhotoKey),
+                Lang.PickReq(r.TextUk, r.TextEn, l), Lang.PickReq(r.AuthorUk, r.AuthorEn, l)));
         });
 
         // `admin.*` keys are back-office switches (CRM feeds) — not for the public site.

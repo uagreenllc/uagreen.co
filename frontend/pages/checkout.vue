@@ -8,15 +8,23 @@ const money = useMoney()
 const { t, locale } = useI18n()
 usePageHead({ title: t('checkout.title') })
 
-const deliveries: DeliveryMethod[] = ['NovaPoshta', 'Ukrposhta', 'Pickup']
-const payments: PaymentMethod[] = ['LiqPay', 'Invoice', 'Credit']
+// Admin → Доставка: `delivery.<Method>.off` hides a method, `delivery.<Method>.note.<lang>` shows under it.
+const settings = useSettings()
+const deliveries = (['NovaPoshta', 'Ukrposhta', 'Pickup'] as DeliveryMethod[]).filter(d => !settings.value?.[`delivery.${d}.off`])
+const langs = ['cs', 'en', 'uk']
+const deliveryNote = (d: DeliveryMethod) => langs.slice(Math.max(0, langs.indexOf(locale.value)))
+  .map(l => settings.value?.[`delivery.${d}.note.${l}`]).find(Boolean)
+// Admin → Платіжні системи: pay_<method> = "off" hides a method (the API refuses it too).
+const payments = (['LiqPay', 'Invoice', 'Credit'] as PaymentMethod[]).filter(p => settings.value?.[`pay_${p}`] !== 'off')
+const hint = (p: PaymentMethod) => t(`checkout.payment_${p}_hint${p === 'Invoice' && settings.value?.pay_iban ? 'Iban' : ''}`)
 const f = reactive({
-  name: '', phone: '', email: '', delivery: 'NovaPoshta' as DeliveryMethod, city: '', warehouse: '',
-  payment: 'LiqPay' as PaymentMethod, comment: '', website: '',
+  name: '', phone: '', email: '', delivery: deliveries[0]!, city: '', warehouse: '',
+  payment: payments[0]!, comment: '', website: '', captcha: '',
 })
 const errors = reactive<Record<string, string>>({})
 const needsAddress = computed(() => f.delivery !== 'Pickup')
 const liqPay = ref<Order['liqPay']>(null)
+const captchaEl = ref<{ reset(): void }>()
 
 const { pending, error, run } = useForm<typeof f>(async (v) => {
   const body: CreateOrder = {
@@ -27,12 +35,14 @@ const { pending, error, run } = useForm<typeof f>(async (v) => {
     items: cart.items.map(l => ({ productId: l.productId, qty: l.qty, optionValueIds: l.optionValueIds })),
     lang: locale.value,
     website: v.website,
+    captcha: v.captcha,
   }
   const order = await $fetch<Order>(apiUrl('/orders'), { method: 'POST', body })
   cart.clear()
   if (order.liqPay) liqPay.value = order.liqPay
   else await navigateTo(localePath(`/order/${order.id}`))
 })
+watch(error, e => e && captchaEl.value?.reset())
 
 function submit() {
   errors.name = f.name.trim().length < 2 ? t('form.required') : ''
@@ -76,7 +86,10 @@ function submit() {
 
           <h2>{{ $t('checkout.delivery') }}</h2>
           <div class="choices">
-            <label v-for="d in deliveries" :key="d"><input v-model="f.delivery" type="radio" name="delivery" :value="d"> {{ $t(`checkout.delivery_${d}`) }}</label>
+            <label v-for="d in deliveries" :key="d">
+              <input v-model="f.delivery" type="radio" name="delivery" :value="d">
+              <span>{{ $t(`checkout.delivery_${d}`) }}<small v-if="deliveryNote(d)">{{ deliveryNote(d) }}</small></span>
+            </label>
           </div>
           <template v-if="needsAddress">
             <label class="field">
@@ -96,7 +109,7 @@ function submit() {
           <div class="choices">
             <label v-for="pm in payments" :key="pm">
               <input v-model="f.payment" type="radio" name="payment" :value="pm">
-              <span>{{ $t(`checkout.payment_${pm}`) }}<small>{{ $t(`checkout.payment_${pm}_hint`) }}</small></span>
+              <span>{{ $t(`checkout.payment_${pm}`) }}<small>{{ hint(pm) }}</small></span>
             </label>
           </div>
 
@@ -105,8 +118,10 @@ function submit() {
             <textarea v-model="f.comment" name="comment" rows="3" maxlength="2000" />
           </label>
           <label class="hp" aria-hidden="true"><span>Website</span><input v-model="f.website" name="website" tabindex="-1" autocomplete="off"></label>
+          <Captcha ref="captchaEl" v-model="f.captcha" />
 
           <p v-if="error" class="form-error">{{ error }}</p>
+          <PrivacyNote />
           <button class="btn" type="submit" :disabled="pending">{{ pending ? $t('form.sending') : $t('checkout.place') }}</button>
         </form>
 

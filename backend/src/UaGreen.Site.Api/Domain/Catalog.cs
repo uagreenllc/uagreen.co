@@ -6,8 +6,16 @@ public sealed class Category
     public string Slug { get; set; } = "";
     public string NameUk { get; set; } = "";
     public string? NameEn { get; set; }
+    public string? NameCs { get; set; }
     public int Sort { get; set; }
     public string? ImageKey { get; set; }
+    /// Shown above the product grid on /shop/cat/{slug}.
+    public string? DescriptionHtmlUk { get; set; }
+    public string? DescriptionHtmlEn { get; set; }
+    public string? SeoTitleUk { get; set; }
+    public string? SeoTitleEn { get; set; }
+    public string? SeoDescUk { get; set; }
+    public string? SeoDescEn { get; set; }
     public List<Product> Products { get; set; } = [];
 }
 

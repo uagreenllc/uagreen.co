@@ -5,7 +5,7 @@ const settings = useSettings()
 const oberig = useOberig()
 
 const year = new Date().getFullYear()
-const address = computed(() => (locale.value === 'en' && settings.value?.address_en) || settings.value?.address || '')
+const address = computed(() => (locale.value !== 'uk' && settings.value?.address_en) || settings.value?.address || '')
 const phones = computed(() => splitList(settings.value?.phones))
 const emails = computed(() => splitList(settings.value?.emails))
 const socials = computed(() =>
@@ -34,6 +34,8 @@ const socials = computed(() =>
         <h3>{{ $t('footer.legal') }}</h3>
         <p><NuxtLink :to="localePath('/oplata')">{{ $t('footer.payment') }}</NuxtLink></p>
         <p><NuxtLink :to="localePath('/umovi-vikoristannya-saytu')">{{ $t('footer.terms') }}</NuxtLink></p>
+        <p><NuxtLink :to="localePath('/publichna-oferta')">{{ $t('footer.offer') }}</NuxtLink></p>
+        <p><NuxtLink :to="localePath('/polityka-konfidentsiynosti')">{{ $t('footer.privacy') }}</NuxtLink></p>
       </div>
     </div>
     <p class="rights">{{ $t('footer.rights', { year }) }}</p>

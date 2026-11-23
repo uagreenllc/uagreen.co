@@ -1,11 +1,13 @@
 <script setup lang="ts">
 const { t } = useI18n()
-const f = reactive({ name: '', phone: '', email: '', message: '', website: '' })
+const f = reactive({ name: '', phone: '', email: '', message: '', website: '', captcha: '' })
 const errors = reactive<Record<string, string>>({})
+const captchaEl = ref<{ reset(): void }>()
 
 const { pending, error, done, run } = useForm<typeof f>(async (v) => {
   await $fetch(apiUrl('/contact'), { method: 'POST', body: { ...v, email: v.email || null } })
 })
+watch(error, e => e && captchaEl.value?.reset())
 
 function submit() {
   errors.name = f.name.trim().length < 2 ? t('form.required') : ''
@@ -40,7 +42,9 @@ function submit() {
     </label>
     <!-- Honeypot: off-screen, never filled by people. -->
     <label class="hp" aria-hidden="true"><span>Website</span><input v-model="f.website" name="website" tabindex="-1" autocomplete="off"></label>
+    <Captcha ref="captchaEl" v-model="f.captcha" />
     <p v-if="error" class="form-error">{{ error }}</p>
+    <PrivacyNote />
     <button class="btn" type="submit" :disabled="pending">{{ pending ? $t('form.sending') : $t('form.send') }}</button>
   </form>
 </template>

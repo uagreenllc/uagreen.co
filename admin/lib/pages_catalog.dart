@@ -233,11 +233,21 @@ class _ProductsPageState extends State<ProductsPage> {
 }
 
 const _categoryFields = [
+  F.section('Основне'),
   F('nameUk', 'Назва (UK)', required: true),
   F('nameEn', 'Назва (EN)'),
+  F('nameCs', 'Назва (CS)'),
   F('slug', 'Адреса (slug)', t: T.slug, required: true, hint: 'uagreen.co/shop/cat/<slug>'),
   F('sort', 'Порядок', t: T.int, hint: 'Менше число — вище в меню магазину'),
   F('imageKey', 'Зображення', t: T.image, folder: 'categories'),
+  F.section('Опис', hint: 'Текст над товарами на сторінці категорії'),
+  F('descriptionHtmlUk', 'Опис (UK)', t: T.html, folder: 'categories'),
+  F('descriptionHtmlEn', 'Опис (EN)', t: T.html, folder: 'categories'),
+  F.section('SEO', hint: 'Порожньо — підставляються назва і опис'),
+  F('seoTitleUk', 'SEO title (UK)'),
+  F('seoTitleEn', 'SEO title (EN)'),
+  F('seoDescUk', 'SEO description (UK)', t: T.multiline),
+  F('seoDescEn', 'SEO description (EN)', t: T.multiline),
 ];
 
 class CategoriesPage extends StatefulWidget {

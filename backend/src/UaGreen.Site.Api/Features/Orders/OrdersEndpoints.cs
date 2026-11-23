@@ -2,6 +2,10 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
+using UaGreen.Site.Api.Features.Audit;
+using UaGreen.Site.Api.Infrastructure.Auth;
+using UaGreen.Site.Api.Features.Forms;
+using UaGreen.Site.Api.Infrastructure.Captcha;
 using UaGreen.Site.Api.Infrastructure.Email;
 using UaGreen.Site.Api.Infrastructure.Payments;
 using UaGreen.Site.Api.Infrastructure.Persistence;
@@ -14,12 +18,13 @@ public sealed record DeliveryDto(string Method, string? City, string? Warehouse)
 /// `Website` is a honeypot: humans never see the field, bots fill it.
 public sealed record CreateOrderRequest(
     CustomerDto Customer, DeliveryDto Delivery, string PaymentMethod, string? Comment,
-    List<OrderLineRequest> Items, string? Lang, string? Website);
+    List<OrderLineRequest> Items, string? Lang, string? Website, string? Captcha);
 
 public sealed record LiqPayCheckoutDto(string CheckoutUrl, string Data, string Signature);
 public sealed record OrderItemDto(string ProductName, string? OptionsText, int Qty, decimal UnitPrice, decimal LineTotal);
 public sealed record OrderDto(Guid Id, int Number, string Status, string PaymentMethod, decimal Subtotal, decimal DeliveryCost,
-    decimal Total, DateTime CreatedAt, IReadOnlyList<OrderItemDto> Items, LiqPayCheckoutDto? LiqPay);
+    decimal Total, DateTime CreatedAt, IReadOnlyList<OrderItemDto> Items, LiqPayCheckoutDto? LiqPay,
+    DateOnly? AuditDate, string? AuditAddress, bool? AuditConfirmed);
 
 public static class OrdersEndpoints
 {
@@ -39,7 +44,7 @@ public static class OrdersEndpoints
     }
 
     private static async Task<IResult> CreateAsync(
-        CreateOrderRequest req, AppDbContext db, LiqPayService liqpay, Notifier notifier, CancellationToken ct)
+        CreateOrderRequest req, AppDbContext db, LiqPayService liqpay, Notifier notifier, Turnstile captcha, CancellationToken ct)
     {
         if (!string.IsNullOrEmpty(req.Website)) // bot: pretend it worked, store nothing
             return Results.Ok(new { id = Guid.NewGuid(), number = 0, status = "New" });
@@ -50,10 +55,17 @@ public static class OrdersEndpoints
         if (phone.Length is < 7 or > 30) throw ProblemException.BadRequest("Phone is required");
         if (!Enum.TryParse<PaymentMethod>(req.PaymentMethod, true, out var payment))
             throw ProblemException.BadRequest("Unknown payment method");
+        var payOffKey = PaymentSettings.OffKey(payment); // set in admin → Платіжні системи
+        if (await db.Settings.AnyAsync(s => s.Key == payOffKey && s.Value == PaymentSettings.Off, ct))
+            throw ProblemException.BadRequest("Payment method is turned off");
         if (!Enum.TryParse<DeliveryMethod>(req.Delivery?.Method, true, out var delivery))
             throw ProblemException.BadRequest("Unknown delivery method");
+        var offKey = $"delivery.{delivery}.off"; // set in admin → Доставка
+        if (await db.Settings.AnyAsync(s => s.Key == offKey, ct))
+            throw ProblemException.BadRequest("Delivery method is turned off");
         if (req.Items is null) throw ProblemException.BadRequest("Order has no items");
         var lang = Lang.Norm(req.Lang);
+        await captcha.EnsureHumanAsync(req.Captcha, ct);
 
         var ids = req.Items.Select(i => i.ProductId).Distinct().ToList();
         var products = await db.Products.AsNoTracking()
@@ -73,11 +85,11 @@ public static class OrdersEndpoints
             },
             CustomerName = name,
             Phone = phone,
-            Email = string.IsNullOrWhiteSpace(req.Customer!.Email) ? null : req.Customer.Email.Trim(),
+            Email = FormsEndpoints.Trimmed(req.Customer!.Email),
             DeliveryMethod = delivery,
-            DeliveryCity = req.Delivery!.City?.Trim(),
-            DeliveryWarehouse = req.Delivery.Warehouse?.Trim(),
-            Comment = req.Comment?.Trim(),
+            DeliveryCity = FormsEndpoints.Trimmed(req.Delivery!.City),
+            DeliveryWarehouse = FormsEndpoints.Trimmed(req.Delivery.Warehouse),
+            Comment = FormsEndpoints.Trimmed(req.Comment, 2000),
             PaymentMethod = payment,
             Subtotal = subtotal,
             DeliveryCost = 0,
@@ -101,7 +113,7 @@ public static class OrdersEndpoints
     }
 
     private static async Task<IResult> LiqPayCallbackAsync(
-        HttpRequest request, AppDbContext db, LiqPayService liqpay, Notifier notifier, ILoggerFactory lf, CancellationToken ct)
+        HttpRequest request, AppDbContext db, LiqPayService liqpay, GospodarClient gospodar, Notifier notifier, ILoggerFactory lf, CancellationToken ct)
     {
         var log = lf.CreateLogger("LiqPay");
         var form = await request.ReadFormAsync(ct);
@@ -132,12 +144,25 @@ public static class OrdersEndpoints
             }
         }
         await db.SaveChangesAsync(ct);
+
+        // After the save: a Gospodar failure must never lose the paid status. Only a valid paid callback books
+        // (a refund or mismatched-amount callback must not), and on its own token: LiqPay hanging up must not
+        // cancel the booking or the manager email.
+        var paidCallback = LiqPayService.IsPaid(cb.Status) && cb.Amount == order.Total
+            && string.Equals(cb.Currency, "UAH", StringComparison.OrdinalIgnoreCase);
+        if (paidCallback && AuditBooking.ShouldBook(order))
+        {
+            using var bookCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            await AuditBooking.SendAsync(order, cb.PaymentId, gospodar, notifier, bookCts.Token);
+            await db.SaveChangesAsync(bookCts.Token);
+        }
         return Results.Ok();
     }
 
     public static OrderDto ToDto(Order o, LiqPayCheckoutDto? liqpay) => new(
         o.Id, o.Number, o.Status.ToString(), o.PaymentMethod.ToString(), o.Subtotal, o.DeliveryCost, o.Total, o.CreatedAt,
-        o.Items.Select(i => new OrderItemDto(i.ProductName, i.OptionsText, i.Qty, i.UnitPrice, i.LineTotal)).ToList(), liqpay);
+        o.Items.Select(i => new OrderItemDto(i.ProductName, i.OptionsText, i.Qty, i.UnitPrice, i.LineTotal)).ToList(), liqpay,
+        o.AuditDate, o.AuditAddress, o.AuditDate is null ? null : o.AuditDateWasFree == true);
 
     private static string Describe(Order o)
     {

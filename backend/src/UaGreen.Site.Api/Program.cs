@@ -11,7 +11,9 @@ using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Features.Admin;
 using UaGreen.Site.Api.Infrastructure.Auth;
 using UaGreen.Site.Api.Infrastructure.Crm;
+using UaGreen.Site.Api.Infrastructure.Captcha;
 using UaGreen.Site.Api.Infrastructure.Email;
+using UaGreen.Site.Api.Infrastructure.Geo;
 using UaGreen.Site.Api.Infrastructure.Import;
 using UaGreen.Site.Api.Infrastructure.Payments;
 using UaGreen.Site.Api.Infrastructure.Persistence;
@@ -95,10 +97,15 @@ builder.Services.AddAppRateLimiting(builder.Configuration);
 builder.Services.AddOutputCache(o =>
     o.AddPolicy("public", p => p.Expire(TimeSpan.FromSeconds(60)).SetVaryByQuery("*").Tag(AdminCommon.PublicCacheTag)));
 
+builder.Services.Configure<TurnstileOptions>(builder.Configuration.GetSection("Turnstile"));
+builder.Services.AddHttpClient<Turnstile>(http => http.Timeout = TimeSpan.FromSeconds(10));
+
 builder.Services.AddSingleton<FileStorage>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddSingleton<LiqPayService>();
 builder.Services.AddHostedService<ImportRunner>();
+builder.Services.AddSingleton<GeoIp>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<GeoIp>());
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
 var app = builder.Build();
@@ -138,17 +145,23 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+if (!app.Environment.IsDevelopment() && string.IsNullOrEmpty(app.Configuration["Turnstile:SecretKey"]))
+    app.Logger.LogWarning("Turnstile:SecretKey is not set: the public forms have no captcha.");
+
 app.MapGet("/", () => "UA GREEN site API");
 app.MapGet("/health", async (AppDbContext db, CancellationToken ct) =>
     await db.Database.CanConnectAsync(ct) ? Results.Ok(new { status = "ok" }) : Results.StatusCode(503));
 
 UaGreen.Site.Api.Features.Auth.AuthEndpoints.Map(app);
 UaGreen.Site.Api.Features.Catalog.CatalogEndpoints.Map(app);
+UaGreen.Site.Api.Features.Catalog.FeedEndpoints.Map(app);
 UaGreen.Site.Api.Features.Blog.BlogEndpoints.Map(app);
 UaGreen.Site.Api.Features.Vacancies.VacanciesEndpoints.Map(app);
 UaGreen.Site.Api.Features.Content.ContentEndpoints.Map(app);
 UaGreen.Site.Api.Features.Orders.OrdersEndpoints.Map(app);
 UaGreen.Site.Api.Features.Forms.FormsEndpoints.Map(app);
+UaGreen.Site.Api.Features.Audit.AuditEndpoints.Map(app);
+UaGreen.Site.Api.Features.Stats.StatsEndpoints.Map(app);
 
 AdminCatalogEndpoints.Map(app);
 AdminBlogEndpoints.Map(app);
@@ -159,6 +172,7 @@ AdminInboxEndpoints.Map(app);
 AdminUsersEndpoints.Map(app);
 AdminMediaEndpoints.Map(app);
 AdminDashboardEndpoints.Map(app);
+AdminStatsEndpoints.Map(app);
 
 app.Run();
 
