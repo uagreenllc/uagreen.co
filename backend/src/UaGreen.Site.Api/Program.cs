@@ -11,6 +11,7 @@ using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Features.Admin;
 using UaGreen.Site.Api.Infrastructure.Auth;
 using UaGreen.Site.Api.Infrastructure.Email;
+using UaGreen.Site.Api.Infrastructure.Geo;
 using UaGreen.Site.Api.Infrastructure.Import;
 using UaGreen.Site.Api.Infrastructure.Payments;
 using UaGreen.Site.Api.Infrastructure.Persistence;
@@ -95,6 +96,8 @@ builder.Services.AddSingleton<FileStorage>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddSingleton<LiqPayService>();
 builder.Services.AddHostedService<ImportRunner>();
+builder.Services.AddSingleton<GeoIp>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<GeoIp>());
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
 var app = builder.Build();
@@ -107,7 +110,9 @@ await using (var scope = app.Services.CreateAsyncScope())
 
 // Behind the stack nginx (and the shared TLS nginx): restore the client IP / scheme
 // so per-IP rate limits and LiqPay URLs see the real values.
-var fwd = new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto };
+// Two proxies (shared TLS nginx → stack nginx), so walk X-Forwarded-For past every private
+// hop instead of the default single entry, which is the shared nginx's Docker gateway.
+var fwd = new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto, ForwardLimit = null };
 fwd.KnownNetworks.Clear();
 fwd.KnownProxies.Clear();
 fwd.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("172.16.0.0"), 12));
@@ -145,6 +150,7 @@ UaGreen.Site.Api.Features.Vacancies.VacanciesEndpoints.Map(app);
 UaGreen.Site.Api.Features.Content.ContentEndpoints.Map(app);
 UaGreen.Site.Api.Features.Orders.OrdersEndpoints.Map(app);
 UaGreen.Site.Api.Features.Forms.FormsEndpoints.Map(app);
+UaGreen.Site.Api.Features.Stats.StatsEndpoints.Map(app);
 
 AdminCatalogEndpoints.Map(app);
 AdminBlogEndpoints.Map(app);
@@ -154,6 +160,7 @@ AdminContentEndpoints.Map(app);
 AdminInboxEndpoints.Map(app);
 AdminUsersEndpoints.Map(app);
 AdminMediaEndpoints.Map(app);
+AdminStatsEndpoints.Map(app);
 
 app.Run();
 

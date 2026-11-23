@@ -61,3 +61,22 @@ Widget htmlPreview(String html, String base) => HtmlElementView.fromTagName(
     ..style.width = '100%'
     ..style.height = '100%',
 );
+
+void openUrl(String url) => web.window.open(url, '_blank');
+
+@JS('Intl.DisplayNames')
+extension type _DisplayNames._(JSObject _) implements JSObject {
+  external _DisplayNames(JSArray<JSString> locales, JSObject options);
+  external String? of(String code);
+}
+
+final _regions = _DisplayNames(['uk'.toJS].toJS, {'type': 'region'}.jsify() as JSObject);
+
+/// "CZ" → "Чехія" (the browser's own country names).
+String countryName(String code) {
+  try {
+    return _regions.of(code) ?? code;
+  } catch (_) {
+    return code;
+  }
+}
