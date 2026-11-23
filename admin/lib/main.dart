@@ -21,7 +21,7 @@ class Section {
 }
 
 final sections = [
-  Section('Статистика', Icons.insights, ['Sales', 'Editor'], () => const StatsPage()),
+  Section('Статистика', Icons.bar_chart, ['Sales', 'Editor'], () => const StatsPage()),
   Section('Замовлення', Icons.receipt_long, ['Sales'], () => const OrdersPage()),
   Section('Товари', Icons.inventory_2, ['Sales'], productsPage),
   Section('Категорії', Icons.category, ['Sales'], categoriesPage),

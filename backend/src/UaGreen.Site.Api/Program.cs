@@ -114,9 +114,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 
 // Behind the stack nginx (and the shared TLS nginx): restore the client IP / scheme
 // so per-IP rate limits and LiqPay URLs see the real values.
-// Two proxies (shared TLS nginx → stack nginx), so walk X-Forwarded-For past every private
-// hop instead of the default single entry, which is the shared nginx's Docker gateway.
-var fwd = new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto, ForwardLimit = null };
+var fwd = new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto };
 fwd.KnownNetworks.Clear();
 fwd.KnownProxies.Clear();
 fwd.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(System.Net.IPAddress.Parse("172.16.0.0"), 12));
