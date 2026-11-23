@@ -21,7 +21,11 @@ export default defineNuxtConfig({
     ],
     defaultLocale: 'uk',
     strategy: 'prefix_except_default',
-    detectBrowserLanguage: false,
+    // First visit to "/" only: browser prefers en over uk → 302 to /en, choice kept in a cookie
+    // (the language switch updates it). Deep links and crawlers (no Accept-Language) stay put.
+    // Russian counts as Ukrainian: server/middleware/ru-as-uk.ts.
+    // ponytail: no fallbackLocale — it would also send Googlebot from / to /en.
+    detectBrowserLanguage: { useCookie: true, redirectOn: 'root' },
     baseUrl: siteUrl,
   },
   site: { url: siteUrl },
