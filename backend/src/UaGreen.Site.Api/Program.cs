@@ -147,6 +147,7 @@ app.MapGet("/health", async (AppDbContext db, CancellationToken ct) =>
 
 UaGreen.Site.Api.Features.Auth.AuthEndpoints.Map(app);
 UaGreen.Site.Api.Features.Catalog.CatalogEndpoints.Map(app);
+UaGreen.Site.Api.Features.Catalog.FeedEndpoints.Map(app);
 UaGreen.Site.Api.Features.Blog.BlogEndpoints.Map(app);
 UaGreen.Site.Api.Features.Vacancies.VacanciesEndpoints.Map(app);
 UaGreen.Site.Api.Features.Content.ContentEndpoints.Map(app);

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'api.dart';
 import 'browser.dart' as browser;
@@ -702,6 +703,56 @@ class _SettingsPageState extends State<SettingsPage> {
       ],
     );
   }
+}
+
+/// Канали збуту (as on Weblium): the feed links to paste into each channel; they pull it on a schedule.
+class FeedsPage extends StatelessWidget {
+  const FeedsPage({super.key});
+
+  static const _channels = [
+    ('Prom.ua', 'prom', 'Prom.ua → Імпорт товарів → за посиланням, з автооновленням.'),
+    ('Google Merchant Center', 'google', 'Merchant Center → Джерела товарів → Додати → файл за посиланням.'),
+    (
+      'Facebook & Instagram Commerce Manager',
+      'google',
+      'Commerce Manager → Каталог → Джерела даних → Запланований фід (той самий фід, що й для Google).',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder(
+    future: api.get('/admin/feeds'),
+    builder: (context, s) {
+      if (s.hasError) return Center(child: Text('${s.error}'));
+      if (!s.hasData) return const Center(child: CircularProgressIndicator());
+      final urls = s.data as J;
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text('Опубліковані товари, ціни в UAH, українською. Канал сам оновлює фід за розкладом.'),
+          const SizedBox(height: 8),
+          for (final (name, key, how) in _channels)
+            Card(
+              child: ListTile(
+                title: Text(name),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [SelectableText(urls[key]), Text(how)],
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.copy),
+                  tooltip: 'Копіювати посилання',
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: urls[key]));
+                    if (context.mounted) toast(context, 'Скопійовано');
+                  },
+                ),
+              ),
+            ),
+        ],
+      );
+    },
+  );
 }
 
 /// Сторонній код (as on Weblium): raw HTML/JS/CSS the site server pastes into every page.
