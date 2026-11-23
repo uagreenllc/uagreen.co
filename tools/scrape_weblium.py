@@ -537,7 +537,7 @@ PAGES = [  # key, uk path, en path
     ("page.404", "/404", "/en/404-1"),
     ("page.vacancies", "/vacancies", "/en/vacancies"),
 ]
-HOME = [("home.hero", "cover"), ("home.services", "services"), ("home.projects", "projects"), ("home.testimonials", "testimonials"),
+HOME = [("home.hero", "cover"), ("home.services", "services"), ("home.projects", "projects"),  # testimonials → reviews table (Reviews migration)
         ("home.about", "about-us"), ("home.passion", "passion-innovations"), ("home.faq", "faq")]
 CHROME = {"header", "footer", "fixed-block"}
 

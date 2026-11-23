@@ -692,6 +692,53 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("redirects", (string)null);
                 });
 
+            modelBuilder.Entity("UaGreen.Site.Api.Domain.Review", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AuthorEn")
+                        .HasColumnType("text")
+                        .HasColumnName("author_en");
+
+                    b.Property<string>("AuthorUk")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("author_uk");
+
+                    b.Property<string>("PhotoKey")
+                        .HasColumnType("text")
+                        .HasColumnName("photo_key");
+
+                    b.Property<bool>("Published")
+                        .HasColumnType("boolean")
+                        .HasColumnName("published");
+
+                    b.Property<int>("Sort")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort");
+
+                    b.Property<string>("TextEn")
+                        .HasColumnType("text")
+                        .HasColumnName("text_en");
+
+                    b.Property<string>("TextUk")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text_uk");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_reviews");
+
+                    b.ToTable("reviews", (string)null);
+                });
+
             modelBuilder.Entity("UaGreen.Site.Api.Domain.Setting", b =>
                 {
                     b.Property<string>("Key")

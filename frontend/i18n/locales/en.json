@@ -148,6 +148,7 @@
       "facts": [{ "v": "38 dB", "l": "" }, { "v": "1.5 m/s", "l": "cut-in" }, { "v": "125 rpm", "l": "" }, { "v": "−40…+60 °C", "l": "" }],
       "alt": "K5 wind turbine on its mast"
     },
+    "reviews": { "h": "Testimonials" },
     "posts": { "h": "Blog", "all": "All posts" },
     "contact": {
       "h": "Let's talk about your site",
