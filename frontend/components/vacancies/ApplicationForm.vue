@@ -60,6 +60,7 @@ function submit() {
       <label class="hp" aria-hidden="true"><span>Website</span><input v-model="f.website" name="website" tabindex="-1" autocomplete="off"></label>
       <Captcha ref="captchaEl" v-model="f.captcha" />
       <p v-if="error" class="form-error">{{ error }}</p>
+      <PrivacyNote />
       <button class="btn" type="submit" :disabled="pending">{{ pending ? $t('form.sending') : $t('form.send') }}</button>
     </form>
   </section>

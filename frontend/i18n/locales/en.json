@@ -15,7 +15,9 @@
     "legal": "Legal",
     "terms": "Terms of use",
     "payment": "Payment and delivery",
-    "rights": "© {year} UA GREEN"
+    "rights": "© {year} UA GREEN",
+    "offer": "Public offer",
+    "privacy": "Privacy policy"
   },
   "lang": { "uk": "Укр", "en": "Eng", "cs": "Čes" },
   "site": {
@@ -27,7 +29,9 @@
     "contactsTitle": "Contacts",
     "paymentTitle": "Payment and delivery",
     "termsTitle": "Terms of use",
-    "write": "Write to us"
+    "write": "Write to us",
+    "offerTitle": "Public offer",
+    "privacyTitle": "Privacy policy"
   },
   "form": {
     "name": "Name",
@@ -40,6 +44,8 @@
     "required": "This field is required",
     "phoneInvalid": "Enter a phone number",
     "failed": "Could not send. Try again or call us.",
+    "privacyNote": "By submitting the form you agree to the {link}",
+    "privacyLink": "privacy policy",
     "captchaFailed": "Could not verify that you are human. Wait a few seconds and send again."
   },
   "blog": {
@@ -225,7 +231,36 @@
       "p": "MPPT controller, ballast load, batteries. From here on, only the wind works.",
       "facts": [{ "v": "38 dB", "l": "" }, { "v": "−40…+60 °C", "l": "" }, { "v": "1.3–2 kW", "l": "yearly average" }]
     },
-    "cta": "Size it for my site",
+    "auditAsk": "Want to check whether a wind turbine pays off at your place?",
+    "cta": "Order an audit of my site",
     "shop": "K5 in the shop — 295,000 ₴"
+  },
+  "audit": {
+    "title": "Wind assessment on your site",
+    "consultTitle": "Book a consultation",
+    "consultText": "Leave your number — an engineer will call, ask about your site and tell you whether an audit makes sense.",
+    "bookTitle": "Pay and schedule the audit now",
+    "bookText": "Pick a free date, pay online — and a specialist comes on the day you chose.",
+    "choose": "What suits you?",
+    "consultLead": "Leave your number — we will call within a business day.",
+    "callMe": "Call me back",
+    "consultDone": "Thank you! We will call you.",
+    "back": "Back to the audit",
+    "dateTitle": "Audit date",
+    "dataTitle": "Contact and address",
+    "picked": "Selected: {date}",
+    "pickDate": "Pick a date",
+    "address": "Site address",
+    "addressHint": "Town or village, street or landmark",
+    "addressRequired": "Enter the site address",
+    "comment": "Comment (optional)",
+    "offer": "I accept the terms of the {link}",
+    "offerLink": "public offer",
+    "offerRequired": "Please accept the offer terms",
+    "pay": "Pay {price}",
+    "noDates": "We cannot show free dates right now. Leave your number and we will pick a date together.",
+    "dateTaken": "This date was just taken — please pick another one.",
+    "booked": "Your audit is scheduled for {date}. Address: {address}.",
+    "paidPending": "Payment received. A manager will call to confirm the date {date}."
   }
 }

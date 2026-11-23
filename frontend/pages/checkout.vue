@@ -121,6 +121,7 @@ function submit() {
           <Captcha ref="captchaEl" v-model="f.captcha" />
 
           <p v-if="error" class="form-error">{{ error }}</p>
+          <PrivacyNote />
           <button class="btn" type="submit" :disabled="pending">{{ pending ? $t('form.sending') : $t('checkout.place') }}</button>
         </form>
 

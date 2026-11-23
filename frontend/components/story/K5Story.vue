@@ -134,7 +134,8 @@ const goTo = (i: number) => story?.goTo(i)
             <template v-for="(f, j) in s.facts" :key="j"><i v-if="j" aria-hidden="true">·</i><b>{{ f.v }}</b><span v-if="f.l"> {{ f.l }}</span></template>
           </div>
           <div v-if="i === 4" class="cta">
-            <NuxtLink class="btn" :to="localePath('/contacts')">{{ $t('story.cta') }}</NuxtLink>
+            <p class="ask">{{ $t('story.auditAsk') }}</p>
+            <NuxtLink class="btn" :to="localePath('/audit')">{{ $t('story.cta') }}</NuxtLink>
             <NuxtLink class="link" :to="localePath('/shop/k5v1')">{{ $t('story.shop') }}</NuxtLink>
           </div>
         </div>
@@ -359,6 +360,7 @@ const goTo = (i: number) => story?.goTo(i)
 .facts b { color: var(--ink); font-weight: 600; font-size: 18px; }
 .facts i { font-style: normal; margin: 0 10px; color: var(--line); }
 .cta { margin-top: 26px; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+.cta .ask { margin: 0; color: var(--ink); font-weight: 600; font-size: 17px; max-width: 44ch; }
 .hint { display: inline-flex; align-items: center; gap: 10px; color: var(--ink-2); font-size: 14px; margin-top: 8px; }
 .hint svg { animation: nudge 1.6s var(--ease) infinite; }
 @keyframes nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }

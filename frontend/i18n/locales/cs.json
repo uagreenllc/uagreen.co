@@ -15,7 +15,9 @@
     "legal": "Právní informace",
     "terms": "Podmínky užívání",
     "payment": "Platba a doprava",
-    "rights": "© {year} UA GREEN"
+    "rights": "© {year} UA GREEN",
+    "offer": "Veřejná nabídka",
+    "privacy": "Zásady ochrany osobních údajů"
   },
   "lang": { "uk": "Укр", "en": "Eng", "cs": "Čes" },
   "site": {
@@ -27,6 +29,8 @@
     "contactsTitle": "Kontakty",
     "paymentTitle": "Platba a doprava",
     "termsTitle": "Podmínky užívání",
+    "offerTitle": "Veřejná nabídka",
+    "privacyTitle": "Zásady ochrany osobních údajů",
     "write": "Napište nám"
   },
   "form": {
@@ -39,7 +43,9 @@
     "sent": "Děkujeme, ozveme se vám.",
     "required": "Toto pole je povinné",
     "phoneInvalid": "Zadejte telefonní číslo",
-    "failed": "Odeslání se nezdařilo. Zkuste to znovu nebo nám zavolejte."
+    "failed": "Odeslání se nezdařilo. Zkuste to znovu nebo nám zavolejte.",
+    "privacyNote": "Odesláním formuláře souhlasíte se {link}",
+    "privacyLink": "zásadami ochrany osobních údajů"
   },
   "blog": {
     "title": "Blog",
@@ -204,7 +210,36 @@
       "p": "MPPT regulátor, balastní zátěž, baterie. Odteď pracuje už jen vítr.",
       "facts": [{ "v": "38 dB", "l": "" }, { "v": "−40…+60 °C", "l": "" }, { "v": "1,3–2 kW", "l": "roční průměr" }]
     },
-    "cta": "Navrhnout pro moji lokalitu",
+    "auditAsk": "Chcete zjistit, zda se vám u vás větrná elektrárna vyplatí?",
+    "cta": "Objednat audit mého pozemku",
     "shop": "K5 v obchodě — 295 000 ₴"
+  },
+  "audit": {
+    "title": "Audit větru na pozemku",
+    "consultTitle": "Objednat konzultaci",
+    "consultText": "Zanechte číslo — inženýr zavolá, zeptá se na pozemek a poradí, zda má audit smysl.",
+    "bookTitle": "Zaplatit a naplánovat audit hned",
+    "bookText": "Vyberte volný termín, zaplaťte online — a specialista přijede ve zvolený den.",
+    "choose": "Co vám vyhovuje?",
+    "consultLead": "Zanechte číslo — zavoláme vám během pracovního dne.",
+    "callMe": "Zavolejte mi",
+    "consultDone": "Děkujeme! Zavoláme vám.",
+    "back": "Zpět na audit",
+    "dateTitle": "Termín auditu",
+    "dataTitle": "Kontakt a adresa",
+    "picked": "Vybráno: {date}",
+    "pickDate": "Vyberte termín",
+    "address": "Adresa pozemku",
+    "addressHint": "Obec, ulice nebo orientační bod",
+    "addressRequired": "Zadejte adresu pozemku",
+    "comment": "Komentář (nepovinné)",
+    "offer": "Souhlasím s podmínkami {link}",
+    "offerLink": "veřejné nabídky",
+    "offerRequired": "Je nutný souhlas s podmínkami nabídky",
+    "pay": "Zaplatit {price}",
+    "noDates": "Volné termíny teď nemůžeme zobrazit. Zanechte číslo a termín domluvíme společně.",
+    "dateTaken": "Tento termín byl právě obsazen — vyberte jiný.",
+    "booked": "Audit je naplánován na {date}. Adresa: {address}.",
+    "paidPending": "Platba přijata. Manažer zavolá, aby potvrdil termín {date}."
   }
 }

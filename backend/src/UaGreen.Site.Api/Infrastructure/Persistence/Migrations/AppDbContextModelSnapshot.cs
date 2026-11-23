@@ -308,6 +308,19 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("AuditAddress")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("audit_address");
+
+                    b.Property<DateOnly?>("AuditDate")
+                        .HasColumnType("date")
+                        .HasColumnName("audit_date");
+
+                    b.Property<bool?>("AuditDateWasFree")
+                        .HasColumnType("boolean")
+                        .HasColumnName("audit_date_was_free");
+
                     b.Property<string>("Comment")
                         .HasColumnType("text")
                         .HasColumnName("comment");
@@ -344,6 +357,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("email");
 
+                    b.Property<DateTime?>("GospodarBookedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("gospodar_booked_at");
+
                     b.Property<string>("LiqPayStatus")
                         .HasColumnType("text")
                         .HasColumnName("liq_pay_status");
@@ -354,6 +371,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnName("number");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Number"));
+
+                    b.Property<DateTime?>("OfferAcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("offer_accepted_at");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("timestamp with time zone")
