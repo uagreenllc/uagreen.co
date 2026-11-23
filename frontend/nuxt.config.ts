@@ -1,5 +1,6 @@
 // Env contract (see README): NUXT_API_BASE = API origin for SSR, NUXT_PUBLIC_API_BASE = origin
-// for the browser ("" = same origin, nginx proxies /api/), NUXT_PUBLIC_SITE_URL, NITRO_PORT.
+// for the browser ("" = same origin, nginx proxies /api/), NUXT_PUBLIC_SITE_URL, NITRO_PORT,
+// NUXT_PUBLIC_TURNSTILE_SITE_KEY (Cloudflare captcha; empty = off, pairs with the API's Turnstile:SecretKey).
 const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
 export default defineNuxtConfig({
@@ -10,7 +11,7 @@ export default defineNuxtConfig({
   components: [{ path: '~/components', pathPrefix: false }],
   runtimeConfig: {
     apiBase: 'http://localhost:5000',
-    public: { apiBase: '', siteUrl },
+    public: { apiBase: '', siteUrl, turnstileSiteKey: '' },
   },
   i18n: {
     locales: [
