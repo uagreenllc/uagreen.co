@@ -17,6 +17,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<ContactRequest> ContactRequests => Set<ContactRequest>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<OrderEvent> OrderEvents => Set<OrderEvent>();
     public DbSet<ContentBlock> Content => Set<ContentBlock>();
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<Setting> Settings => Set<Setting>();
@@ -93,6 +94,25 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.Property(x => x.Total).HasPrecision(12, 2);
             e.Property(x => x.AuditAddress).HasMaxLength(300);
             e.HasMany(x => x.Items).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Events).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
+            e.Property(x => x.AdminNote).HasMaxLength(4000);
+            e.Property(x => x.CrmError).HasMaxLength(500);
+        });
+        b.Entity<OrderEvent>(e =>
+        {
+            e.HasIndex(x => new { x.OrderId, x.At });
+            e.Property(x => x.Actor).HasMaxLength(200);
+            e.Property(x => x.Text).HasMaxLength(1000);
+        });
+        b.Entity<ContactRequest>(e =>
+        {
+            e.Property(x => x.Note).HasMaxLength(4000);
+            e.Property(x => x.CrmError).HasMaxLength(500);
+        });
+        b.Entity<Application>(e =>
+        {
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Note).HasMaxLength(4000);
         });
         b.Entity<OrderItem>(e =>
         {

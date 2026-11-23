@@ -1,10 +1,12 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:uagreen_ui/uagreen_ui.dart';
 
 import 'api.dart';
 import 'browser.dart' as browser;
 import 'form.dart';
+import 'list.dart';
 import 'slug.dart';
 
 // Blog as it was in Weblium: blog settings (author), Published / Drafts tabs with post
@@ -35,156 +37,122 @@ class BlogPage extends StatefulWidget {
 enum _Act { view, duplicate, publish, delete }
 
 class _BlogPageState extends State<BlogPage> {
-  late Future<List<J>> _posts = _load();
+  final _list = GlobalKey<PagedListState>();
   bool _drafts = false;
-  String _q = '';
+  (int, int)? _counts; // published, drafts
 
-  Future<List<J>> _load() async => (await api.get(_path) as List).cast<J>();
+  @override
+  void initState() {
+    super.initState();
+    _loadCounts();
+  }
 
-  Future<void> _run(Future<bool?> Function() fn) async {
+  Future<void> _loadCounts() async {
+    Future<int> n(String f) async => ((await api.get(_path, {'filter': f, 'pageSize': 1}) as J)['total'] as num).toInt();
     try {
-      if (await fn() == true) setState(() => _posts = _load());
-    } catch (e) {
-      if (mounted) toast(context, '$e');
+      final c = (await n('published'), await n('draft'));
+      if (mounted) setState(() => _counts = c);
+    } catch (_) {
+      // counts are decoration; the list shows its own error
     }
   }
 
-  void _edit(J? post, [int tab = 0]) => _run(
-    () => showDialog<bool>(
+  void _changed() {
+    _list.currentState?.reload();
+    _loadCounts();
+  }
+
+  Future<void> _edit(J? post, [int tab = 0]) async {
+    final saved = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (_) => PostEditor(post: post, tab: tab),
-    ),
-  );
+    );
+    if (saved == true) _changed();
+  }
 
-  void _act(_Act a, J p, List<J> all) => _run(() async {
+  Future<void> _act(_Act a, J p) async {
     switch (a) {
       case _Act.view:
         browser.openUrl('$_site/blog/${p['slug']}');
-        return false;
       case _Act.duplicate:
-        final taken = {for (final x in all) x['slug']};
-        var slug = '${p['slug']}-copy';
-        for (var i = 2; taken.contains(slug); i++) {
-          slug = '${p['slug']}-copy-$i';
+        // A taken slug answers 409: try the next "-copy-n".
+        for (var i = 1; i < 20; i++) {
+          final slug = i == 1 ? '${p['slug']}-copy' : '${p['slug']}-copy-$i';
+          try {
+            await api.post(_path, {...p, 'slug': slug, 'titleUk': '${p['titleUk']} (копія)', 'published': false});
+            if (mounted) AppFeedback.showSuccess(context, 'Копію збережено в чернетках');
+            return _changed();
+          } on ApiError catch (e) {
+            if (e.status != 409) {
+              if (mounted) AppFeedback.showError(context, '$e');
+              return;
+            }
+          }
         }
-        await api.post(_path, {...p, 'slug': slug, 'titleUk': '${p['titleUk']} (копія)', 'published': false});
-        if (mounted) toast(context, 'Копію збережено в чернетках');
       case _Act.publish:
-        await api.put('$_path/${p['id']}', {...p, 'published': p['published'] != true});
+        final publishing = p['published'] != true;
+        if (!publishing &&
+            !await showConfirmDialog(context,
+                title: 'Перенести «${p['titleUk']}» в чернетки?',
+                message: 'Стаття зникне з сайту, її адреса почне віддавати 404.',
+                confirmLabel: 'В чернетки',
+                destructive: false)) {
+          return;
+        }
+        if (!mounted) return;
+        if (await attempt(context, () => api.put('$_path/${p['id']}', {...p, 'published': publishing}),
+            ok: publishing ? 'Опубліковано' : 'Перенесено в чернетки')) {
+          _changed();
+        }
       case _Act.delete:
-        if (!await confirm(context, 'Видалити допис «${p['titleUk']}» назавжди?')) return false;
-        await api.delete('$_path/${p['id']}');
+        if (await confirmDelete(context, '${p['titleUk']}', '$_path/${p['id']}', warning: 'Стаття зникне з сайту. ')) _changed();
     }
-    return true;
-  });
+  }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder(
-    future: _posts,
-    builder: (context, s) {
-      final all = s.data ?? const <J>[];
-      final published = all.where((p) => p['published'] == true).toList();
-      final drafts = all.where((p) => p['published'] != true).toList();
-      final q = _q.toLowerCase();
-      final shown = (_drafts ? drafts : published)
-          .where((p) => q.isEmpty || '${p['titleUk']} ${p['titleEn'] ?? ''}'.toLowerCase().contains(q))
-          .toList();
-      final cs = Theme.of(context).colorScheme;
-      final tabs = DefaultTabController(
-        length: 2,
-        initialIndex: _drafts ? 1 : 0,
-        child: TabBar(
-          isScrollable: true,
-          tabAlignment: TabAlignment.start,
-          dividerColor: Colors.transparent,
-          labelStyle: Theme.of(context).textTheme.titleMedium,
-          onTap: (i) => setState(() => _drafts = i == 1),
-          tabs: [
-            Tab(text: 'Опубліковані (${published.length})'),
-            Tab(text: 'Чернетки (${drafts.length})'),
-          ],
+  Widget build(BuildContext context) {
+    final c = _counts;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
+          child: _BlogSettings(),
         ),
-      );
-      final search = TextField(
-        decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Пошук', isDense: true),
-        onChanged: (v) => setState(() => _q = v),
-      );
-      final create = FilledButton.icon(
-        onPressed: () => _edit(null),
-        icon: const Icon(Icons.add),
-        label: const Text('Створити допис'),
-      );
-      return ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1100),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _BlogSettings(),
-                  const SizedBox(height: 24),
-                  LayoutBuilder(
-                    builder: (context, c) => c.maxWidth >= 720
-                        ? Row(
-                            children: [
-                              Expanded(child: tabs),
-                              SizedBox(width: 220, child: search),
-                              const SizedBox(width: 16),
-                              create,
-                            ],
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              tabs,
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Expanded(child: search),
-                                  const SizedBox(width: 12),
-                                  create,
-                                ],
-                              ),
-                            ],
-                          ),
-                  ),
-                  const Divider(height: 1),
-                  const SizedBox(height: 20),
-                  if (s.hasError)
-                    Center(child: Text('${s.error}'))
-                  else if (!s.hasData)
-                    const Center(child: CircularProgressIndicator())
-                  else if (shown.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 48),
-                      child: Column(
-                        children: [
-                          Icon(Icons.article_outlined, size: 48, color: cs.outline),
-                          const SizedBox(height: 12),
-                          Text(
-                            q.isNotEmpty
-                                ? 'Нічого не знайдено'
-                                : _drafts
-                                ? 'Чернеток немає'
-                                : 'Ще немає опублікованих дописів',
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    for (final p in shown)
-                      _PostCard(p, onEdit: () => _edit(p), onSeo: () => _edit(p, 1), onAct: (a) => _act(a, p, all)),
-                ],
-              ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: DefaultTabController(
+            length: 2,
+            initialIndex: _drafts ? 1 : 0,
+            child: AppBodyTabBar(
+              onTap: (i) => setState(() => _drafts = i == 1),
+              tabs: [
+                Tab(text: c == null ? 'Опубліковані' : 'Опубліковані (${c.$1})'),
+                Tab(text: c == null ? 'Чернетки' : 'Чернетки (${c.$2})'),
+              ],
             ),
           ),
-        ],
-      );
-    },
-  );
+        ),
+        Expanded(
+          child: PagedList(
+            key: _list,
+            load: pagedGet(_path, {'filter': _drafts ? 'draft' : 'published'}),
+            query: {'drafts': _drafts},
+            pageSize: 10,
+            searchHint: 'Заголовок, адреса або автор',
+            emptyIcon: Icons.article_outlined,
+            emptyText: _drafts ? 'Чернеток немає' : 'Ще немає опублікованих дописів',
+            actions: [
+              FilledButton.icon(onPressed: () => _edit(null), icon: const Icon(Icons.add), label: const Text('Створити допис')),
+            ],
+            item: (context, p, _) =>
+                _PostCard(p, onEdit: () => _edit(p), onSeo: () => _edit(p, 1), onAct: (a) => _act(a, p)),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _PostCard extends StatelessWidget {
@@ -334,7 +302,7 @@ class _BlogSettingsState extends State<_BlogSettings> {
                   _avatar = s['blog.author_avatar'];
                 })
               : null,
-          onError: (Object e) => mounted ? toast(context, '$e') : null,
+          onError: (Object e) => mounted ? AppFeedback.showError(context, '$e') : null,
         );
   }
 
@@ -349,9 +317,9 @@ class _BlogSettingsState extends State<_BlogSettings> {
     try {
       // An empty value deletes the key.
       await api.put('/admin/settings', {'blog.author': _name.text.trim(), 'blog.author_avatar': _avatar ?? ''});
-      if (mounted) toast(context, 'Налаштування блогу збережено');
+      if (mounted) AppFeedback.showSuccess(context, 'Налаштування блогу збережено');
     } catch (e) {
-      if (mounted) toast(context, '$e');
+      if (mounted) AppFeedback.showError(context, '$e');
     }
     if (mounted) setState(() => _busy = false);
   }
@@ -464,7 +432,11 @@ class _PostEditorState extends State<PostEditor> with SingleTickerProviderStateM
   }
 
   Future<void> _close() async {
-    if (jsonEncode(d) != _initial && !await confirm(context, 'Закрити без збереження змін?')) return;
+    if (jsonEncode(d) != _initial &&
+        !await showConfirmDialog(context,
+            title: 'Відхилити зміни?', message: 'У допису є незбережені зміни.', confirmLabel: 'Відхилити', cancelLabel: 'Продовжити редагування')) {
+      return;
+    }
     if (mounted) Navigator.pop(context, false);
   }
 
@@ -479,26 +451,42 @@ class _PostEditorState extends State<PostEditor> with SingleTickerProviderStateM
     if (err != null) {
       _tabs.animateTo(tab);
       if (tab == 0) setState(() => _lang = 'Uk');
-      return toast(context, err);
+      return AppFeedback.showError(context, err);
     }
+    // A live post's address changes: the API adds a 301 from the old one, but say so first.
+    final oldSlug = widget.post?['slug'];
+    if (_wasPublished &&
+        oldSlug != null &&
+        oldSlug != d['slug'] &&
+        !await showConfirmDialog(context,
+            title: 'Змінити адресу допису?',
+            message: '/blog/$oldSlug → /blog/${d['slug']}\n\nСтара адреса автоматично переадресовуватиме на нову (301), '
+                'але посилання в соцмережах і розсилках краще оновити.',
+            confirmLabel: 'Змінити адресу',
+            destructive: false)) {
+      return;
+    }
+    if (!mounted) return;
     setState(() => _busy = true);
     try {
       final body = {...d, 'published': publish};
       await (_isNew ? api.post(_path, body) : api.put('$_path/${d['id']}', body));
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) toast(context, '$e');
+      if (mounted) AppFeedback.showError(context, '$e');
     }
     if (mounted) setState(() => _busy = false);
   }
 
   Future<void> _delete() async {
-    if (!await confirm(context, 'Видалити допис назавжди?')) return;
+    if (!await showConfirmDialog(context, title: 'Видалити «${d['titleUk']}»?', message: 'Стаття зникне з сайту. Цю дію не можна скасувати.')) {
+      return;
+    }
     try {
       await api.delete('$_path/${d['id']}');
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) toast(context, '$e');
+      if (mounted) AppFeedback.showError(context, '$e');
     }
   }
 

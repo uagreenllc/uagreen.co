@@ -35,6 +35,13 @@ Future<PickedFile?> pickFile(String accept) async {
   return PickedFile(f.name, f.type, buf.toDart.asUint8List());
 }
 
+/// `#/orders` ↔ "orders": the open section survives a reload and can be bookmarked.
+String hashPath() => web.window.location.hash.replaceFirst(RegExp(r'^#/?'), '');
+
+void setHashPath(String path) => web.window.history.replaceState(null, '', '#/$path');
+
+void openTab(String url) => web.window.open(url, '_blank', 'noopener');
+
 void saveBytes(Uint8List bytes, String name) {
   final url = web.URL.createObjectURL(web.Blob([bytes.toJS].toJS));
   web.HTMLAnchorElement()

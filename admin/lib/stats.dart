@@ -1,13 +1,12 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:uagreen_ui/uagreen_ui.dart';
 
 import 'api.dart';
 import 'browser.dart' as browser;
 import 'form.dart';
-
-/// Switches the drawer to the section with this title (set by the Shell in main.dart).
-void Function(String title)? openSection;
+import 'main.dart' show nav;
 
 const _sources = {
   'Direct': 'Прямий',
@@ -57,7 +56,7 @@ class _StatsPageState extends State<StatsPage> {
       await api.put('/admin/settings', {'stats_disabled': off ? '1' : ''}); // empty value deletes the key
       _reload();
     } catch (e) {
-      if (mounted) toast(context, '$e');
+      if (mounted) AppFeedback.showError(context, '$e');
     }
   }
 
@@ -65,8 +64,8 @@ class _StatsPageState extends State<StatsPage> {
   Widget build(BuildContext context) => FutureBuilder(
     future: _data,
     builder: (context, s) {
-      if (s.hasError) return Center(child: Text('${s.error}'));
-      if (!s.hasData) return const Center(child: CircularProgressIndicator());
+      if (s.hasError) return AppErrorView(message: '${s.error}', onRetry: _reload);
+      if (!s.hasData) return const AppLoadingView();
       return _body(context, s.data!, s.connectionState == ConnectionState.waiting);
     },
   );
@@ -162,7 +161,7 @@ class _StatsPageState extends State<StatsPage> {
                           context,
                           'Огляд',
                           OutlinedButton(
-                            onPressed: () => openSection?.call('Контактні запити'),
+                            onPressed: () => nav.go('contacts'),
                             child: const Text('Відкрити відповіді з форм'),
                           ),
                         ),
@@ -254,7 +253,7 @@ Widget _metric(BuildContext context, String label, String help, num cur, num pre
   final color = pct == null
       ? t.colorScheme.outline
       : pct >= 0
-      ? Colors.green.shade700
+      ? context.semantic.success
       : t.colorScheme.error;
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),

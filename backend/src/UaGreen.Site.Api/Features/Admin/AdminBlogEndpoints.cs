@@ -25,11 +25,19 @@ public static class AdminBlogEndpoints
     {
         var g = app.MapGroup("/api/admin/blog").RequireAuthorization(Policies.Editor);
 
-        g.MapGet("/", async (AppDbContext db, CancellationToken ct) =>
-            (await db.BlogPosts.AsNoTracking().OrderByDescending(p => p.PublishedAt).ToListAsync(ct)).Select(ToDto));
+        // filter: published | draft
+        g.MapGet("/", async (string? q, string? filter, int? page, int? pageSize, AppDbContext db, CancellationToken ct) =>
+        {
+            var query = db.BlogPosts.AsNoTracking();
+            if (!string.IsNullOrWhiteSpace(q))
+                query = query.Where(p => EF.Functions.ILike(p.TitleUk, Like(q)) || EF.Functions.ILike(p.Slug, Like(q)) || (p.Author != null && EF.Functions.ILike(p.Author, Like(q))));
+            if (filter == "published") query = query.Where(p => p.Published);
+            if (filter == "draft") query = query.Where(p => !p.Published);
+            return await PageAsync(query.OrderByDescending(p => p.PublishedAt), page, pageSize, ToDto, ct);
+        });
 
         g.MapGet("/{id:guid}", async (Guid id, AppDbContext db, CancellationToken ct) =>
-            ToDto(await db.BlogPosts.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, ct) ?? throw ProblemException.NotFound("Post not found")));
+            ToDto(await db.BlogPosts.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, ct) ?? throw ProblemException.NotFound("Статтю не знайдено")));
 
         g.MapPost("/", async (BlogUpsert req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
         {
@@ -43,8 +51,10 @@ public static class AdminBlogEndpoints
 
         g.MapPut("/{id:guid}", async (Guid id, BlogUpsert req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
         {
-            var p = await db.BlogPosts.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw ProblemException.NotFound("Post not found");
+            var p = await db.BlogPosts.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw ProblemException.NotFound("Статтю не знайдено");
+            var oldSlug = p.Slug;
             await ApplyAsync(p, req, db, ct);
+            await RedirectSlugAsync(db, "/blog", oldSlug, p.Slug, ct);
             await db.SaveChangesAsync(ct);
             await EvictPublicAsync(cache, ct);
             return Results.Ok(ToDto(p));
@@ -52,7 +62,7 @@ public static class AdminBlogEndpoints
 
         g.MapDelete("/{id:guid}", async (Guid id, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
         {
-            if (await db.BlogPosts.Where(x => x.Id == id).ExecuteDeleteAsync(ct) == 0) throw ProblemException.NotFound("Post not found");
+            if (await db.BlogPosts.Where(x => x.Id == id).ExecuteDeleteAsync(ct) == 0) throw ProblemException.NotFound("Статтю не знайдено");
             await EvictPublicAsync(cache, ct);
             return Results.NoContent();
         });
@@ -61,9 +71,9 @@ public static class AdminBlogEndpoints
     private static async Task ApplyAsync(BlogPost p, BlogUpsert req, AppDbContext db, CancellationToken ct)
     {
         var slug = Slug.Require(req.Slug);
-        if (await db.BlogPosts.AnyAsync(x => x.Slug == slug && x.Id != p.Id, ct)) throw ProblemException.Conflict("Slug already in use");
-        if (string.IsNullOrWhiteSpace(req.TitleUk)) throw ProblemException.BadRequest("titleUk is required");
-        if (string.IsNullOrWhiteSpace(req.BodyHtmlUk)) throw ProblemException.BadRequest("bodyHtmlUk is required");
+        if (await db.BlogPosts.AnyAsync(x => x.Slug == slug && x.Id != p.Id, ct)) throw ProblemException.Conflict("Такий slug уже має інша стаття");
+        if (string.IsNullOrWhiteSpace(req.TitleUk)) throw ProblemException.BadRequest("Вкажіть заголовок (UK)");
+        if (string.IsNullOrWhiteSpace(req.BodyHtmlUk)) throw ProblemException.BadRequest("Вкажіть текст статті (UK)");
         p.Slug = slug;
         p.TitleUk = req.TitleUk.Trim(); p.TitleEn = Clean(req.TitleEn);
         p.ExcerptUk = Clean(req.ExcerptUk); p.ExcerptEn = Clean(req.ExcerptEn);

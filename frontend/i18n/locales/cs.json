@@ -17,7 +17,26 @@
     "payment": "Platba a doprava",
     "rights": "© {year} UA GREEN",
     "offer": "Veřejná nabídka",
-    "privacy": "Zásady ochrany osobních údajů"
+    "privacy": "Zásady ochrany osobních údajů",
+    "oberig": "Zákaznický portál «Oberig»"
+  },
+  "oberig": {
+    "eyebrow": "Prediktivní údržba",
+    "calc": "Spočítat výrobu",
+    "portal": "Portál Oberig",
+    "loginNote": "Kalkulačka a monitoring jsou dostupné po přihlášení do portálu.",
+    "home": {
+      "h": "«Oberig» hlídá vaši větrnou elektrárnu 24/7",
+      "p": "«Oberig» je portál prediktivní údržby od UA GREEN. Nepřetržitě sleduje turbínu, včas odhalí opotřebení ložisek, potíže s listy či generátorem, předpovídá výrobu energie a hned pošle upozornění, jakmile se něco děje. Na portálu je také kalkulačka: odhadněte roční výrobu pro svůj pozemek podle dat větrného atlasu."
+    },
+    "product": {
+      "h": "Monitoring Oberig",
+      "p": "Tento model lze připojit k portálu «Oberig»: nepřetržitý dohled nad turbínou, prediktivní diagnostika ložisek, listů a generátoru, předpověď výroby a upozornění na jakékoli odchylky."
+    },
+    "order": {
+      "h": "Připojte elektrárnu k monitoringu «Oberig»",
+      "p": "Po instalaci připojte větrnou elektrárnu k portálu «Oberig»: bude ji hlídat 24/7, včas upozorní na opotřebení ložisek, listů či generátoru — dřív, než se z drobnosti stane oprava — a ukáže předpověď výroby."
+    }
   },
   "lang": { "uk": "Укр", "en": "Eng", "cs": "Čes" },
   "site": {

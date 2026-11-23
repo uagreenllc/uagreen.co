@@ -46,8 +46,9 @@ public static class ContentEndpoints
                 Lang.PickReq(r.TextUk, r.TextEn, l), Lang.PickReq(r.AuthorUk, r.AuthorEn, l)));
         });
 
+        // `admin.*` keys are back-office switches (CRM feeds) — not for the public site.
         g.MapGet("/settings/public", async (AppDbContext db, CancellationToken ct) =>
-            await db.Settings.AsNoTracking().ToDictionaryAsync(s => s.Key, s => s.Value, ct));
+            await db.Settings.AsNoTracking().Where(s => !s.Key.StartsWith("admin.")).ToDictionaryAsync(s => s.Key, s => s.Value, ct));
 
         g.MapGet("/redirects", async (AppDbContext db, CancellationToken ct) =>
             await db.Redirects.AsNoTracking().Select(r => new RedirectDto(r.FromPath, r.ToPath)).ToListAsync(ct));

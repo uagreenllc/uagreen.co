@@ -42,7 +42,7 @@ public static class AuditEndpoints
                 Message = ConsultationText,
                 CreatedAt = DateTime.UtcNow,
             };
-            // CrmLeadSync pushes every ContactRequest to Gospodar's CRM (with retries); nothing to send here.
+            // CrmSyncWorker pushes every ContactRequest to Gospodar's CRM (with retries); nothing to send here.
             db.ContactRequests.Add(c);
             await db.SaveChangesAsync(ct);
             await notifier.NotifyManagersAsync($"Консультація щодо аудиту: {phone}", $"{phone}\n\n{ConsultationText}", ct);

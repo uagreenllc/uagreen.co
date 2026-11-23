@@ -20,7 +20,7 @@ public sealed record ProductDto(
     bool InStock, bool IsFeatured, string? CategorySlug, string? CategoryName,
     string? DescriptionHtml, string? SpecsHtml, string? FaqHtml,
     IReadOnlyList<ImageDto> Images, IReadOnlyList<FileDto> Files, IReadOnlyList<OptionDto> Options,
-    string? SeoTitle, string? SeoDesc, Guid Id);
+    string? SeoTitle, string? SeoDesc, Guid Id, bool OberigMonitoring);
 
 public static class CatalogEndpoints
 {
@@ -70,7 +70,7 @@ public static class CatalogEndpoints
                 p.Files.Select(f => new FileDto(FileStorage.Url(f.Key), f.Title)).ToList(),
                 p.Options.OrderBy(o => o.Sort).Select(o => new OptionDto(o.Id, Lang.PickReq(o.NameUk, o.NameEn, l),
                     o.Values.OrderBy(v => v.Sort).Select(v => new OptionValueDto(v.Id, Lang.PickReq(v.ValueUk, v.ValueEn, l), v.PriceDelta)).ToList())).ToList(),
-                Lang.Pick(p.SeoTitleUk, p.SeoTitleEn, l), Lang.Pick(p.SeoDescUk, p.SeoDescEn, l), p.Id);
+                Lang.Pick(p.SeoTitleUk, p.SeoTitleEn, l), Lang.Pick(p.SeoDescUk, p.SeoDescEn, l), p.Id, p.OberigMonitoring);
         });
     }
 

@@ -237,6 +237,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  uagreen_ui:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: "5fd43bf2bafa97de53f2207904026ca8bd480120"
+      resolved-ref: "5fd43bf2bafa97de53f2207904026ca8bd480120"
+      url: "https://github.com/uagreenllc/uagreen-ui.git"
+    source: git
+    version: "0.1.0"
   vector_math:
     dependency: transitive
     description:
@@ -263,4 +272,4 @@ packages:
     version: "1.1.1"
 sdks:
   dart: ">=3.11.5 <4.0.0"
-  flutter: ">=3.18.0-18.0.pre.54"
+  flutter: ">=3.35.0"

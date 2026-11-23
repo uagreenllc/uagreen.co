@@ -20,6 +20,8 @@ public sealed class GospodarOptions
     /// Cap for integration calls a visitor waits on (free audit days). Without it the HttpClient's
     /// resilience retries keep a page waiting ~25 s when Gospodar is down.
     public TimeSpan IntegrationTimeout { get; set; } = TimeSpan.FromSeconds(5);
+    /// Browser origin of the ERP for deal links in the admin; defaults to BaseUrl.
+    public string? WebUrl { get; set; }
 }
 
 public sealed class AppOptions

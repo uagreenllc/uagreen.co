@@ -1,68 +1,107 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:uagreen_ui/uagreen_ui.dart';
 
 import 'api.dart';
 import 'blog.dart';
-import 'pages.dart';
+import 'browser.dart' as browser;
+import 'dashboard.dart';
+import 'pages_admin.dart';
+import 'pages_catalog.dart';
+import 'pages_content.dart';
+import 'pages_inbox.dart';
+import 'pages_orders.dart';
+import 'pages_site.dart';
 import 'stats.dart';
 
 void main() {
+  nav.key; // read #/section now: Flutter's URL strategy rewrites the address to "/" on start
   runApp(const AdminApp());
   api.boot();
 }
 
 class Section {
-  const Section(this.title, this.icon, this.roles, this.build);
-  final String title;
+  const Section(this.key, this.title, this.icon, this.roles, this.build, {this.badge, this.group});
+  final String key, title;
+
+  /// Menu heading this item sits under; null = the top block (overview, stats).
+  final String? group;
   final IconData icon;
 
   /// Any of these (or Admin) — mirrors the backend policies in SiteRoles.cs.
   final List<String> roles;
   final Widget Function() build;
+
+  /// Count shown next to the menu item, from `/admin/summary`.
+  final int Function(J summary)? badge;
 }
 
+int _n(Object? v) => (v as num?)?.toInt() ?? 0;
+
+const _sales = 'Продажі', _content = 'Контент', _shop = 'Магазин і сайт', _hr = 'HR', _access = 'Доступ';
+
 final sections = [
-  Section('Статистика', Icons.bar_chart, ['Sales', 'Editor'], () => const StatsPage()),
-  Section('Замовлення', Icons.receipt_long, ['Sales'], () => const OrdersPage()),
-  Section('Товари', Icons.inventory_2, ['Sales'], productsPage),
-  Section('Категорії', Icons.category, ['Sales'], categoriesPage),
-  Section('Платіжні системи', Icons.payments, ['Admin'], () => const PaymentsPage()),
-  // ponytail: Editor, because it saves through /admin/settings (Editor policy).
-  Section('Доставка', Icons.local_shipping, ['Editor'], () => const DeliveryPage()),
-  Section('Канали збуту', Icons.storefront, ['Sales'], () => const FeedsPage()),
-  Section('Контактні запити', Icons.mail, ['Sales', 'Editor'], contactsPage),
-  Section('Блог', Icons.article, ['Editor'], () => const BlogPage()),
-  Section('Контент сторінок', Icons.web, ['Editor'], contentPage),
-  Section('Відгуки клієнтів', Icons.reviews, ['Editor'], reviewsPage),
-  Section('Налаштування', Icons.settings, ['Editor'], () => const SettingsPage()),
-  Section('Аналітика', Icons.insights, ['Editor'], () => const AnalyticsPage()),
-  Section('Сторонній код', Icons.code, ['Admin'], () => const CodePage()),
-  Section('Вакансії', Icons.work, ['Hr'], vacanciesPage),
-  Section('Відгуки на вакансії', Icons.badge, ['Hr'], applicationsPage),
-  Section('Користувачі', Icons.manage_accounts, ['Admin'], () => const UsersPage()),
+  Section('overview', 'Огляд', Icons.space_dashboard_outlined, const [], () => const DashboardPage()),
+  Section('stats', 'Статистика', Icons.bar_chart, const ['Sales', 'Editor'], () => const StatsPage()),
+  Section('orders', 'Замовлення', Icons.receipt_long_outlined, const ['Sales'], () => const OrdersPage(),
+      badge: (s) => _n(s['orders']?['new']), group: _sales),
+  Section('contacts', 'Контактні запити', Icons.mail_outline, const ['Sales', 'Editor'], () => const ContactsPage(),
+      badge: (s) => _n(s['contacts']?['unread']), group: _sales),
+  Section('products', 'Товари', Icons.inventory_2_outlined, const ['Sales'], () => const ProductsPage(), group: _sales),
+  Section('categories', 'Категорії', Icons.category_outlined, const ['Sales'], () => const CategoriesPage(), group: _sales),
+  Section('feeds', 'Канали збуту', Icons.storefront_outlined, const ['Sales'], () => const FeedsPage(), group: _sales),
+  Section('blog', 'Блог', Icons.article_outlined, const ['Editor'], () => const BlogPage(), group: _content),
+  Section('content', 'Контент сторінок', Icons.web_outlined, const ['Editor'], () => const ContentPage(), group: _content),
+  Section('reviews', 'Відгуки клієнтів', Icons.reviews_outlined, const ['Editor'], () => const ReviewsPage(), group: _content),
+  Section('redirects', 'Редиректи', Icons.alt_route, const ['Editor'], () => const RedirectsPage(), group: _content),
+  Section('payments', 'Платіжні системи', Icons.payments_outlined, const ['Admin'], () => const PaymentsPage(), group: _shop),
+  // Editor, because delivery saves through /admin/settings (Editor policy).
+  Section('delivery', 'Доставка', Icons.local_shipping_outlined, const ['Editor'], () => const DeliveryPage(), group: _shop),
+  Section('settings', 'Налаштування', Icons.tune, const ['Editor'], () => const SettingsPage(), group: _shop),
+  Section('analytics', 'Аналітика', Icons.insights_outlined, const ['Editor'], () => const AnalyticsPage(), group: _shop),
+  Section('code', 'Сторонній код', Icons.code, const ['Admin'], () => const CodePage(), group: _shop),
+  Section('vacancies', 'Вакансії', Icons.work_outline, const ['Hr'], () => const VacanciesPage(), group: _hr),
+  Section('applications', 'Відгуки на вакансії', Icons.badge_outlined, const ['Hr'], () => const ApplicationsPage(),
+      badge: (s) => _n(s['applications']?['unread']), group: _hr),
+  Section('users', 'Користувачі', Icons.manage_accounts_outlined, const ['Admin'], () => const UsersPage(), group: _access),
 ];
 
 List<Section> sectionsFor(List<String> roles) =>
-    sections.where((s) => roles.contains('Admin') || s.roles.any(roles.contains)).toList();
+    sections.where((s) => roles.contains('Admin') || s.roles.isEmpty || s.roles.any(roles.contains)).toList();
+
+/// Light/dark from the kit; the choice is remembered in localStorage.
+final themeMode = ValueNotifier(switch (browser.storageGet('uag.theme')) {
+  'dark' => ThemeMode.dark,
+  'light' => ThemeMode.light,
+  _ => ThemeMode.system,
+});
 
 class AdminApp extends StatelessWidget {
   const AdminApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'UA GREEN — адмінка',
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData(colorSchemeSeed: const Color(0xFF576E4F)),
-    locale: const Locale('uk'),
-    supportedLocales: const [Locale('uk')],
-    localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    home: ListenableBuilder(
-      listenable: api,
-      builder: (_, _) => api.booting
-          ? const Scaffold(body: Center(child: CircularProgressIndicator()))
-          : api.user == null
-          ? const LoginPage()
-          : Shell(key: ValueKey(api.user!['id'])),
+  Widget build(BuildContext context) => ValueListenableBuilder(
+    valueListenable: themeMode,
+    builder: (_, mode, _) => MaterialApp(
+      title: 'UA GREEN — адмінка',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: mode,
+      scrollBehavior: AppScrollBehavior(),
+      locale: const Locale('uk'),
+      supportedLocales: const [Locale('uk')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      home: ListenableBuilder(
+        listenable: api,
+        builder: (_, _) => api.booting
+            ? const Scaffold(body: AppLoadingView())
+            : api.user == null
+            ? const LoginPage()
+            : Shell(key: ValueKey(api.user!['id'])),
+      ),
     ),
   );
 }
@@ -74,11 +113,13 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _form = GlobalKey<FormState>();
   final _email = TextEditingController(), _password = TextEditingController();
   String? _error;
-  bool _busy = false;
+  bool _busy = false, _hidden = true;
 
   Future<void> _submit() async {
+    if (!_form.currentState!.validate()) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -92,46 +133,98 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: Center(
-      child: SizedBox(
-        width: 360,
-        child: AutofillGroup(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('UA GREEN — адмінка', style: Theme.of(context).textTheme.headlineSmall, textAlign: TextAlign.center),
-              const SizedBox(height: 8),
-              const Text('Вхід з обліковим записом ERP (erp.uagreen.co)', textAlign: TextAlign.center),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _email,
-                autofillHints: const [AutofillHints.email],
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _password,
-                obscureText: true,
-                autofillHints: const [AutofillHints.password],
-                decoration: const InputDecoration(labelText: 'Пароль', border: OutlineInputBorder()),
-                onSubmitted: (_) => _submit(),
-              ),
-              const SizedBox(height: 16),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Scaffold(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: AppSpacing.screenPadding,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: AppSizes.dialogContentWidthMd),
+            child: Card(
+              child: Padding(
+                padding: AppSpacing.dialogPadding,
+                child: Form(
+                  key: _form,
+                  child: AutofillGroup(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Icon(Icons.wind_power, size: AppSizes.iconXxl, color: Theme.of(context).colorScheme.primary),
+                        AppSpacing.gapMd,
+                        Text('UA GREEN', style: t.headlineSmall, textAlign: TextAlign.center),
+                        Text('Адмінка сайту uagreen.co', style: t.bodyMedium, textAlign: TextAlign.center),
+                        AppSpacing.gapXl,
+                        if (_error != null) ...[FormBanner(_error!), AppSpacing.gapMd],
+                        TextFormField(
+                          controller: _email,
+                          autofillHints: const [AutofillHints.email],
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.alternate_email)),
+                          validator: (v) => v!.contains('@') ? null : 'Введіть email',
+                        ),
+                        AppSpacing.gapMd,
+                        TextFormField(
+                          controller: _password,
+                          obscureText: _hidden,
+                          autofillHints: const [AutofillHints.password],
+                          decoration: InputDecoration(
+                            labelText: 'Пароль',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              tooltip: _hidden ? 'Показати' : 'Сховати',
+                              icon: Icon(_hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                              onPressed: () => setState(() => _hidden = !_hidden),
+                            ),
+                          ),
+                          validator: (v) => v!.isEmpty ? 'Введіть пароль' : null,
+                          onFieldSubmitted: (_) => _submit(),
+                        ),
+                        AppSpacing.gapXl,
+                        AppButton(label: 'Увійти', icon: Icons.login, isLoading: _busy, expand: true, onPressed: _submit),
+                        AppSpacing.gapMd,
+                        Text(
+                          'Обліковий запис Господаря (erp.uagreen.co). Доступ до розділів дає роль, яку призначає адміністратор.',
+                          style: t.bodySmall,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              FilledButton(onPressed: _busy ? null : _submit, child: const Text('Увійти')),
-            ],
+              ),
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
+}
+
+/// Section switching from anywhere (dashboard tiles → a filtered list).
+final nav = Nav();
+
+class Nav extends ChangeNotifier {
+  String key = browser.hashPath().split('?').first;
+
+  /// One-shot arguments for the page being opened, e.g. {'status': 'New'}.
+  Map<String, String> args = {
+    ...Uri.splitQueryString(browser.hashPath().contains('?') ? browser.hashPath().split('?').last : ''),
+  };
+
+  void go(String key, [Map<String, String> args = const {}]) {
+    this.key = key;
+    this.args = {...args};
+    sync();
+    notifyListeners();
+  }
+
+  /// Writes the current section back into the address bar.
+  void sync() => browser.setHashPath(args.isEmpty ? key : '$key?${Uri(queryParameters: args).query}');
+
+  /// Reads and clears an argument (so a later visit opens unfiltered).
+  String? take(String name) => args.remove(name);
 }
 
 class Shell extends StatefulWidget {
@@ -142,53 +235,142 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   final _visible = sectionsFor(api.roles);
-  int _i = 0;
+  Timer? _poll;
+  int _openCount = 0; // re-keys the page on every navigation, even to the same section
 
   @override
   void initState() {
     super.initState();
-    openSection = (title) {
-      final i = _visible.indexWhere((s) => s.title == title);
-      if (i >= 0) setState(() => _i = i);
-    };
+    if (!_visible.any((s) => s.key == nav.key)) nav.key = _visible.first.key;
+    nav.sync();
+    nav.addListener(_onNav);
+    summary.refresh();
+    _poll = Timer.periodic(const Duration(minutes: 1), (_) => summary.refresh());
   }
 
   @override
+  void dispose() {
+    _poll?.cancel();
+    nav.removeListener(_onNav);
+    super.dispose();
+  }
+
+  void _onNav() => setState(() => _openCount++);
+
+  @override
   Widget build(BuildContext context) {
-    final wide = MediaQuery.sizeOf(context).width >= 900;
-    final s = _visible[_i];
-    final nav = NavigationDrawer(
-      selectedIndex: _i,
-      onDestinationSelected: (i) {
-        setState(() => _i = i);
-        if (!wide) Navigator.pop(context);
-      },
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(28, 20, 16, 12),
-          child: Text('UA GREEN', style: Theme.of(context).textTheme.titleLarge),
-        ),
-        for (final s in _visible) NavigationDrawerDestination(icon: Icon(s.icon), label: Text(s.title)),
-      ],
+    final wide = MediaQuery.sizeOf(context).width >= Breakpoints.tablet;
+    final i = _visible.indexWhere((s) => s.key == nav.key).clamp(0, _visible.length - 1);
+    final s = _visible[i];
+    final theme = Theme.of(context);
+    final menu = ListenableBuilder(
+      listenable: summary,
+      builder: (context, _) => NavigationDrawer(
+        backgroundColor: context.palette.sidebarBg,
+        selectedIndex: i,
+        onDestinationSelected: (n) {
+          if (!wide) Navigator.pop(context);
+          nav.go(_visible[n].key);
+        },
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xl, AppSpacing.lg, AppSpacing.lg),
+            child: Row(
+              children: [
+                Icon(Icons.wind_power, color: theme.colorScheme.primary),
+                AppSpacing.hGapSm,
+                Text('UA GREEN', style: theme.textTheme.titleLarge),
+              ],
+            ),
+          ),
+          for (final (n, x) in _visible.indexed) ...[
+            if (x.group != null && (n == 0 || _visible[n - 1].group != x.group))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
+                child: Text(x.group!.toUpperCase(),
+                    style: theme.textTheme.labelSmall?.copyWith(color: context.palette.textTertiary, letterSpacing: 0.8)),
+              ),
+            NavigationDrawerDestination(
+              icon: _Badged(count: x.badge?.call(summary.data) ?? 0, child: Icon(x.icon)),
+              label: Text(x.title),
+            ),
+          ],
+        ],
+      ),
     );
     return Scaffold(
       appBar: AppBar(
         title: Text(s.title),
         actions: [
-          Text('${api.user!['fullName']}'),
-          IconButton(tooltip: 'Вийти', onPressed: api.logout, icon: const Icon(Icons.logout)),
-          const SizedBox(width: 8),
+          ListenableBuilder(
+            listenable: summary,
+            builder: (_, _) => Row(
+              children: [
+                if (summary.link('site') case final u?)
+                  IconButton(tooltip: 'Відкрити сайт', icon: const Icon(Icons.public), onPressed: () => browser.openTab(u)),
+                if (summary.link('erp') case final u?)
+                  IconButton(tooltip: 'Господар (ERP)', icon: const Icon(Icons.business_center_outlined), onPressed: () => browser.openTab(u)),
+                if (summary.link('oberig') case final u?)
+                  IconButton(tooltip: 'Оберіг (портал)', icon: const Icon(Icons.monitor_heart_outlined), onPressed: () => browser.openTab(u)),
+              ],
+            ),
+          ),
+          ValueListenableBuilder(
+            valueListenable: themeMode,
+            builder: (context, mode, _) {
+              final dark = mode == ThemeMode.dark ||
+                  (mode == ThemeMode.system && MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+              return IconButton(
+                tooltip: dark ? 'Світла тема' : 'Темна тема',
+                icon: Icon(dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+                onPressed: () {
+                  themeMode.value = dark ? ThemeMode.light : ThemeMode.dark;
+                  browser.storageSet('uag.theme', dark ? 'light' : 'dark');
+                },
+              );
+            },
+          ),
+          PopupMenuButton<void>(
+            tooltip: 'Обліковий запис',
+            icon: AppAvatar(name: '${api.user!['fullName']}'),
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                enabled: false,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('${api.user!['fullName']}'),
+                  subtitle: Text([api.user!['email'], ...api.roles.map((r) => siteRoles[r] ?? r)].join(' · ')),
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                onTap: api.logout,
+                child: const ListTile(contentPadding: EdgeInsets.zero, leading: Icon(Icons.logout), title: Text('Вийти')),
+              ),
+            ],
+          ),
+          AppSpacing.hGapSm,
         ],
       ),
-      drawer: wide ? null : nav,
+      drawer: wide ? null : menu,
       body: Row(
         children: [
-          if (wide) SizedBox(width: 260, child: nav),
+          if (wide) SizedBox(width: AppSizes.sidebarWidth, child: menu),
           Expanded(
-            child: KeyedSubtree(key: ValueKey(_i), child: s.build()),
+            child: KeyedSubtree(key: ValueKey('${s.key}#$_openCount'), child: s.build()),
           ),
         ],
       ),
     );
   }
+}
+
+class _Badged extends StatelessWidget {
+  const _Badged({required this.count, required this.child});
+  final int count;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      count == 0 ? child : Badge(label: Text(count > 99 ? '99+' : '$count'), child: child);
 }

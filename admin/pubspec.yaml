@@ -14,6 +14,12 @@ dependencies:
   dio: ^5.11.1
   web: ^1.1.1
 
+  # Shared UI kit (Gospodar + TTApp). Private repo: CI rewrites https → ssh.
+  uagreen_ui:
+    git:
+      url: https://github.com/uagreenllc/uagreen-ui.git
+      ref: 5fd43bf2bafa97de53f2207904026ca8bd480120 # v0.1.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -2,6 +2,7 @@
 const localePath = useLocalePath()
 const { locale } = useI18n()
 const settings = useSettings()
+const oberig = useOberig()
 
 const year = new Date().getFullYear()
 const address = computed(() => (locale.value !== 'uk' && settings.value?.address_en) || settings.value?.address || '')
@@ -29,6 +30,7 @@ const socials = computed(() =>
       </div>
       <div>
         <p v-for="s in socials" :key="s.name"><a :href="s.url" rel="noopener" target="_blank">{{ s.name }}</a></p>
+        <p v-if="oberig.on('footer')"><a :href="oberig.url" rel="noopener" target="_blank">{{ $t('footer.oberig') }}</a></p>
         <h3>{{ $t('footer.legal') }}</h3>
         <p><NuxtLink :to="localePath('/oplata')">{{ $t('footer.payment') }}</NuxtLink></p>
         <p><NuxtLink :to="localePath('/umovi-vikoristannya-saytu')">{{ $t('footer.terms') }}</NuxtLink></p>

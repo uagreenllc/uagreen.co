@@ -31,14 +31,17 @@ public static class AdminUsersEndpoints
             return Results.Ok(new { gospodarAvailable = true, users });
         });
 
-        g.MapPut("/{id:guid}/roles", async (Guid id, RolesUpdate req, GospodarClient gospodar, AppDbContext db, CancellationToken ct) =>
+        g.MapPut("/{id:guid}/roles", async (Guid id, RolesUpdate req, HttpContext http, GospodarClient gospodar, AppDbContext db, CancellationToken ct) =>
         {
             var roles = (req.Roles ?? []).Distinct().ToList();
+            // A site Admin can't lock themselves out (a Gospodar Admin is Admin regardless).
+            if (id == SiteRoles.UserId(http.User) && !SiteRoles.IsGospodarAdmin(http.User) && !roles.Contains(SiteRole.Admin))
+                throw ProblemException.BadRequest("Не можна зняти роль «Адмін» із себе — попросіть іншого адміністратора");
             var row = await db.SiteUsers.FirstOrDefaultAsync(u => u.Id == id, ct);
             if (row is null)
             {
                 var remote = (await gospodar.GetUsersAsync(ct))?.FirstOrDefault(u => u.Id == id);
-                if (remote is null && string.IsNullOrWhiteSpace(req.Email)) throw ProblemException.NotFound("User not found in Gospodar");
+                if (remote is null && string.IsNullOrWhiteSpace(req.Email)) throw ProblemException.NotFound("Користувача немає в Господарі");
                 row = new SiteUser { Id = id, Email = remote?.Email ?? req.Email ?? "", FullName = remote?.FullName ?? req.FullName ?? "" };
                 db.SiteUsers.Add(row);
             }

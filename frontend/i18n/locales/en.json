@@ -17,12 +17,31 @@
     "payment": "Payment and delivery",
     "rights": "© {year} UA GREEN",
     "offer": "Public offer",
-    "privacy": "Privacy policy"
+    "privacy": "Privacy policy",
+    "oberig": "Oberig customer portal"
   },
   "lang": { "uk": "Укр", "en": "Eng", "cs": "Čes" },
   "site": {
     "title": "UA GREEN | Wind turbines and equipment",
     "description": "Ukrainian manufacturer of vertical-axis wind turbines and the equipment around them."
+  },
+  "oberig": {
+    "eyebrow": "Predictive maintenance",
+    "calc": "Estimate generation",
+    "portal": "Oberig portal",
+    "loginNote": "The calculator and monitoring open once you sign in to the portal.",
+    "home": {
+      "h": "Oberig watches your turbine 24/7",
+      "p": "Oberig is UA GREEN's predictive-maintenance portal. It monitors your turbine around the clock, spots bearing wear and blade or generator trouble early, forecasts your energy output and alerts you the moment something drifts. The portal also has a calculator: estimate the annual generation for your site from wind atlas data."
+    },
+    "product": {
+      "h": "Oberig monitoring",
+      "p": "This model connects to the Oberig portal: round-the-clock turbine monitoring, predictive diagnostics of bearings, blades and generator, an energy forecast and alerts on any deviation."
+    },
+    "order": {
+      "h": "Connect your station to Oberig monitoring",
+      "p": "Once it's installed, connect your wind turbine to the Oberig portal: it watches the station 24/7, warns you early about bearing, blade or generator wear, before a small fault becomes a repair, and shows the energy forecast."
+    }
   },
   "pages": {
     "aboutTitle": "About us",

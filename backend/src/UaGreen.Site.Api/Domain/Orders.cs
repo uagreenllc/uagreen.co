@@ -15,7 +15,17 @@ public enum PaymentMethod { LiqPay, Invoice, Credit }
 
 public enum DeliveryMethod { NovaPoshta, Ukrposhta, Pickup }
 
-public sealed class Order
+/// Rows that become Gospodar CRM deals (orders, contact requests).
+public interface ICrmLinked
+{
+    Guid? CrmDealId { get; set; }
+    DateTime? CrmSyncedAt { get; set; }
+    string? CrmError { get; set; }
+    int CrmAttempts { get; set; }
+    DateTime? CrmLastAttemptAt { get; set; }
+}
+
+public sealed class Order : ICrmLinked
 {
     /// Public token: result_url / status page use it (sequential Number would leak volume).
     public Guid Id { get; set; }
@@ -51,7 +61,27 @@ public sealed class Order
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    /// Manager-only note, never shown to the customer.
+    public string? AdminNote { get; set; }
+
+    public Guid? CrmDealId { get; set; }
+    public DateTime? CrmSyncedAt { get; set; }
+    public string? CrmError { get; set; }
+    public int CrmAttempts { get; set; }
+    public DateTime? CrmLastAttemptAt { get; set; }
+
     public List<OrderItem> Items { get; set; } = [];
+    public List<OrderEvent> Events { get; set; } = [];
+}
+
+/// Who changed what on an order (status, items, contacts) — shown as the order history.
+public sealed class OrderEvent
+{
+    public Guid Id { get; set; }
+    public Guid OrderId { get; set; }
+    public DateTime At { get; set; }
+    public string Actor { get; set; } = "";
+    public string Text { get; set; } = "";
 }
 
 public sealed class OrderItem
