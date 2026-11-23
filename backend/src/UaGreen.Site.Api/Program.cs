@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Features.Admin;
 using UaGreen.Site.Api.Infrastructure.Auth;
+using UaGreen.Site.Api.Infrastructure.Captcha;
 using UaGreen.Site.Api.Infrastructure.Email;
 using UaGreen.Site.Api.Infrastructure.Import;
 using UaGreen.Site.Api.Infrastructure.Payments;
@@ -91,6 +92,9 @@ builder.Services.AddAppRateLimiting(builder.Configuration);
 builder.Services.AddOutputCache(o =>
     o.AddPolicy("public", p => p.Expire(TimeSpan.FromSeconds(60)).SetVaryByQuery("*").Tag(AdminCommon.PublicCacheTag)));
 
+builder.Services.Configure<TurnstileOptions>(builder.Configuration.GetSection("Turnstile"));
+builder.Services.AddHttpClient<Turnstile>(http => http.Timeout = TimeSpan.FromSeconds(10));
+
 builder.Services.AddSingleton<FileStorage>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddSingleton<LiqPayService>();
@@ -133,6 +137,9 @@ if (app.Environment.IsDevelopment())
         RequestPath = "/media",
     });
 }
+
+if (!app.Environment.IsDevelopment() && string.IsNullOrEmpty(app.Configuration["Turnstile:SecretKey"]))
+    app.Logger.LogWarning("Turnstile:SecretKey is not set: the public forms have no captcha.");
 
 app.MapGet("/", () => "UA GREEN site API");
 app.MapGet("/health", async (AppDbContext db, CancellationToken ct) =>
