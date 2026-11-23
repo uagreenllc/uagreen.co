@@ -52,12 +52,15 @@ export interface PostCard {
   cover: string | null
   author: string | null
   publishedAt: string
+  noIndex: boolean
 }
 
 export interface Post extends PostCard {
   bodyHtml: string
   seoTitle: string | null
   seoDesc: string | null
+  keywords: string | null
+  noFollow: boolean
   updatedAt: string
 }
 

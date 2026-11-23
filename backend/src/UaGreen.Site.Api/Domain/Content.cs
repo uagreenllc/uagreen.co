@@ -17,6 +17,11 @@ public sealed class BlogPost
     public string? SeoTitleEn { get; set; }
     public string? SeoDescUk { get; set; }
     public string? SeoDescEn { get; set; }
+    public string? SeoKeywordsUk { get; set; }
+    public string? SeoKeywordsEn { get; set; }
+    /// robots meta: hide from search results / don't follow links in the body.
+    public bool NoIndex { get; set; }
+    public bool NoFollow { get; set; }
     public bool Published { get; set; } = true;
     public DateTime UpdatedAt { get; set; }
 }
