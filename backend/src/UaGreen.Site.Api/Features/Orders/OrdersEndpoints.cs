@@ -2,6 +2,8 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
+using UaGreen.Site.Api.Features.Audit;
+using UaGreen.Site.Api.Infrastructure.Auth;
 using UaGreen.Site.Api.Features.Forms;
 using UaGreen.Site.Api.Infrastructure.Captcha;
 using UaGreen.Site.Api.Infrastructure.Email;
@@ -21,7 +23,8 @@ public sealed record CreateOrderRequest(
 public sealed record LiqPayCheckoutDto(string CheckoutUrl, string Data, string Signature);
 public sealed record OrderItemDto(string ProductName, string? OptionsText, int Qty, decimal UnitPrice, decimal LineTotal);
 public sealed record OrderDto(Guid Id, int Number, string Status, string PaymentMethod, decimal Subtotal, decimal DeliveryCost,
-    decimal Total, DateTime CreatedAt, IReadOnlyList<OrderItemDto> Items, LiqPayCheckoutDto? LiqPay);
+    decimal Total, DateTime CreatedAt, IReadOnlyList<OrderItemDto> Items, LiqPayCheckoutDto? LiqPay,
+    DateOnly? AuditDate, string? AuditAddress, bool? AuditConfirmed);
 
 public static class OrdersEndpoints
 {
@@ -52,6 +55,9 @@ public static class OrdersEndpoints
         if (phone.Length is < 7 or > 30) throw ProblemException.BadRequest("Phone is required");
         if (!Enum.TryParse<PaymentMethod>(req.PaymentMethod, true, out var payment))
             throw ProblemException.BadRequest("Unknown payment method");
+        var payOffKey = PaymentSettings.OffKey(payment); // set in admin → Платіжні системи
+        if (await db.Settings.AnyAsync(s => s.Key == payOffKey && s.Value == PaymentSettings.Off, ct))
+            throw ProblemException.BadRequest("Payment method is turned off");
         if (!Enum.TryParse<DeliveryMethod>(req.Delivery?.Method, true, out var delivery))
             throw ProblemException.BadRequest("Unknown delivery method");
         var offKey = $"delivery.{delivery}.off"; // set in admin → Доставка
@@ -107,7 +113,7 @@ public static class OrdersEndpoints
     }
 
     private static async Task<IResult> LiqPayCallbackAsync(
-        HttpRequest request, AppDbContext db, LiqPayService liqpay, Notifier notifier, ILoggerFactory lf, CancellationToken ct)
+        HttpRequest request, AppDbContext db, LiqPayService liqpay, GospodarClient gospodar, Notifier notifier, ILoggerFactory lf, CancellationToken ct)
     {
         var log = lf.CreateLogger("LiqPay");
         var form = await request.ReadFormAsync(ct);
@@ -138,12 +144,25 @@ public static class OrdersEndpoints
             }
         }
         await db.SaveChangesAsync(ct);
+
+        // After the save: a Gospodar failure must never lose the paid status. Only a valid paid callback books
+        // (a refund or mismatched-amount callback must not), and on its own token: LiqPay hanging up must not
+        // cancel the booking or the manager email.
+        var paidCallback = LiqPayService.IsPaid(cb.Status) && cb.Amount == order.Total
+            && string.Equals(cb.Currency, "UAH", StringComparison.OrdinalIgnoreCase);
+        if (paidCallback && AuditBooking.ShouldBook(order))
+        {
+            using var bookCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            await AuditBooking.SendAsync(order, cb.PaymentId, gospodar, notifier, bookCts.Token);
+            await db.SaveChangesAsync(bookCts.Token);
+        }
         return Results.Ok();
     }
 
     public static OrderDto ToDto(Order o, LiqPayCheckoutDto? liqpay) => new(
         o.Id, o.Number, o.Status.ToString(), o.PaymentMethod.ToString(), o.Subtotal, o.DeliveryCost, o.Total, o.CreatedAt,
-        o.Items.Select(i => new OrderItemDto(i.ProductName, i.OptionsText, i.Qty, i.UnitPrice, i.LineTotal)).ToList(), liqpay);
+        o.Items.Select(i => new OrderItemDto(i.ProductName, i.OptionsText, i.Qty, i.UnitPrice, i.LineTotal)).ToList(), liqpay,
+        o.AuditDate, o.AuditAddress, o.AuditDate is null ? null : o.AuditDateWasFree == true);
 
     private static string Describe(Order o)
     {

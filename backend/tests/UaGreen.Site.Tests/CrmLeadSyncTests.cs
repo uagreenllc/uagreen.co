@@ -46,7 +46,8 @@ public class CrmLeadSyncTests
             ? new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
             : new HttpResponseMessage(HttpStatusCode.Created) { Content = new StringContent($"{{\"dealId\":\"{dealId}\"}}") });
         var client = new GospodarClient(new HttpClient(fake) { BaseAddress = new Uri("http://gospodar") },
-            Options.Create(new JwtOptions()), Options.Create(new GospodarOptions { IntegrationKey = "company-key" }));
+            Options.Create(new JwtOptions()), Options.Create(new GospodarOptions { IntegrationKey = "company-key" }),
+            NullLogger<GospodarClient>.Instance);
 
         await CrmLeadSync.PushAsync(db, client, NullLogger.Instance, CancellationToken.None);
 

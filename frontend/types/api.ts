@@ -133,4 +133,33 @@ export interface Order {
   createdAt: string
   items: OrderItem[]
   liqPay: { checkoutUrl: string; data: string; signature: string } | null
+  /** Site audit orders only (ISO date); null on shop orders. */
+  auditDate: string | null
+  auditAddress: string | null
+  /** True once Gospodar booked the chosen day; false/null = a manager confirms the date. */
+  auditConfirmed: boolean | null
+}
+
+/** GET /api/audit/slots — free days inside the booking window (ISO dates, Kyiv calendar). */
+export interface AuditSlots {
+  from: string
+  to: string
+  dates: string[]
+  price: number
+  oldPrice: number | null
+  /** Gospodar could not be asked (no key, down): show the fallback, not an empty calendar. */
+  unavailable: boolean
+}
+
+export interface AuditBookingRequest {
+  name: string
+  phone: string
+  email: string | null
+  address: string
+  comment: string | null
+  date: string
+  offerAccepted: boolean
+  lang: string
+  website: string
+  captcha: string
 }

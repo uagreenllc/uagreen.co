@@ -14,10 +14,12 @@ const deliveries = (['NovaPoshta', 'Ukrposhta', 'Pickup'] as DeliveryMethod[]).f
 const langs = ['cs', 'en', 'uk']
 const deliveryNote = (d: DeliveryMethod) => langs.slice(Math.max(0, langs.indexOf(locale.value)))
   .map(l => settings.value?.[`delivery.${d}.note.${l}`]).find(Boolean)
-const payments: PaymentMethod[] = ['LiqPay', 'Invoice', 'Credit']
+// Admin → Платіжні системи: pay_<method> = "off" hides a method (the API refuses it too).
+const payments = (['LiqPay', 'Invoice', 'Credit'] as PaymentMethod[]).filter(p => settings.value?.[`pay_${p}`] !== 'off')
+const hint = (p: PaymentMethod) => t(`checkout.payment_${p}_hint${p === 'Invoice' && settings.value?.pay_iban ? 'Iban' : ''}`)
 const f = reactive({
   name: '', phone: '', email: '', delivery: deliveries[0]!, city: '', warehouse: '',
-  payment: 'LiqPay' as PaymentMethod, comment: '', website: '', captcha: '',
+  payment: payments[0]!, comment: '', website: '', captcha: '',
 })
 const errors = reactive<Record<string, string>>({})
 const needsAddress = computed(() => f.delivery !== 'Pickup')
@@ -107,7 +109,7 @@ function submit() {
           <div class="choices">
             <label v-for="pm in payments" :key="pm">
               <input v-model="f.payment" type="radio" name="payment" :value="pm">
-              <span>{{ $t(`checkout.payment_${pm}`) }}<small>{{ $t(`checkout.payment_${pm}_hint`) }}</small></span>
+              <span>{{ $t(`checkout.payment_${pm}`) }}<small>{{ hint(pm) }}</small></span>
             </label>
           </div>
 
@@ -119,6 +121,7 @@ function submit() {
           <Captcha ref="captchaEl" v-model="f.captcha" />
 
           <p v-if="error" class="form-error">{{ error }}</p>
+          <PrivacyNote />
           <button class="btn" type="submit" :disabled="pending">{{ pending ? $t('form.sending') : $t('checkout.place') }}</button>
         </form>
 

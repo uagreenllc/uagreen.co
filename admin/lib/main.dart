@@ -26,6 +26,7 @@ final sections = [
   Section('Замовлення', Icons.receipt_long, ['Sales'], () => const OrdersPage()),
   Section('Товари', Icons.inventory_2, ['Sales'], productsPage),
   Section('Категорії', Icons.category, ['Sales'], categoriesPage),
+  Section('Платіжні системи', Icons.payments, ['Admin'], () => const PaymentsPage()),
   // ponytail: Editor, because it saves through /admin/settings (Editor policy).
   Section('Доставка', Icons.local_shipping, ['Editor'], () => const DeliveryPage()),
   Section('Канали збуту', Icons.storefront, ['Sales'], () => const FeedsPage()),

@@ -296,7 +296,7 @@ const orderStatuses = {
   'Shipped': 'Відправлено',
   'Cancelled': 'Скасовано',
 };
-const _payments = {'LiqPay': 'LiqPay (картка)', 'Invoice': 'Безготівка (рахунок)', 'Credit': 'Кредит 0%'};
+const _payments = {'LiqPay': 'LiqPay (картка)', 'Invoice': 'Вручну (переказ на IBAN)', 'Credit': 'Кредит 0%'};
 const _deliveries = {'NovaPoshta': 'Нова пошта', 'Ukrposhta': 'Укрпошта', 'Pickup': 'Самовивіз'};
 
 class OrdersPage extends StatefulWidget {
@@ -402,6 +402,139 @@ class _OrderDialogState extends State<_OrderDialog> {
             }
           },
           child: const Text('Зберегти статус'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Платіжні системи (as on Weblium): checkout methods on/off + company requisites for the manual
+/// method (transfer to IBAN). Admin only: the IBAN is where customers send money.
+class PaymentsPage extends StatefulWidget {
+  const PaymentsPage({super.key});
+  @override
+  State<PaymentsPage> createState() => _PaymentsPageState();
+}
+
+class _PaymentsPageState extends State<PaymentsPage> {
+  static const _methods = [
+    (
+      'LiqPay',
+      Icons.credit_card,
+      'LiqPay — онлайн карткою',
+      'Visa / Mastercard, Apple Pay, Google Pay. Оплата підтверджується автоматично; ключі LiqPay задаються на сервері.',
+    ),
+    (
+      'Invoice',
+      Icons.account_balance,
+      'Вручну — переказ на IBAN',
+      'Після замовлення клієнт бачить реквізити компанії й суму та платить переказом з будь-якого банку. '
+          'Надходження перевіряє менеджер і ставить статус «Оплачено».',
+    ),
+    (
+      'Credit',
+      Icons.event_repeat,
+      'Кредит 0 % / оплата частинами',
+      "Менеджер зв'язується з клієнтом і оформлює розстрочку в банку-партнері.",
+    ),
+  ];
+  static const _requisites = [
+    ('pay_recipient', 'Отримувач (ТОВ «…» або ФОП …)'),
+    ('pay_edrpou', 'ЄДРПОУ (або РНОКПП для ФОП)'),
+    ('pay_iban', 'IBAN (UA + 27 цифр)'),
+    ('pay_bank', 'Банк'),
+    ('pay_purpose', 'Призначення платежу; {n} — номер замовлення (порожньо: «Оплата за замовлення №{n}»)'),
+  ];
+
+  J? _m;
+  Object? _error;
+  bool _busy = false;
+  int _version = 0; // bumped after save → fields re-read the normalised values
+
+  @override
+  void initState() {
+    super.initState();
+    api.get('/admin/payments').then(
+      (m) => mounted ? setState(() => _m = m as J) : null,
+      onError: (Object e) => mounted ? setState(() => _error = e) : null,
+    );
+  }
+
+  Future<void> _save() async {
+    setState(() => _busy = true);
+    try {
+      final m = await api.put('/admin/payments', _m!) as J;
+      setState(() {
+        _m = m;
+        _version++;
+      });
+      if (mounted) toast(context, 'Збережено');
+    } catch (e) {
+      if (mounted) toast(context, '$e');
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) return Center(child: Text('$_error'));
+    final m = _m;
+    if (m == null) return const Center(child: CircularProgressIndicator());
+    final theme = Theme.of(context);
+    return ListView(
+      key: ValueKey(_version),
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text(
+          'Способи оплати на сторінці оформлення замовлення. Вимкнений спосіб клієнт не бачить, і сайт його не прийме.',
+        ),
+        const SizedBox(height: 16),
+        for (final (key, icon, title, desc) in _methods)
+          Card.outlined(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(icon, size: 32, color: theme.colorScheme.primary),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(title, style: theme.textTheme.titleMedium),
+                            const SizedBox(height: 4),
+                            Text(desc, style: theme.textTheme.bodySmall),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: m['pay_$key'] != 'off',
+                        onChanged: (on) => setState(() => m['pay_$key'] = on ? null : 'off'),
+                      ),
+                    ],
+                  ),
+                  if (key == 'Invoice') ...[
+                    const SizedBox(height: 16),
+                    Text('Реквізити компанії', style: theme.textTheme.titleSmall),
+                    for (final (k, label) in _requisites)
+                      Padding(padding: const EdgeInsets.only(top: 12), child: textField(m, k, label)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.icon(
+            onPressed: _busy ? null : _save,
+            icon: const Icon(Icons.save),
+            label: const Text('Зберегти'),
+          ),
         ),
       ],
     );

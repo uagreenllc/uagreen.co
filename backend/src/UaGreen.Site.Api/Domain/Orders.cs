@@ -37,6 +37,15 @@ public sealed class Order
     public decimal DeliveryCost { get; set; }
     public decimal Total { get; set; }
 
+    // Site audit (the "Аудит вітру на ділянці" product bought from /audit/book); null on shop orders.
+    public DateOnly? AuditDate { get; set; }
+    public string? AuditAddress { get; set; }
+    public DateTime? OfferAcceptedAt { get; set; }
+    /// When Gospodar accepted the booking; null = not (yet) booked there.
+    public DateTime? GospodarBookedAt { get; set; }
+    /// Gospodar's answer: false = the day was taken meanwhile and a manager will reschedule.
+    public bool? AuditDateWasFree { get; set; }
+
     public string? LiqPayStatus { get; set; }
     public DateTime? PaidAt { get; set; }
     public DateTime CreatedAt { get; set; }
