@@ -400,6 +400,133 @@ class _OrderDialogState extends State<_OrderDialog> {
   }
 }
 
+/// Доставка (as on Weblium): switch each method on/off and add a note shown under it at checkout.
+/// Public settings: `delivery.<Method>.off` = 1, `delivery.<Method>.note.<lang>`.
+class DeliveryPage extends StatefulWidget {
+  const DeliveryPage({super.key});
+  @override
+  State<DeliveryPage> createState() => _DeliveryPageState();
+}
+
+class _DeliveryPageState extends State<DeliveryPage> {
+  static const _langs = ['uk', 'en', 'cs'];
+  final _on = <String, bool>{};
+  final _notes = {
+    for (final m in _deliveries.keys)
+      for (final l in _langs) 'delivery.$m.note.$l': TextEditingController(),
+  };
+  Object? _error;
+  bool _busy = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    for (final c in _notes.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      _show(await api.get('/admin/settings') as J);
+    } catch (e) {
+      _error = e;
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  void _show(J m) {
+    for (final d in _deliveries.keys) {
+      _on[d] = m['delivery.$d.off'] == null;
+    }
+    for (final e in _notes.entries) {
+      e.value.text = m[e.key] ?? '';
+    }
+  }
+
+  Future<void> _save() async {
+    setState(() => _busy = true);
+    try {
+      _show(
+        await api.put('/admin/settings', {
+          for (final d in _deliveries.keys) 'delivery.$d.off': _on[d]! ? null : '1', // empty → key deleted
+          for (final e in _notes.entries) e.key: e.value.text,
+        }) as J,
+      );
+      if (mounted) toast(context, 'Збережено');
+    } catch (e) {
+      if (mounted) toast(context, '$e');
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) return Center(child: Text('$_error'));
+    if (_on.isEmpty) return const Center(child: CircularProgressIndicator());
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text('Способи доставки в оформленні замовлення. Примітка — дрібним текстом під назвою (термін, адреса).'),
+        const SizedBox(height: 12),
+        for (final d in _deliveries.entries)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, 4, 16, 16),
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    title: Text(d.value, style: Theme.of(context).textTheme.titleMedium),
+                    subtitle: Text(_on[d.key]! ? 'Увімкнено' : 'Вимкнено'),
+                    value: _on[d.key]!,
+                    onChanged: (v) => setState(() => _on[d.key] = v),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        for (final l in _langs)
+                          SizedBox(
+                            width: 320,
+                            child: TextField(
+                              controller: _notes['delivery.${d.key}.note.$l'],
+                              enabled: _on[d.key],
+                              decoration: InputDecoration(
+                                labelText: 'Примітка (${l.toUpperCase()})',
+                                border: const OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.icon(
+            onPressed: _busy ? null : _save,
+            icon: const Icon(Icons.save),
+            label: const Text('Зберегти'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ── Content (Editor) ──
 
 Widget blogPage() => crud(
