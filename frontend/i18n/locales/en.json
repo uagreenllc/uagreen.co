@@ -17,7 +17,11 @@
     "payment": "Payment and delivery",
     "rights": "© {year} UA GREEN"
   },
-  "lang": { "uk": "Укр", "en": "Eng" },
+  "lang": { "uk": "Укр", "en": "Eng", "cs": "Čes" },
+  "site": {
+    "title": "UA GREEN | Wind turbines and equipment",
+    "description": "Ukrainian manufacturer of vertical-axis wind turbines and the equipment around them."
+  },
   "pages": {
     "aboutTitle": "About us",
     "contactsTitle": "Contacts",

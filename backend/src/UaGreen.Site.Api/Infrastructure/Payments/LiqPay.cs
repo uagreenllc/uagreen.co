@@ -44,7 +44,7 @@ public sealed class LiqPayService(IOptions<LiqPayOptions> opts, IOptions<AppOpti
             ["order_id"] = order.Id.ToString(),
             ["result_url"] = $"{_base}/order/{order.Id}",
             ["server_url"] = $"{_base}/api/payments/liqpay/callback",
-            ["language"] = lang == "en" ? "en" : "uk",
+            ["language"] = lang == "uk" ? "uk" : "en", // LiqPay has no Czech
             ["sandbox"] = _o.Sandbox ? 1 : 0,
         });
         var data = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
