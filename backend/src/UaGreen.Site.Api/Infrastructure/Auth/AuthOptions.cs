@@ -16,6 +16,9 @@ public sealed class GospodarOptions
     public int SessionEpochPollSeconds { get; set; } = 60;
     /// The site's integration key in Gospodar (`X-Api-Key`): leads and audit bookings. Empty = those calls are skipped.
     public string ApiKey { get; set; } = "";
+    /// Cap for integration calls a visitor waits on (free days, leads). Without it the HttpClient's
+    /// resilience retries keep a page waiting ~25 s when Gospodar is down.
+    public TimeSpan IntegrationTimeout { get; set; } = TimeSpan.FromSeconds(5);
 }
 
 public sealed class AppOptions

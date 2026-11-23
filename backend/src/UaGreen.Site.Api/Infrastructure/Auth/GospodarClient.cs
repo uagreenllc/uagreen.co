@@ -45,6 +45,7 @@ public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IO
 {
     private readonly JwtOptions _jwt = jwt.Value;
     private readonly string _apiKey = opts.Value.ApiKey;
+    private readonly TimeSpan _visitorTimeout = opts.Value.IntegrationTimeout;
 
     public Task<GospodarProxyResponse> LoginAsync(string email, string password, CancellationToken ct)
         => PostAsync("/api/auth/login", new { email, password }, ct);
@@ -92,7 +93,7 @@ public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IO
         using var req = Integration(HttpMethod.Post, "/api/integration/leads");
         if (req is null) return false;
         req.Content = JsonContent.Create(lead);
-        using var resp = await SendAsync(req, "lead", ct);
+        using var resp = await SendAsync(req, "lead", ct, _visitorTimeout);
         return resp is not null;
     }
 
@@ -102,7 +103,7 @@ public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IO
     {
         using var req = Integration(HttpMethod.Get, $"/api/integration/audit-slots?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
         if (req is null) return null;
-        using var resp = await SendAsync(req, "audit-slots", ct);
+        using var resp = await SendAsync(req, "audit-slots", ct, _visitorTimeout);
         if (resp is null) return null;
         try
         {
@@ -150,11 +151,15 @@ public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IO
     }
 
     /// The response on 2xx, null (logged) on anything else — the visitor's request never fails because of Gospodar.
-    private async Task<HttpResponseMessage?> SendAsync(HttpRequestMessage req, string what, CancellationToken ct)
+    /// `timeout` caps the whole call including the resilience retries; null = the HttpClient's own limits
+    /// (the paid-audit booking runs in the LiqPay callback, where waiting is fine and giving up early is not).
+    private async Task<HttpResponseMessage?> SendAsync(HttpRequestMessage req, string what, CancellationToken ct, TimeSpan? timeout = null)
     {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        if (timeout is { } t) cts.CancelAfter(t);
         try
         {
-            var resp = await http.SendAsync(req, ct);
+            var resp = await http.SendAsync(req, cts.Token);
             if (resp.IsSuccessStatusCode) return resp;
             log.LogWarning("Gospodar {What}: {Status} {Body}", what, (int)resp.StatusCode, await resp.Content.ReadAsStringAsync(ct));
             resp.Dispose();

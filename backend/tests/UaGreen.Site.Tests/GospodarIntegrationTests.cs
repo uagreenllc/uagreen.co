@@ -9,26 +9,46 @@ namespace UaGreen.Site.Tests;
 /// The site → Gospodar integration calls: header, path and body shape against a stub handler.
 public class GospodarIntegrationTests
 {
-    private sealed class Stub(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
+    private sealed class Stub(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> respond) : HttpMessageHandler
     {
         public List<(HttpRequestMessage Req, string? Body)> Calls { get; } = [];
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             Calls.Add((request, request.Content is null ? null : await request.Content.ReadAsStringAsync(ct)));
-            return respond(request);
+            return await respond(request, ct);
         }
     }
 
-    private static (GospodarClient Client, Stub Stub) Make(string key, Func<HttpRequestMessage, HttpResponseMessage> respond)
+    private static (GospodarClient Client, Stub Stub) Make(string key, Func<HttpRequestMessage, HttpResponseMessage> respond) =>
+        Make(key, (req, _) => Task.FromResult(respond(req)));
+
+    private static (GospodarClient Client, Stub Stub) Make(string key, Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> respond,
+        TimeSpan? timeout = null)
     {
         var stub = new Stub(respond);
         var http = new HttpClient(stub) { BaseAddress = new Uri("https://erp.test") };
+        var opts = new GospodarOptions { BaseUrl = "https://erp.test", ApiKey = key };
+        if (timeout is { } t) opts.IntegrationTimeout = t;
         var client = new GospodarClient(http,
             Options.Create(new JwtOptions { SigningKey = new string('k', 32) }),
-            Options.Create(new GospodarOptions { BaseUrl = "https://erp.test", ApiKey = key }),
+            Options.Create(opts),
             NullLogger<GospodarClient>.Instance);
         return (client, stub);
+    }
+
+    [Fact]
+    public async Task GetAuditSlots_gives_up_after_the_integration_timeout()
+    {
+        // Gospodar hangs (or the resilience pipeline keeps retrying a dead host): the visitor must not wait for it.
+        var (client, _) = Make("k1", async (_, ct) => { await Task.Delay(Timeout.Infinite, ct); return new HttpResponseMessage(); },
+            TimeSpan.FromMilliseconds(200));
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var dates = await client.GetAuditSlotsAsync(new DateOnly(2026, 12, 8), new DateOnly(2026, 12, 31), CancellationToken.None);
+
+        Assert.Null(dates);
+        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(2), $"took {sw.Elapsed}");
     }
 
     private static readonly GospodarLead Lead =
