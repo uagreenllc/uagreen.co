@@ -3,11 +3,14 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 usePageHead({ title: t('audit.consultTitle') })
 
-const f = reactive({ phone: '', website: '' })
+const f = reactive({ phone: '', website: '', captcha: '' })
+const captchaEl = ref<{ reset(): void }>()
 const phoneError = ref('')
 const { pending, error, done, run } = useForm<typeof f>(async (v) => {
   await $fetch(apiUrl('/audit/consultation'), { method: 'POST', body: v })
 })
+
+watch(error, e => e && captchaEl.value?.reset())
 
 function submit() {
   phoneError.value = f.phone.replace(/\D/g, '').length < 7 ? t('form.phoneInvalid') : ''
@@ -31,6 +34,7 @@ function submit() {
       </label>
       <!-- Honeypot: off-screen, never filled by people. -->
       <label class="hp" aria-hidden="true"><span>Website</span><input v-model="f.website" name="website" tabindex="-1" autocomplete="off"></label>
+      <Captcha ref="captchaEl" v-model="f.captcha" />
       <PrivacyNote />
       <p v-if="error" class="form-error">{{ error }}</p>
       <button class="btn" type="submit" :disabled="pending">{{ pending ? $t('form.sending') : $t('audit.callMe') }}</button>

@@ -9,17 +9,18 @@ usePageHead({ title: t('audit.bookTitle') })
 const { data: slots } = await useApiFetch<AuditSlots>('audit-slots', '/audit/slots')
 const hasDates = computed(() => !!slots.value && !slots.value.unavailable && slots.value.dates.length > 0)
 
-const f = reactive({ date: null as string | null, name: '', phone: '', email: '', address: '', comment: '', offer: false, website: '' })
+const f = reactive({ date: null as string | null, name: '', phone: '', email: '', address: '', comment: '', offer: false, website: '', captcha: '' })
 const errors = reactive<Record<string, string>>({})
 watch(() => f.date, () => { errors.date = '' })
 const liqPay = ref<Order['liqPay']>(null)
-const picked = computed(() => f.date && new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'uk-UA',
+const captchaEl = ref<{ reset(): void }>()
+const picked = computed(() => f.date && new Intl.DateTimeFormat(intlLocale(locale.value),
   { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(f.date)))
 
 const { pending, error, run } = useForm<typeof f>(async (v) => {
   const body: AuditBookingRequest = {
     name: v.name, phone: v.phone, email: v.email || null, address: v.address, comment: v.comment || null,
-    date: v.date!, offerAccepted: v.offer, lang: locale.value, website: v.website,
+    date: v.date!, offerAccepted: v.offer, lang: locale.value, website: v.website, captcha: v.captcha,
   }
   try {
     const order = await $fetch<Order>(apiUrl('/audit/bookings'), { method: 'POST', body })
@@ -34,6 +35,8 @@ const { pending, error, run } = useForm<typeof f>(async (v) => {
     throw e
   }
 })
+
+watch(error, e => e && captchaEl.value?.reset())
 
 function submit() {
   errors.date = f.date ? '' : t('audit.pickDate')
@@ -99,6 +102,7 @@ function submit() {
         <em v-if="errors.offer" class="err">{{ errors.offer }}</em>
         <!-- Honeypot: off-screen, never filled by people. -->
         <label class="hp" aria-hidden="true"><span>Website</span><input v-model="f.website" name="website" tabindex="-1" autocomplete="off"></label>
+        <Captcha ref="captchaEl" v-model="f.captcha" />
         <PrivacyNote />
         <p v-if="error" class="form-error">{{ error }}</p>
         <button class="btn" type="submit" :disabled="pending">

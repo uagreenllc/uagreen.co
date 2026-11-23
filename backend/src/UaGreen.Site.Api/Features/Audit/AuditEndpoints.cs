@@ -3,6 +3,7 @@ using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
 using UaGreen.Site.Api.Features.Orders;
 using UaGreen.Site.Api.Infrastructure.Auth;
+using UaGreen.Site.Api.Infrastructure.Captcha;
 using UaGreen.Site.Api.Infrastructure.Email;
 using UaGreen.Site.Api.Infrastructure.Payments;
 using UaGreen.Site.Api.Infrastructure.Persistence;
@@ -11,28 +12,28 @@ using UaGreen.Site.Api.Infrastructure.RateLimiting;
 namespace UaGreen.Site.Api.Features.Audit;
 
 /// `Website` is a honeypot: humans never see the field, bots fill it.
-public sealed record AuditConsultationDto(string Phone, string? Website);
+public sealed record AuditConsultationDto(string Phone, string? Website, string? Captcha);
 
 public sealed record AuditSlotsDto(DateOnly From, DateOnly To, IReadOnlyList<DateOnly> Dates, decimal Price, decimal? OldPrice, bool Unavailable);
 
 public sealed record AuditBookingRequest(string Name, string Phone, string? Email, string Address, string? Comment,
-    DateOnly Date, bool OfferAccepted, string? Lang, string? Website);
+    DateOnly Date, bool OfferAccepted, string? Lang, string? Website, string? Captcha);
 
 /// The site-audit flow at the end of the K5 story: a phone-only consultation request,
 /// and (see AuditBooking) a paid audit booked into Gospodar.
 public static class AuditEndpoints
 {
     public const string ConsultationText = "Консультація щодо аудиту ділянки";
-    public const string ProductName = "Аудит вітру на ділянці";
 
     public static void Map(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/audit/consultation", async (
-            AuditConsultationDto req, AppDbContext db, GospodarClient gospodar, Notifier notifier, CancellationToken ct) =>
+            AuditConsultationDto req, AppDbContext db, Notifier notifier, Turnstile captcha, CancellationToken ct) =>
         {
             if (!string.IsNullOrEmpty(req.Website)) return Results.Ok(new { ok = true });
             var phone = (req.Phone ?? "").Trim();
             if (phone.Length is < 7 or > 30) throw ProblemException.BadRequest("Phone is required");
+            await captcha.EnsureHumanAsync(req.Captcha, ct);
 
             var c = new ContactRequest
             {
@@ -41,13 +42,10 @@ public static class AuditEndpoints
                 Message = ConsultationText,
                 CreatedAt = DateTime.UtcNow,
             };
+            // CrmLeadSync pushes every ContactRequest to Gospodar's CRM (with retries); nothing to send here.
             db.ContactRequests.Add(c);
             await db.SaveChangesAsync(ct);
-
-            var pushed = await gospodar.PushLeadAsync(
-                new GospodarLead(c.Id.ToString(), null, phone, null, ConsultationText, ProductName), ct);
-            await notifier.NotifyManagersAsync($"Консультація щодо аудиту: {phone}",
-                $"{phone}\n\n{ConsultationText}\n\nУ Господар передано: {(pushed ? "так" : "ні")}", ct);
+            await notifier.NotifyManagersAsync($"Консультація щодо аудиту: {phone}", $"{phone}\n\n{ConsultationText}", ct);
             return Results.Ok(new { ok = true });
         }).AllowAnonymous().RequireRateLimiting(RateLimitingExtensions.Forms);
 
@@ -65,7 +63,8 @@ public static class AuditEndpoints
     }
 
     private static async Task<IResult> CreateBookingAsync(
-        AuditBookingRequest req, AppDbContext db, GospodarClient gospodar, LiqPayService liqpay, Notifier notifier, CancellationToken ct)
+        AuditBookingRequest req, AppDbContext db, GospodarClient gospodar, LiqPayService liqpay, Notifier notifier, Turnstile captcha,
+        CancellationToken ct)
     {
         if (!string.IsNullOrEmpty(req.Website)) // bot: pretend it worked, store nothing
             return Results.Ok(new { id = Guid.NewGuid(), number = 0, status = "New" });
@@ -79,6 +78,7 @@ public static class AuditEndpoints
         if (address.Length is < 5 or > 300) throw ProblemException.BadRequest("Address is required");
         if (comment?.Length > 1000) throw ProblemException.BadRequest("Comment is too long");
         if (!req.OfferAccepted) throw ProblemException.BadRequest("Offer must be accepted");
+        await captcha.EnsureHumanAsync(req.Captcha, ct);
 
         var now = DateTime.UtcNow;
         var (from, to) = AuditWindow.For(now);

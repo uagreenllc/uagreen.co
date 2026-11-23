@@ -15,6 +15,7 @@ public static class ErrorCodes
     public const string Conflict = "CONFLICT";
     public const string DateUnavailable = "DATE_UNAVAILABLE";
     public const string InvalidSignature = "INVALID_SIGNATURE";
+    public const string CaptchaFailed = "CAPTCHA_FAILED";
     public const string InternalError = "INTERNAL_ERROR";
 }
 

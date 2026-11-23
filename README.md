@@ -31,7 +31,7 @@ Old-URL audit (every Weblium URL must answer 200 or 301→200): `python tools/ch
 
 - API listens on `:8080`; config keys are the `Xxx__Yyy` env vars in
   `infra/docker/docker-compose.prod.yml` (`ConnectionStrings__Postgres`, `Jwt__*`,
-  `Gospodar__BaseUrl`, `Gospodar__ApiKey` (site key for `/api/integration/*`; empty = skip), `Storage__*`, `Smtp__*`, `LiqPay__*`, `Import__Dir`, …).
+  `Gospodar__BaseUrl`, `Gospodar__IntegrationKey` (site key for `/api/integration/*`; empty = skip), `Storage__*`, `Smtp__*`, `LiqPay__*`, `Import__Dir`, …).
 - Nuxt reads `NUXT_API_BASE` (API origin for SSR, `http://api:8080`), `NUXT_PUBLIC_API_BASE`
   (origin for the browser, empty = same origin), `NUXT_PUBLIC_SITE_URL` and
   `NUXT_PUBLIC_I18N_BASE_URL` (both the public origin; the second one is what hreflang,
@@ -43,6 +43,10 @@ Old-URL audit (every Weblium URL must answer 200 or 301→200): `python tools/ch
 - Media: plain files on the `media_data` volume (`Storage__Root`), served by nginx as
   `/media/<key>`; the admin uploads with `POST /api/admin/media` (multipart `file` + `folder`).
   CVs go to the `private_data` volume and are streamed via `GET /api/admin/applications/{id}/cv`.
+- Site statistics: `frontend/plugins/stats.client.ts` posts each page view to `POST /api/stats/hit`
+  (table `page_views`, no IP kept); the admin reads `GET /api/admin/stats`. Country comes from the
+  free DB-IP country CSV, which the API downloads monthly into `private_data/geo/` (outbound HTTPS
+  to download.db-ip.com). Setting `stats_disabled` turns the counter off.
 - Weblium export JSON contract: see `tools/scrape_weblium.py` / `docs/PLAN.md`.
 
 ## Deploy
@@ -55,4 +59,4 @@ DOMAIN=new.uagreen.co ADMIN_DOMAIN=admin-new.uagreen.co bash infra/scripts/deplo
 
 Before a prod deploy: `LIQPAY_SANDBOX=false` — LiqPay's `sandbox` status counts as paid, so a sandbox
 payment for a site audit would book a real trip in Gospodar. Staging uses the Gospodar test company's
-`GOSPODAR_API_KEY`, prod the UA GREEN one.
+`GOSPODAR_INTEGRATION_KEY`, prod the UA GREEN one.

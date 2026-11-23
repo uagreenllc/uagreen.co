@@ -7,7 +7,7 @@ const { locale } = useI18n()
 
 const weeks = computed(() => calendarWeeks(props.slots.from, props.slots.to, props.slots.dates))
 // Intl gives weekday and month names in both locales; timeZone UTC because the dates are plain calendar dates.
-const fmt = (opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale.value === 'en' ? 'en-GB' : 'uk-UA', { timeZone: 'UTC', ...opts })
+const fmt = (opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(intlLocale(locale.value), { timeZone: 'UTC', ...opts })
 const weekdays = computed(() => (weeks.value[0] ?? []).map(d => fmt({ weekday: 'short' }).format(new Date(d.iso))))
 const span = computed(() => {
   const m = fmt({ month: 'long', year: 'numeric' })

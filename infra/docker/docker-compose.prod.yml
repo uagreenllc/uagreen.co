@@ -35,7 +35,7 @@ services:
       Jwt__Issuer: ${JWT_ISSUER:-UaGreenApi}
       Jwt__Audience: ${JWT_AUDIENCE:-UaGreenApp}
       Gospodar__BaseUrl: ${GOSPODAR_BASE_URL}
-      Gospodar__ApiKey: ${GOSPODAR_API_KEY:-}
+      Gospodar__IntegrationKey: ${GOSPODAR_INTEGRATION_KEY:-}
       App__PublicBaseUrl: ${PUBLIC_BASE_URL}
       Cors__AllowedOrigins__0: ${ADMIN_BASE_URL}
       Smtp__Host: ${SMTP_HOST}
@@ -46,6 +46,7 @@ services:
       LiqPay__PublicKey: ${LIQPAY_PUBLIC_KEY}
       LiqPay__PrivateKey: ${LIQPAY_PRIVATE_KEY}
       LiqPay__Sandbox: ${LIQPAY_SANDBOX:-true}
+      Turnstile__SecretKey: ${TURNSTILE_SECRET_KEY:-}
       # Media are plain files on two volumes: public (served by nginx as /media/)
       # and private (job-application CVs, streamed through the API).
       Storage__Root: /data/media
@@ -67,6 +68,8 @@ services:
     build:
       context: ../../frontend
       dockerfile: Dockerfile
+      args:
+        NUXT_PUBLIC_SITE_URL: ${PUBLIC_BASE_URL}
     container_name: uagreen_site_web
     restart: unless-stopped
     environment:
@@ -78,6 +81,7 @@ services:
       NUXT_PUBLIC_API_BASE: ""
       # @nuxtjs/i18n bakes baseUrl at build time; this runtime override is what hreflang/canonical/og:url use.
       NUXT_PUBLIC_I18N_BASE_URL: ${PUBLIC_BASE_URL}
+      NUXT_PUBLIC_TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
     depends_on:
       - api
 
@@ -88,9 +92,10 @@ services:
     container_name: uagreen_site_nginx
     restart: unless-stopped
     ports:
-      # Port 8083 blocked externally via UFW — only the shared OberigAI nginx
-      # reaches it via the Docker host bridge (infra/nginx/vhost.conf.template).
-      - "8083:80"
+      # Bound to the docker0 bridge only (Docker bypasses UFW, so 0.0.0.0 would be
+      # public) — the shared OberigAI nginx reaches it as host.docker.internal:8083,
+      # same as Gospodar (8081) and TTApp (8082).
+      - "172.17.0.1:8083:80"
     volumes:
       - media_data:/usr/share/nginx/html/media:ro
     depends_on:

@@ -25,9 +25,6 @@ public sealed record GospodarUserPayload(
     bool IsActive,
     string[] Roles);
 
-/// Body of Gospodar's POST /api/integration/leads (idempotent by ExternalId).
-public sealed record GospodarLead(string ExternalId, string? Name, string? Phone, string? Email, string? Comment, string? ProductInterest);
-
 /// Body of Gospodar's POST /api/integration/audit-bookings — a paid site audit (idempotent by ExternalId).
 public sealed record GospodarAuditBooking(string ExternalId, string Name, string Phone, string? Email, string Address, string? Comment,
     DateOnly Date, decimal Amount, DateTime PaidAt, string PaymentRef, DateTime OfferAcceptedAt);
@@ -38,14 +35,30 @@ public sealed record GospodarAuditBooked(Guid DealId, Guid OrderId, Guid TripId,
 /// One user as returned by Gospodar's GET /api/users.
 public sealed record GospodarUserDto(Guid Id, string? Email, string? FullName, bool IsActive, IReadOnlyList<string>? Roles);
 
+/// A site form request as a Gospodar CRM lead (POST /api/integration/leads).
+public sealed record GospodarLead(string ExternalId, string Name, string Phone, string? Email, string? Comment, string Source);
+
 /// Gospodar (erp.uagreen.co) is the identity provider: login/refresh are proxied,
 /// user listing uses a short-lived service token signed with the shared key —
-/// a trimmed copy of TTApp's GospodarClient.
-public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IOptions<GospodarOptions> opts, ILogger<GospodarClient> log)
+/// a trimmed copy of TTApp's GospodarClient. Also the CRM that site leads go to.
+public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IOptions<GospodarOptions> gospodar, ILogger<GospodarClient> log)
 {
     private readonly JwtOptions _jwt = jwt.Value;
-    private readonly string _apiKey = opts.Value.ApiKey;
-    private readonly TimeSpan _visitorTimeout = opts.Value.IntegrationTimeout;
+    private readonly string _apiKey = gospodar.Value.IntegrationKey;
+    private readonly TimeSpan _visitorTimeout = gospodar.Value.IntegrationTimeout;
+
+    /// Creates (or, for a repeated ExternalId, finds) the CRM deal; throws on any non-2xx.
+    public async Task<Guid> CreateLeadAsync(GospodarLead lead, CancellationToken ct)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/integration/leads") { Content = JsonContent.Create(lead) };
+        req.Headers.Add("X-Api-Key", gospodar.Value.IntegrationKey);
+        using var resp = await http.SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode)
+            throw new HttpRequestException($"Gospodar lead {lead.ExternalId}: {(int)resp.StatusCode} {await resp.Content.ReadAsStringAsync(ct)}");
+        return (await resp.Content.ReadFromJsonAsync<LeadCreated>(ct))!.DealId;
+    }
+
+    private sealed record LeadCreated(Guid DealId);
 
     public Task<GospodarProxyResponse> LoginAsync(string email, string password, CancellationToken ct)
         => PostAsync("/api/auth/login", new { email, password }, ct);
@@ -84,17 +97,6 @@ public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IO
         {
             return null;
         }
-    }
-
-    /// A lead in Gospodar's CRM. False when the key is not configured or Gospodar did not accept it —
-    /// the caller has already saved the request and emails managers either way.
-    public async Task<bool> PushLeadAsync(GospodarLead lead, CancellationToken ct)
-    {
-        using var req = Integration(HttpMethod.Post, "/api/integration/leads");
-        if (req is null) return false;
-        req.Content = JsonContent.Create(lead);
-        using var resp = await SendAsync(req, "lead", ct, _visitorTimeout);
-        return resp is not null;
     }
 
     /// Days in [from, to] with a free audit specialist. Null when Gospodar can't tell (no key, down, error) —

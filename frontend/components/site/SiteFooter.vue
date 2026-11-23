@@ -4,7 +4,7 @@ const { locale } = useI18n()
 const settings = useSettings()
 
 const year = new Date().getFullYear()
-const address = computed(() => (locale.value === 'en' && settings.value?.address_en) || settings.value?.address || '')
+const address = computed(() => (locale.value !== 'uk' && settings.value?.address_en) || settings.value?.address || '')
 const phones = computed(() => splitList(settings.value?.phones))
 const emails = computed(() => splitList(settings.value?.emails))
 const socials = computed(() =>

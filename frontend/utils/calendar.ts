@@ -1,3 +1,6 @@
+/** Intl locale for a site locale code (weekday/month names, long dates). */
+export const intlLocale = (code: string) => ({ en: 'en-GB', cs: 'cs-CZ' } as Record<string, string>)[code] ?? 'uk-UA'
+
 export interface CalendarDay { iso: string; day: number; inWindow: boolean; free: boolean }
 
 const DAY = 86_400_000
