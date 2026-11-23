@@ -28,6 +28,7 @@ final sections = [
   Section('Контент сторінок', Icons.web, ['Editor'], contentPage),
   Section('Відгуки клієнтів', Icons.reviews, ['Editor'], reviewsPage),
   Section('Налаштування', Icons.settings, ['Editor'], () => const SettingsPage()),
+  Section('Аналітика', Icons.insights, ['Editor'], () => const AnalyticsPage()),
   Section('Сторонній код', Icons.code, ['Admin'], () => const CodePage()),
   Section('Вакансії', Icons.work, ['Hr'], vacanciesPage),
   Section('Відгуки на вакансії', Icons.badge, ['Hr'], applicationsPage),
