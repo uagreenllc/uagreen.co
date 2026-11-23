@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using UaGreen.Site.Api.Infrastructure.Chat;
 
@@ -20,11 +21,11 @@ public class GospodarChatClientTests
         }
     }
 
-    private static (GospodarChatClient, StubHandler) Make(Func<HttpRequestMessage, HttpResponseMessage>? respond = null)
+    private static (GospodarChatClient, StubHandler) Make(Func<HttpRequestMessage, HttpResponseMessage>? respond = null, string key = "k")
     {
         var stub = new StubHandler(respond ?? (_ => new HttpResponseMessage(HttpStatusCode.OK)));
         var http = new HttpClient(stub) { BaseAddress = new Uri("https://erp.test") };
-        return (new GospodarChatClient(http, Options.Create(new SiteChatOptions { ApiKey = "k" })), stub);
+        return (new GospodarChatClient(http, Options.Create(new SiteChatOptions { ApiKey = key }), NullLogger<GospodarChatClient>.Instance), stub);
     }
 
     [Fact]
@@ -38,6 +39,16 @@ public class GospodarChatClientTests
         Assert.Equal("k", r.Headers.GetValues("X-Api-Key").Single());
         Assert.Equal("tok", r.Headers.GetValues("X-Chat-Token").Single());
         Assert.Equal("Привіт", System.Text.Json.JsonDocument.Parse(stub.Body!).RootElement.GetProperty("text").GetString());
+    }
+
+    [Fact]
+    public async Task Disabled_sends_nothing()
+    {
+        var (c, stub) = Make(key: "");
+        var res = await c.SendAsync(HttpMethod.Get, "/questions", null, null, default);
+        Assert.Null(stub.Request);
+        Assert.Equal(503, res.Status);
+        Assert.Null(res.Json);
     }
 
     [Fact]
