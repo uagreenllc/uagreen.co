@@ -10,6 +10,15 @@ const [{ data: intro }, { data }] = await Promise.all([
 ])
 const list = computed(() => data.value ?? [])
 
+// The free form ("didn't find a vacancy") opens under the intro; focus its first field.
+const applying = ref(false)
+const applyEl = ref<HTMLElement>()
+async function openForm() {
+  applying.value = true
+  await nextTick()
+  applyEl.value?.querySelector('input')?.focus()
+}
+
 usePageHead({ title: t('vacancies.title'), description: excerpt(intro.value?.bodyHtml) })
 </script>
 
@@ -29,6 +38,8 @@ usePageHead({ title: t('vacancies.title'), description: excerpt(intro.value?.bod
       <h2 v-if="intro.title">{{ intro.title }}</h2>
       <div class="prose" v-html="intro.bodyHtml" />
     </section>
+    <button v-if="!applying" class="btn apply-btn" type="button" @click="openForm">{{ $t('vacancies.applyFree') }}</button>
+    <div v-else ref="applyEl" class="apply-free"><ApplicationForm /></div>
   </div>
 </template>
 
@@ -43,5 +54,7 @@ usePageHead({ title: t('vacancies.title'), description: excerpt(intro.value?.bod
 .empty { color: var(--ink-2); }
 .intro { margin-top: 72px; max-width: 860px; }
 .intro h2 { font-size: 26px; }
+.apply-btn { margin-top: 8px; }
+.apply-free { max-width: 860px; }
 @media (max-width: 700px) { .list a { flex-direction: column; gap: 4px; } .meta { text-align: left; } }
 </style>

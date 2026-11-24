@@ -135,12 +135,12 @@
     "key": "page.vacancies",
     "lang": "uk",
     "title": "Мегацікава робота та професійна команда",
-    "body_html": "<p>Ми вирощуємо найкращих фахівців! Для нас команда є головним ресурсом і рушійною силою компанії. Ми постійно навчаємо та розвиваємо наших співробітників!</p><h2>Не знайшли підходящої вакансії?<br>Просто заповніть форму.</h2><p><a href=\"https://forms.gle/j5TyjMBZJs34u3bw5\">Відгукнутися на вакансію</a></p>"
+    "body_html": "<p>Ми вирощуємо найкращих фахівців! Для нас команда є головним ресурсом і рушійною силою компанії. Ми постійно навчаємо та розвиваємо наших співробітників!</p><h2>Не знайшли підходящої вакансії?<br>Просто заповніть форму.</h2>"
   },
   {
     "key": "page.vacancies",
     "lang": "en",
     "title": "An Exciting Job and a Professional Team",
-    "body_html": "<p>We Develop Top Talent! Our team is our greatest asset and the driving force behind the company. We continuously train and support the professional growth of our employees!</p><h2>Didn't Find a Suitable Position?<br>Just Fill Out the Form.</h2><p><a href=\"https://forms.gle/j5TyjMBZJs34u3bw5\">Apply for the Position</a></p>"
+    "body_html": "<p>We Develop Top Talent! Our team is our greatest asset and the driving force behind the company. We continuously train and support the professional growth of our employees!</p><h2>Didn't Find a Suitable Position?<br>Just Fill Out the Form.</h2>"
   }
 ]
