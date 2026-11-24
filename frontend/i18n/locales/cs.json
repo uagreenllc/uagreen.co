@@ -64,7 +64,8 @@
     "phoneInvalid": "Zadejte telefonní číslo",
     "failed": "Odeslání se nezdařilo. Zkuste to znovu nebo nám zavolejte.",
     "privacyNote": "Odesláním formuláře souhlasíte se {link}",
-    "privacyLink": "zásadami ochrany osobních údajů"
+    "privacyLink": "zásadami ochrany osobních údajů",
+    "captchaFailed": "Nepodařilo se ověřit, že nejste robot. Počkejte pár sekund a odešlete formulář znovu."
   },
   "blog": {
     "title": "Blog",
@@ -188,21 +189,41 @@
       "h": "Proč svislá osa",
       "p1": "Rotor K5 se otáčí pomalu a téměř neslyšně, nevadí mu nárazy větru ani měnící se směr a nepotřebuje směrovku ani natáčení.",
       "p2": "Bezpřevodový generátor, brzdění balastní zátěží, krytí IP54: jeden servis ročně, přímo ze žebříku na stožáru.",
-      "facts": [{ "v": "38 dB", "l": "" }, { "v": "1,5 m/s", "l": "rozběh" }, { "v": "250 ot./min", "l": "" }, { "v": "−40…+60 °C", "l": "" }],
+      "facts": [{ "v": "38 dB", "l": "" }, { "v": "1,5 m/s", "l": "rozběh" }, { "v": "125 ot./min", "l": "" }, { "v": "−40…+60 °C", "l": "" }],
       "alt": "Větrná turbína K5 na stožáru"
     },
+    "reviews": { "h": "Recenze zákazníků" },
     "posts": { "h": "Blog", "all": "Všechny příspěvky" },
     "contact": {
       "h": "Probereme vaši lokalitu",
       "p": "Napište nebo zavolejte: posoudíme vítr a navrhneme stožár i sestavu pro vaše místo.",
       "btn": "Kontakty"
+    },
+    "seo": {
+      "title": "Větrná turbína se svislou osou 5 kW od výrobce — UA GREEN",
+      "description": "Větrná turbína K5 se svislou osou o výkonu 5 kW od ukrajinského výrobce, od {price}. Rozběh od 1,5 m/s, 38 dB, stožár 12–24 m, instalace ve 21 oblastech Ukrajiny."
+    },
+    "faq": {
+      "h": "Otázky k větrné turbíně 5 kW",
+      "items": [
+        { "q": "Kolik stojí větrná turbína se svislou osou 5 kW?", "a": "K5 stojí {price}. Sada obsahuje turbínu 5 kW 48 V, MPPT regulátor nabíjení 5 kW, balastní zátěž 5 kW a 50 m kabelu. Stožár 12, 18 nebo 24 m a instalaci lze přiobjednat na stránce produktu." },
+        { "q": "Kolik elektřiny vyrobí větrná turbína 5 kW?", "a": "Jmenovitých 5 kW (špičkově 6,5 kW) dává K5 při větru 12 m/s. Průměrný celoroční výkon je 1,3–2 kW, tedy zhruba 11–17 MWh za rok; v zimě je výroba v průměru o 30 % vyšší než v létě. Přesné číslo pro váš pozemek ukáže audit větru." },
+        { "q": "Při jakém větru K5 pracuje?", "a": "Rotor se rozbíhá od 1,5 m/s, pracovní rozsah je 2–25 m/s, jmenovitá rychlost 12 m/s. Konstrukce vydrží vítr až 45 m/s a při silném větru rotor brzdí balastní zátěž." },
+        { "q": "Svislá, nebo vodorovná osa: co je lepší pro dům?", "a": "Turbína s vodorovnou osou dá při silném a stálém větru více energie. Svislá zachytí vítr z libovolného směru bez směrovky a natáčení, nevadí jí nárazy větru, otáčí se pomalu (125 ot./min) a tiše, 38 dB, takže se hodí k rodinnému domu, kde jsou lidé." },
+        { "q": "Jaký stožár a základ jsou potřeba?", "a": "Stožár 12, 18 nebo 24 m se skládá z přírubových sekcí po 6 m a má servisní žebřík. Stojí na železobetonovém základu s kotevní deskou." },
+        { "q": "Jak turbínu připojit k domu a solárním panelům?", "a": "MPPT regulátor nabíjí baterie 48 V a hybridní střídač napájí dům. Ke stejnému střídači lze připojit i solární panely, takže vznikne větrně-solární elektrárna. Sestavu navrhneme podle vaší spotřeby." },
+        { "q": "Jak často potřebuje servis a kdy se zaplatí?", "a": "Servis jednou ročně nebo každých 12–15 MWh, přímo ze žebříku na stožáru. Generátor je bezpřevodový, takže se nemá skoro co opotřebovat. Návratnost závisí na tarifu: v průměru 1–2 roky pro firmy a 5–6 let pro domácnosti." },
+        { "q": "Kde se K5 vyrábí a jak ji získat?", "a": "Generátor a listy vyrábíme sami na Ukrajině, 80 % dílů je ukrajinských. Dodáváme po celé Ukrajině nebo si turbínu vyzvednete osobně ve Lvově; instalujeme ve 21 oblastech. Platit lze kartou, převodem na fakturu nebo na úvěr s 0 %." }
+      ]
     }
   },
   "story": {
+    "kicker": "Větrná turbína K5 se svislou osou · 5 kW",
     "title": "Od suroviny k větru.",
     "lead": "Větrnou turbínu K5 se svislou osou vyrábíme sami, od navíjení statoru až po instalaci u vás. Posouvejte stránku a uvidíte jak.",
     "hint": "Posouvejte",
     "svgLabel": "Jak se vyrábí, montuje a instaluje větrná turbína K5",
+    "railLabel": "Etapy",
     "rail": ["Generátor", "Listy", "Montáž", "Stožár", "Instalace"],
     "s1": {
       "h": "Srdcem K5 je generátor s permanentními magnety.",
@@ -217,7 +238,7 @@
     "s3": {
       "h": "Smontováno a poprvé roztočeno.",
       "p": "Hřídel Ø170, vzpěry, listy na generátor. Rotor se musí rozběhnout už od 1,5 m/s.",
-      "facts": [{ "v": "1,5 m/s", "l": "rozběh" }, { "v": "250 ot./min", "l": "" }, { "v": "300 kg", "l": "" }]
+      "facts": [{ "v": "1,5 m/s", "l": "rozběh" }, { "v": "125 ot./min", "l": "" }, { "v": "300 kg", "l": "" }]
     },
     "s4": {
       "h": "Základ, kotevní deska, šestimetrové sekce.",
