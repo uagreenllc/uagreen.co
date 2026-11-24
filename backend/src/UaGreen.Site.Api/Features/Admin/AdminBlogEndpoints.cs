@@ -12,12 +12,14 @@ namespace UaGreen.Site.Api.Features.Admin;
 public sealed record BlogUpsert(
     string Slug, string TitleUk, string? TitleEn, string? ExcerptUk, string? ExcerptEn, string BodyHtmlUk, string? BodyHtmlEn,
     string? CoverKey, string? Author, DateTime? PublishedAt, string? SeoTitleUk, string? SeoTitleEn, string? SeoDescUk, string? SeoDescEn,
-    string? SeoKeywordsUk, string? SeoKeywordsEn, bool NoIndex, bool NoFollow, bool Published);
+    string? SeoKeywordsUk, string? SeoKeywordsEn, bool NoIndex, bool NoFollow, bool Published,
+    string? TitleCs = null, string? ExcerptCs = null, string? BodyHtmlCs = null, string? SeoTitleCs = null, string? SeoDescCs = null, string? SeoKeywordsCs = null);
 
 public sealed record BlogAdminDto(
     Guid Id, string Slug, string TitleUk, string? TitleEn, string? ExcerptUk, string? ExcerptEn, string BodyHtmlUk, string? BodyHtmlEn,
     string? CoverKey, string? CoverUrl, string? Author, DateTime PublishedAt, string? SeoTitleUk, string? SeoTitleEn, string? SeoDescUk, string? SeoDescEn,
-    string? SeoKeywordsUk, string? SeoKeywordsEn, bool NoIndex, bool NoFollow, bool Published, DateTime UpdatedAt);
+    string? SeoKeywordsUk, string? SeoKeywordsEn, bool NoIndex, bool NoFollow, bool Published, DateTime UpdatedAt,
+    string? TitleCs, string? ExcerptCs, string? BodyHtmlCs, string? SeoTitleCs, string? SeoDescCs, string? SeoKeywordsCs);
 
 public static class AdminBlogEndpoints
 {
@@ -83,6 +85,8 @@ public static class AdminBlogEndpoints
         p.SeoTitleUk = Clean(req.SeoTitleUk); p.SeoTitleEn = Clean(req.SeoTitleEn);
         p.SeoDescUk = Clean(req.SeoDescUk); p.SeoDescEn = Clean(req.SeoDescEn);
         p.SeoKeywordsUk = Clean(req.SeoKeywordsUk); p.SeoKeywordsEn = Clean(req.SeoKeywordsEn);
+        p.TitleCs = Clean(req.TitleCs); p.ExcerptCs = Clean(req.ExcerptCs); p.BodyHtmlCs = Clean(req.BodyHtmlCs);
+        p.SeoTitleCs = Clean(req.SeoTitleCs); p.SeoDescCs = Clean(req.SeoDescCs); p.SeoKeywordsCs = Clean(req.SeoKeywordsCs);
         p.NoIndex = req.NoIndex; p.NoFollow = req.NoFollow;
         p.Published = req.Published;
         p.UpdatedAt = DateTime.UtcNow;
@@ -92,5 +96,6 @@ public static class AdminBlogEndpoints
         p.Id, p.Slug, p.TitleUk, p.TitleEn, p.ExcerptUk, p.ExcerptEn, p.BodyHtmlUk, p.BodyHtmlEn,
         p.CoverKey, p.CoverKey is null ? null : FileStorage.Url(p.CoverKey), p.Author, p.PublishedAt,
         p.SeoTitleUk, p.SeoTitleEn, p.SeoDescUk, p.SeoDescEn,
-        p.SeoKeywordsUk, p.SeoKeywordsEn, p.NoIndex, p.NoFollow, p.Published, p.UpdatedAt);
+        p.SeoKeywordsUk, p.SeoKeywordsEn, p.NoIndex, p.NoFollow, p.Published, p.UpdatedAt,
+        p.TitleCs, p.ExcerptCs, p.BodyHtmlCs, p.SeoTitleCs, p.SeoDescCs, p.SeoKeywordsCs);
 }

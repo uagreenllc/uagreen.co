@@ -40,7 +40,7 @@ public class ImportRunnerTests
         Assert.Equal("junior-assembly-fitter", (await db.Vacancies.SingleAsync()).Slug);
         Assert.Equal(2, await db.Content.CountAsync());
         Assert.Equal("https://www.instagram.com/uagreenllc", (await db.Settings.SingleAsync(s => s.Key == "socials.instagram")).Value);
-        Assert.Equal("+380668696072,+380957173772", (await db.Settings.SingleAsync(s => s.Key == "phones")).Value);
+        Assert.Equal("+380668696072,+380501112233", (await db.Settings.SingleAsync(s => s.Key == "phones")).Value);
         Assert.Equal("/vacancies/junior-assembly-fitter", (await db.Redirects.SingleAsync(r => r.FromPath == "/junior-assembly-fitter")).ToPath);
 
         Assert.Equal(["img1.jpg|image/jpeg"], uploaded); // already.jpg skipped

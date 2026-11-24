@@ -19,6 +19,13 @@ public sealed class BlogPost
     public string? SeoDescEn { get; set; }
     public string? SeoKeywordsUk { get; set; }
     public string? SeoKeywordsEn { get; set; }
+    /// Czech; empty → EN, then UK (Lang.Pick).
+    public string? TitleCs { get; set; }
+    public string? ExcerptCs { get; set; }
+    public string? BodyHtmlCs { get; set; }
+    public string? SeoTitleCs { get; set; }
+    public string? SeoDescCs { get; set; }
+    public string? SeoKeywordsCs { get; set; }
     /// robots meta: hide from search results / don't follow links in the body.
     public bool NoIndex { get; set; }
     public bool NoFollow { get; set; }
@@ -44,6 +51,16 @@ public sealed class Vacancy
     public string? NiceToHaveHtmlEn { get; set; }
     public string? ConditionsHtmlUk { get; set; }
     public string? ConditionsHtmlEn { get; set; }
+    /// Czech, incl. the meta labels (department … language), which have no EN columns: empty → UK.
+    public string? TitleCs { get; set; }
+    public string? RequirementsHtmlCs { get; set; }
+    public string? NiceToHaveHtmlCs { get; set; }
+    public string? ConditionsHtmlCs { get; set; }
+    public string? DepartmentCs { get; set; }
+    public string? EmploymentTypeCs { get; set; }
+    public string? CityCs { get; set; }
+    public string? ExperienceCs { get; set; }
+    public string? LanguageCs { get; set; }
     public bool IsActive { get; set; } = true;
     public int Sort { get; set; }
     public DateTime PublishedAt { get; set; }
@@ -72,6 +89,8 @@ public sealed class Review
     /// Name and city as shown, e.g. "Валерій, Кременчук".
     public string AuthorUk { get; set; } = "";
     public string? AuthorEn { get; set; }
+    public string? TextCs { get; set; }
+    public string? AuthorCs { get; set; }
     public bool Published { get; set; } = true;
     public int Sort { get; set; }
     public DateTime UpdatedAt { get; set; }

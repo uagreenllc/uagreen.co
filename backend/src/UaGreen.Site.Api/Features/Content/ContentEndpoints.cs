@@ -43,7 +43,7 @@ public static class ContentEndpoints
             var l = Lang.Norm(lang);
             var rows = await db.Reviews.AsNoTracking().Where(r => r.Published).OrderBy(r => r.Sort).ToListAsync(ct);
             return rows.Select(r => new ReviewDto(r.PhotoKey is null ? null : FileStorage.Url(r.PhotoKey),
-                Lang.PickReq(r.TextUk, r.TextEn, l), Lang.PickReq(r.AuthorUk, r.AuthorEn, l)));
+                Lang.PickReq(r.TextUk, r.TextEn, l, r.TextCs), Lang.PickReq(r.AuthorUk, r.AuthorEn, l, r.AuthorCs)));
         });
 
         // `admin.*` keys are back-office switches (CRM feeds) — not for the public site.

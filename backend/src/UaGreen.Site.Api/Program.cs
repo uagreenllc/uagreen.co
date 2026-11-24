@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using UaGreen.Site.Api.Common;
@@ -12,6 +13,7 @@ using UaGreen.Site.Api.Features.Admin;
 using UaGreen.Site.Api.Infrastructure.Auth;
 using UaGreen.Site.Api.Infrastructure.Crm;
 using UaGreen.Site.Api.Infrastructure.Captcha;
+using UaGreen.Site.Api.Infrastructure.Chat;
 using UaGreen.Site.Api.Infrastructure.Email;
 using UaGreen.Site.Api.Infrastructure.Geo;
 using UaGreen.Site.Api.Infrastructure.Import;
@@ -45,6 +47,14 @@ builder.Services.AddHttpClient<GospodarClient>((sp, http) =>
 builder.Services.AddHttpClient(nameof(CrmSync), http => http.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddScoped<CrmSync>();
 builder.Services.AddHostedService<CrmSyncWorker>();
+builder.Services.Configure<SiteChatOptions>(builder.Configuration.GetSection("SiteChat"));
+builder.Services.AddHttpClient<GospodarChatClient>((sp, http) =>
+{
+    var opts = sp.GetRequiredService<IOptions<GospodarOptions>>().Value;
+    http.BaseAddress = new Uri(opts.BaseUrl);
+    http.Timeout = opts.IntegrationTimeout; // a visitor waits on every chat call: 5 s cap, retries included
+}).AddStandardResilienceHandler(o => o.Retry.DisableForUnsafeHttpMethods()); // no retried POSTs: duplicate messages
+builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<SessionEpochCache>();
 builder.Services.AddHostedService<SessionEpochRefresher>();
 
@@ -162,6 +172,7 @@ UaGreen.Site.Api.Features.Orders.OrdersEndpoints.Map(app);
 UaGreen.Site.Api.Features.Forms.FormsEndpoints.Map(app);
 UaGreen.Site.Api.Features.Audit.AuditEndpoints.Map(app);
 UaGreen.Site.Api.Features.Stats.StatsEndpoints.Map(app);
+UaGreen.Site.Api.Features.Chat.ChatEndpoints.Map(app);
 
 AdminCatalogEndpoints.Map(app);
 AdminBlogEndpoints.Map(app);
