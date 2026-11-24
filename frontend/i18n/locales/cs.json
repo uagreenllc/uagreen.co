@@ -125,6 +125,8 @@
     "payment_Credit_hint": "Splátky přes partnerské banky; ozve se vám náš manažer.",
     "payment_MonoParts": "Nákup na splátky monobank",
     "payment_MonoParts_hint": "Až {n} splátek bez navýšení. Potvrzení v aplikaci monobank.",
+    "partsCount": "Počet splátek",
+    "perMonth": "měsíčně",
     "comment": "Poznámka",
     "summary": "Vaše objednávka",
     "editCart": "Upravit košík",

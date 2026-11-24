@@ -23,17 +23,30 @@ public class MonoPartsTests
     [InlineData(null, null)]
     public void NormalizePhone(string? input, string? expected) => Assert.Equal(expected, MonoPartsClient.NormalizePhone(input));
 
+    // Default 12: what the old site had in its monobank settings.
     [Theory]
-    [InlineData(null, 6)]
-    [InlineData("", 6)]
-    [InlineData("abc", 6)]
-    [InlineData("2", 6)]
+    [InlineData(null, 12)]
+    [InlineData("", 12)]
+    [InlineData("abc", 12)]
+    [InlineData("2", 12)]
     [InlineData("3", 3)]
     [InlineData("25", 25)]
     public void MaxParts(string? s, int expected) => Assert.Equal(expected, MonoPartsClient.MaxParts(s));
 
     [Fact]
     public void Parts_from_three_to_max() => Assert.Equal([3, 4, 5, 6], MonoPartsClient.Parts(6));
+
+    [Fact]
+    public void PartsFor_chosen_count_is_the_only_option() => Assert.Equal([4], MonoPartsClient.PartsFor(4, 6)!);
+
+    [Fact]
+    public void PartsFor_no_choice_offers_the_range() => Assert.Equal([3, 4, 5, 6], MonoPartsClient.PartsFor(null, 6)!);
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(7)]
+    [InlineData(0)]
+    public void PartsFor_out_of_range_is_null(int chosen) => Assert.Null(MonoPartsClient.PartsFor(chosen, 6));
 
     [Fact]
     public void BuildCreateBody_has_bank_fields()
@@ -44,7 +57,7 @@ public class MonoPartsTests
             Items = [new OrderItem { ProductName = "К5", Qty = 1, UnitPrice = 14999.99m, LineTotal = 14999.99m }],
         };
 
-        var body = MonoPartsClient.BuildCreateBody(o, "+380501234561", 4,
+        var body = MonoPartsClient.BuildCreateBody(o, "+380501234561", [3, 4],
             "https://uagreen.co/api/payments/monoparts/callback", new DateOnly(2026, 11, 24));
 
         var j = JsonDocument.Parse(body).RootElement;

@@ -125,6 +125,8 @@
     "payment_Credit_hint": "Instalments via partner banks; a manager will contact you.",
     "payment_MonoParts": "monobank Pay in Parts",
     "payment_MonoParts_hint": "Up to {n} interest-free payments. You confirm in the monobank app.",
+    "partsCount": "Number of payments",
+    "perMonth": "per month",
     "comment": "Comment",
     "summary": "Your order",
     "editCart": "Edit cart",

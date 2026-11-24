@@ -121,6 +121,8 @@
     "payment_Credit_hint": "Розстрочка в банках-партнерах, менеджер зв'яжеться з вами.",
     "payment_MonoParts": "Покупка частинами monobank",
     "payment_MonoParts_hint": "До {n} платежів без переплати. Підтвердження в застосунку monobank.",
+    "partsCount": "Кількість платежів",
+    "perMonth": "на місяць",
     "comment": "Коментар",
     "summary": "Ваше замовлення",
     "editCart": "Змінити кошик",

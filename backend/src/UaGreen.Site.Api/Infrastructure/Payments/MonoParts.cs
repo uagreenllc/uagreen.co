@@ -36,9 +36,9 @@ public sealed class MonoPartsClient(HttpClient http, IOptions<MonoPartsOptions> 
     private readonly string _base = app.Value.PublicBaseUrl.TrimEnd('/');
 
     /// Returns the bank's order_id. A repeat with the same store_order_id returns the same id, so retries are safe.
-    public async Task<string> CreateAsync(Order o, string phone, int maxParts, CancellationToken ct)
+    public async Task<string> CreateAsync(Order o, string phone, int[] parts, CancellationToken ct)
     {
-        var body = BuildCreateBody(o, phone, maxParts, $"{_base}/api/payments/monoparts/callback", DateOnly.FromDateTime(DateTime.UtcNow));
+        var body = BuildCreateBody(o, phone, parts, $"{_base}/api/payments/monoparts/callback", DateOnly.FromDateTime(DateTime.UtcNow));
         using var doc = await PostAsync("/api/order/create", body, ct);
         return doc.RootElement.TryGetProperty("order_id", out var id) && id.GetString() is { Length: > 0 } s
             ? s : throw new MonoPartsException("monobank не повернув order_id");
@@ -92,20 +92,29 @@ public sealed class MonoPartsClient(HttpClient http, IOptions<MonoPartsOptions> 
         return null;
     }
 
-    /// Admin setting pay_parts_max: 3..25, anything else → 6.
+    /// Admin setting pay_parts_max: 3..25, anything else → 12 (the old site's default).
     public static int MaxParts(string? setting) =>
-        int.TryParse(setting?.Trim(), out var n) && n is >= 3 and <= 25 ? n : 6;
+        int.TryParse(setting?.Trim(), out var n) && n is >= 3 and <= 25 ? n : 12;
 
     public static int[] Parts(int max) => Enumerable.Range(3, Math.Max(1, max - 2)).ToArray();
 
-    public static byte[] BuildCreateBody(Order o, string phone, int maxParts, string callbackUrl, DateOnly today) =>
+    /// The count the customer picked at checkout is the only one offered; no pick → the whole range
+    /// (the client then chooses in the app). Out of range → null.
+    public static int[]? PartsFor(int? chosen, int max) => chosen switch
+    {
+        null => Parts(max),
+        >= 3 when chosen <= max => [chosen.Value],
+        _ => null,
+    };
+
+    public static byte[] BuildCreateBody(Order o, string phone, int[] parts, string callbackUrl, DateOnly today) =>
         JsonSerializer.SerializeToUtf8Bytes(new
         {
             store_order_id = o.Id.ToString(),
             client_phone = phone,
             total_sum = o.Total,
             invoice = new { date = today.ToString("yyyy-MM-dd"), number = o.Number.ToString(), source = "INTERNET" },
-            available_programs = new[] { new { available_parts_count = Parts(maxParts), type = "payment_installments" } },
+            available_programs = new[] { new { available_parts_count = parts, type = "payment_installments" } },
             products = o.Items.Select(i => new { name = i.ProductName, count = i.Qty, sum = i.LineTotal }).ToArray(),
             result_callback = callbackUrl,
         });

@@ -115,6 +115,8 @@ export interface CreateOrder {
   customer: { name: string; phone: string; email: string | null }
   delivery: { method: DeliveryMethod; city: string | null; warehouse: string | null }
   paymentMethod: PaymentMethod
+  /** MonoParts only: the number of payments the customer picked (3..pay_parts_max). */
+  parts: number | null
   comment: string | null
   items: { productId: string; qty: number; optionValueIds: string[] }[]
   lang: string

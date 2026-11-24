@@ -19,7 +19,7 @@ public sealed record DeliveryDto(string Method, string? City, string? Warehouse)
 /// `Website` is a honeypot: humans never see the field, bots fill it.
 public sealed record CreateOrderRequest(
     CustomerDto Customer, DeliveryDto Delivery, string PaymentMethod, string? Comment,
-    List<OrderLineRequest> Items, string? Lang, string? Website, string? Captcha);
+    List<OrderLineRequest> Items, string? Lang, string? Website, string? Captcha, int? Parts = null);
 
 public sealed record OrderItemDto(string ProductName, string? OptionsText, int Qty, decimal UnitPrice, decimal LineTotal);
 public sealed record OrderDto(Guid Id, int Number, string Status, string PaymentMethod, decimal Subtotal, decimal DeliveryCost,
@@ -58,8 +58,17 @@ public static class OrdersEndpoints
             throw ProblemException.BadRequest("Unknown payment method");
         if (await MethodOffAsync(db, payment, cardOpts.Value, partsOpts.Value, ct))
             throw ProblemException.BadRequest("Payment method is turned off");
-        var partsPhone = payment != PaymentMethod.MonoParts ? null
-            : MonoPartsClient.NormalizePhone(phone) ?? throw ProblemException.BadRequest("Для покупки частинами потрібен український номер +380…");
+        string? partsPhone = null;
+        int[]? partsCounts = null;
+        if (payment == PaymentMethod.MonoParts)
+        {
+            partsPhone = MonoPartsClient.NormalizePhone(phone)
+                ?? throw ProblemException.BadRequest("Для покупки частинами потрібен український номер +380…");
+            var max = MonoPartsClient.MaxParts(
+                await db.Settings.Where(s => s.Key == PaymentSettings.PartsMax).Select(s => s.Value).FirstOrDefaultAsync(ct));
+            partsCounts = MonoPartsClient.PartsFor(req.Parts, max)
+                ?? throw ProblemException.BadRequest($"Кількість платежів — від 3 до {max}");
+        }
         if (!Enum.TryParse<DeliveryMethod>(req.Delivery?.Method, true, out var delivery))
             throw ProblemException.BadRequest("Unknown delivery method");
         var offKey = $"delivery.{delivery}.off"; // set in admin → Доставка
@@ -109,17 +118,17 @@ public static class OrdersEndpoints
             bankNote = await TryNewInvoiceAsync(order, card, lf, ct);
         else if (payment == PaymentMethod.MonoParts)
         {
-            var max = await db.Settings.Where(s => s.Key == PaymentSettings.PartsMax).Select(s => s.Value).FirstOrDefaultAsync(ct);
+            bankNote = req.Parts is { } n ? $"Покупка частинами: {n} платежів" : null;
             try
             {
-                order.PaymentRef = await parts.CreateAsync(order, partsPhone!, MonoPartsClient.MaxParts(max), ct);
+                order.PaymentRef = await parts.CreateAsync(order, partsPhone!, partsCounts!, ct);
                 order.PaymentStatus = "IN_PROCESS/WAITING_FOR_CLIENT";
             }
             catch (MonoPartsException ex)
             {
                 order.Status = OrderStatus.New; // the manual path: a manager calls the customer
                 order.PaymentStatus = "FAIL/CREATE_ERROR";
-                bankNote = $"monobank не прийняв заявку на покупку частинами: {ex.Message}";
+                bankNote = $"{bankNote}\nmonobank не прийняв заявку на покупку частинами: {ex.Message}".Trim();
             }
         }
         if (payment is PaymentMethod.Card or PaymentMethod.MonoParts) await db.SaveChangesAsync(ct);

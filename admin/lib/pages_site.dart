@@ -250,7 +250,7 @@ class PaymentsPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (p.get('_cfg_MonoParts') == '0') _notConfigured(theme),
-                      kvField(p, 'pay_parts_max', 'Максимум платежів', helper: 'від 3 до 25; порожньо — 6',
+                      kvField(p, 'pay_parts_max', 'Максимум платежів', helper: 'від 3 до 25; порожньо — 12',
                           enabled: p.get('pay_MonoParts') != 'off',
                           validate: (v) => (int.tryParse(v) ?? 0) >= 3 && (int.tryParse(v) ?? 0) <= 25 ? null : 'Від 3 до 25'),
                     ],
