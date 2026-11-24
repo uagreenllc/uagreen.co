@@ -181,6 +181,7 @@ UaGreen.Site.Api.Features.Blog.BlogEndpoints.Map(app);
 UaGreen.Site.Api.Features.Vacancies.VacanciesEndpoints.Map(app);
 UaGreen.Site.Api.Features.Content.ContentEndpoints.Map(app);
 UaGreen.Site.Api.Features.Orders.OrdersEndpoints.Map(app);
+UaGreen.Site.Api.Features.Orders.PaymentWebhooks.Map(app);
 UaGreen.Site.Api.Features.Forms.FormsEndpoints.Map(app);
 UaGreen.Site.Api.Features.Audit.AuditEndpoints.Map(app);
 UaGreen.Site.Api.Features.Stats.StatsEndpoints.Map(app);
