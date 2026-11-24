@@ -63,12 +63,43 @@ public class PaymentSyncTests
         Assert.Equal("failure", o.PaymentStatus);
     }
 
+    // Money arrived on an order the manager closed: never reopen it, but tell a human — once.
     [Fact]
-    public void Card_success_on_cancelled_order_does_not_reopen_it()
+    public void Card_success_on_cancelled_order_tells_managers_once()
     {
         var o = Card(OrderStatus.Cancelled);
-        Assert.Equal(PayNotice.None, PaymentSync.ApplyCard(o, Inv("success"), Now));
+        Assert.Equal(PayNotice.PaidInactive, PaymentSync.ApplyCard(o, Inv("success"), Now));
         Assert.Equal(OrderStatus.Cancelled, o.Status);
+        Assert.Equal(PayNotice.None, PaymentSync.ApplyCard(o, Inv("success"), Now.AddMinutes(1)));
+    }
+
+    [Fact]
+    public void Card_success_on_shipped_order_is_quiet()
+    {
+        var o = Card(OrderStatus.Shipped);
+        o.PaymentStatus = "success";
+        Assert.Equal(PayNotice.None, PaymentSync.ApplyCard(o, Inv("success"), Now));
+    }
+
+    // An older invoice of the same order (second tab, retry after a failure) got paid.
+    [Fact]
+    public void AppliesTo_foreign_invoice_only_when_paid_for_this_order()
+    {
+        var o = Card();
+        Assert.True(PaymentSync.AppliesTo(o, "inv_1", Inv("failure")));
+        Assert.True(PaymentSync.AppliesTo(o, "inv_old", new MonoInvoiceStatus("inv_old", "success", 1499999, 980, o.Id.ToString())));
+        Assert.False(PaymentSync.AppliesTo(o, "inv_old", new MonoInvoiceStatus("inv_old", "failure", 1499999, 980, o.Id.ToString())));
+        Assert.False(PaymentSync.AppliesTo(o, "inv_old", new MonoInvoiceStatus("inv_old", "success", 1499999, 980, Guid.NewGuid().ToString())));
+        Assert.False(PaymentSync.AppliesTo(o, "inv_old", new MonoInvoiceStatus("inv_old", "success", 1499999, 980)));
+    }
+
+    // Our own reject (admin cancels a waiting application) comes back as a FAIL callback: not a bank refusal.
+    [Fact]
+    public void Parts_rejected_by_store_while_waiting_is_not_a_refusal()
+    {
+        var o = Parts();
+        Assert.Equal(PayNotice.None, PaymentSync.ApplyParts(o, St("FAIL", "REJECTED_BY_STORE"), Now));
+        Assert.Equal(OrderStatus.AwaitingPayment, o.Status);
     }
 
     [Fact]

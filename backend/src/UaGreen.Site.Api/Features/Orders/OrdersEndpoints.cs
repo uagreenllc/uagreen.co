@@ -118,7 +118,7 @@ public static class OrdersEndpoints
             bankNote = await TryNewInvoiceAsync(order, card, lf, ct);
         else if (payment == PaymentMethod.MonoParts)
         {
-            bankNote = req.Parts is { } n ? $"Покупка частинами: {n} платежів" : null;
+            bankNote = req.Parts is { } n ? $"Покупка частинами, кількість платежів — {n}" : null;
             try
             {
                 order.PaymentRef = await parts.CreateAsync(order, partsPhone!, partsCounts!, ct);

@@ -50,14 +50,23 @@ public static class PaymentWebhooks
     {
         if (request.ContentLength > 65536) return Results.Ok();
         using var reader = new StreamReader(request.Body);
-        var id = ExtractId(await reader.ReadToEndAsync(ct), field);
-        var o = id is null ? null : await db.Orders.FirstOrDefaultAsync(x => x.PaymentRef == id, ct);
+        var body = await reader.ReadToEndAsync(ct);
+        var id = ExtractId(body, field);
+        if (id is null) return Results.Ok();
+        // A card invoice carries our order id as `reference`: it finds the order even when the paid invoice is
+        // an older one (a second tab, a retry after a failure). PaymentSync checks that against the bank.
+        var o = Guid.TryParse(field == "invoiceId" ? ExtractId(body, "reference") : null, out var orderId)
+            ? await db.Orders.FirstOrDefaultAsync(x => x.Id == orderId, ct)
+            : null;
+        o ??= await db.Orders.FirstOrDefaultAsync(x => x.PaymentRef == id, ct);
         if (o is null) return Results.Ok();
         try
         {
-            await sync.RefreshAsync(o, ct);
+            // Not the request's token: the bank hanging up must not stop us applying what it told us.
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await sync.RefreshAsync(o, cts.Token, field == "invoiceId" ? id : null);
         }
-        catch (Exception ex) when (ex is MonobankException or MonoPartsException)
+        catch (Exception ex) when (ex is MonobankException or MonoPartsException or OperationCanceledException)
         {
             lf.CreateLogger("monobank").LogWarning("Webhook for order {Number}: status read failed: {Error}", o.Number, ex.Message);
         }

@@ -15,7 +15,8 @@ public sealed class MonobankOptions
 }
 
 public sealed record MonoInvoice(string InvoiceId, string PageUrl);
-public sealed record MonoInvoiceStatus(string InvoiceId, string Status, long Amount, int Ccy);
+/// `Reference` is our order id, set when the invoice was created.
+public sealed record MonoInvoiceStatus(string InvoiceId, string Status, long Amount, int Ccy, string? Reference = null);
 
 public sealed class MonobankException(string message) : Exception(message);
 
