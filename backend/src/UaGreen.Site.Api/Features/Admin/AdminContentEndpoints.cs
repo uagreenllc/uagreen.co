@@ -113,11 +113,16 @@ public static class AdminContentEndpoints
         });
 
         // Платіжні системи: which checkout methods are on + company requisites for the IBAN transfer.
+        // Opening the page pulls the requisites from Gospodar right away (PaymentRequisitesSync does it every 15 min).
         var p = app.MapGroup("/api/admin/payments").RequireAuthorization(Policies.Admin);
-        p.MapGet("", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, PaymentSettings.Prefix, ct));
+        p.MapGet("", async (AppDbContext db, GospodarClient gospodar, IOutputCacheStore cache, ILogger<PaymentRequisitesSync> log, CancellationToken ct) =>
+        {
+            await PaymentSettings.SyncAsync(db, gospodar, cache, log, ct);
+            return await SettingsAsync(db, PaymentSettings.Prefix, ct);
+        });
         p.MapPut("", async (Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
         {
-            PaymentSettings.Validate(req);
+            PaymentSettings.Validate(req, await SettingsAsync(db, PaymentSettings.Prefix, ct));
             await UpsertAsync(req, db, cache, ct);
             return Results.Ok(await SettingsAsync(db, PaymentSettings.Prefix, ct));
         });
