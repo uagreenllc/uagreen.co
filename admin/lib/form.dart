@@ -507,6 +507,8 @@ class _FieldViewState extends State<FieldView> {
                         Expanded(child: textField(o, 'nameUk', 'Опція (UK)', required: true)),
                         AppSpacing.hGapSm,
                         Expanded(child: textField(o, 'nameEn', 'Опція (EN)')),
+                        AppSpacing.hGapSm,
+                        Expanded(child: textField(o, 'nameCs', 'Опція (CS)')),
                         IconButton(
                           tooltip: 'Видалити опцію',
                           icon: const Icon(Icons.delete_outline),
@@ -528,6 +530,8 @@ class _FieldViewState extends State<FieldView> {
                             Expanded(child: textField(v, 'valueUk', 'Значення (UK)', required: true)),
                             AppSpacing.hGapSm,
                             Expanded(child: textField(v, 'valueEn', 'Значення (EN)')),
+                            AppSpacing.hGapSm,
+                            Expanded(child: textField(v, 'valueCs', 'Значення (CS)')),
                             AppSpacing.hGapSm,
                             SizedBox(
                               width: 140,

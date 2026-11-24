@@ -60,22 +60,22 @@ public static class CatalogEndpoints
                 .FirstOrDefaultAsync(x => x.Slug == slug && x.Published, ct)
                 ?? throw ProblemException.NotFound("Product not found");
             return new ProductDto(
-                p.Slug, p.Sku, Lang.PickReq(p.NameUk, p.NameEn, l), Lang.Pick(p.ShortDescUk, p.ShortDescEn, l),
+                p.Slug, p.Sku, Lang.PickReq(p.NameUk, p.NameEn, l, p.NameCs), Lang.Pick(p.ShortDescUk, p.ShortDescEn, l, p.ShortDescCs),
                 p.Price, p.OldPrice, p.InStock, p.IsFeatured, p.Category?.Slug,
                 p.Category is null ? null : Lang.PickReq(p.Category.NameUk, p.Category.NameEn, l, p.Category.NameCs),
-                Lang.Pick(p.DescriptionHtmlUk, p.DescriptionHtmlEn, l),
-                Lang.Pick(p.SpecsHtmlUk, p.SpecsHtmlEn, l),
-                Lang.Pick(p.FaqHtmlUk, p.FaqHtmlEn, l),
+                Lang.Pick(p.DescriptionHtmlUk, p.DescriptionHtmlEn, l, p.DescriptionHtmlCs),
+                Lang.Pick(p.SpecsHtmlUk, p.SpecsHtmlEn, l, p.SpecsHtmlCs),
+                Lang.Pick(p.FaqHtmlUk, p.FaqHtmlEn, l, p.FaqHtmlCs),
                 p.Images.OrderBy(i => i.Sort).Select(i => new ImageDto(FileStorage.Url(i.Key), i.Alt)).ToList(),
                 p.Files.Select(f => new FileDto(FileStorage.Url(f.Key), f.Title)).ToList(),
-                p.Options.OrderBy(o => o.Sort).Select(o => new OptionDto(o.Id, Lang.PickReq(o.NameUk, o.NameEn, l),
-                    o.Values.OrderBy(v => v.Sort).Select(v => new OptionValueDto(v.Id, Lang.PickReq(v.ValueUk, v.ValueEn, l), v.PriceDelta)).ToList())).ToList(),
-                Lang.Pick(p.SeoTitleUk, p.SeoTitleEn, l), Lang.Pick(p.SeoDescUk, p.SeoDescEn, l), p.Id, p.OberigMonitoring);
+                p.Options.OrderBy(o => o.Sort).Select(o => new OptionDto(o.Id, Lang.PickReq(o.NameUk, o.NameEn, l, o.NameCs),
+                    o.Values.OrderBy(v => v.Sort).Select(v => new OptionValueDto(v.Id, Lang.PickReq(v.ValueUk, v.ValueEn, l, v.ValueCs), v.PriceDelta)).ToList())).ToList(),
+                Lang.Pick(p.SeoTitleUk, p.SeoTitleEn, l, p.SeoTitleCs), Lang.Pick(p.SeoDescUk, p.SeoDescEn, l, p.SeoDescCs), p.Id, p.OberigMonitoring);
         });
     }
 
     public static ProductCardDto ToCard(Product p, string l) => new(
-        p.Slug, p.Sku, Lang.PickReq(p.NameUk, p.NameEn, l), Lang.Pick(p.ShortDescUk, p.ShortDescEn, l),
+        p.Slug, p.Sku, Lang.PickReq(p.NameUk, p.NameEn, l, p.NameCs), Lang.Pick(p.ShortDescUk, p.ShortDescEn, l, p.ShortDescCs),
         p.Price, p.OldPrice, p.InStock, p.IsFeatured,
         p.Images.OrderBy(i => i.Sort).Select(i => FileStorage.Url(i.Key)).FirstOrDefault(),
         p.Category?.Slug, p.Category is null ? null : Lang.PickReq(p.Category.NameUk, p.Category.NameEn, l, p.Category.NameCs));

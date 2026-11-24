@@ -1,11 +1,10 @@
 <script setup lang="ts">
 const localePath = useLocalePath()
-const { locale } = useI18n()
 const settings = useSettings()
 const oberig = useOberig()
 
 const year = new Date().getFullYear()
-const address = computed(() => (locale.value !== 'uk' && settings.value?.address_en) || settings.value?.address || '')
+const address = useLocalSetting('address')
 const phones = computed(() => splitList(settings.value?.phones))
 const emails = computed(() => splitList(settings.value?.emails))
 const socials = computed(() =>

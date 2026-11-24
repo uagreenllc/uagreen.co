@@ -33,9 +33,10 @@ public static class VacanciesEndpoints
     }
 
     private static VacancyDto ToDto(Vacancy v, string l) => new(
-        v.Slug, Lang.PickReq(v.TitleUk, v.TitleEn, l), v.Department, v.EmploymentType, v.City, v.Experience, v.Language,
-        Lang.Pick(v.RequirementsHtmlUk, v.RequirementsHtmlEn, l),
-        Lang.Pick(v.NiceToHaveHtmlUk, v.NiceToHaveHtmlEn, l),
-        Lang.Pick(v.ConditionsHtmlUk, v.ConditionsHtmlEn, l),
+        v.Slug, Lang.PickReq(v.TitleUk, v.TitleEn, l, v.TitleCs), Lang.PickReq(v.Department, null, l, v.DepartmentCs), Lang.PickReq(v.EmploymentType, null, l, v.EmploymentTypeCs),
+        Lang.PickReq(v.City, null, l, v.CityCs), Lang.Pick(v.Experience, null, l, v.ExperienceCs), Lang.Pick(v.Language, null, l, v.LanguageCs),
+        Lang.Pick(v.RequirementsHtmlUk, v.RequirementsHtmlEn, l, v.RequirementsHtmlCs),
+        Lang.Pick(v.NiceToHaveHtmlUk, v.NiceToHaveHtmlEn, l, v.NiceToHaveHtmlCs),
+        Lang.Pick(v.ConditionsHtmlUk, v.ConditionsHtmlEn, l, v.ConditionsHtmlCs),
         v.PublishedAt);
 }
