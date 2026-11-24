@@ -3,6 +3,8 @@ using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
 using UaGreen.Site.Api.Infrastructure.Auth;
 using UaGreen.Site.Api.Infrastructure.Crm;
+using UaGreen.Site.Api.Features.Orders;
+using UaGreen.Site.Api.Infrastructure.Payments;
 using UaGreen.Site.Api.Infrastructure.Persistence;
 using static UaGreen.Site.Api.Features.Admin.AdminCommon;
 
@@ -57,13 +59,21 @@ public static class AdminOrdersEndpoints
             return await PageAsync(query.OrderByDescending(o => o.CreatedAt), page, pageSize, o => ToDto(o, null), ct);
         });
 
-        g.MapGet("/{id:guid}", async (Guid id, AppDbContext db, CancellationToken ct) =>
-            ToDto(await LoadAsync(db, id, ct, track: false)));
+        g.MapGet("/{id:guid}", async (Guid id, AppDbContext db, PaymentSync sync, CancellationToken ct) =>
+        {
+            var o = await LoadAsync(db, id, ct);
+            await sync.RefreshIfStaleAsync(o, ct);
+            return ToDto(o);
+        });
 
-        g.MapPatch("/{id:guid}/status", async (Guid id, OrderStatusUpdate req, HttpContext http, AppDbContext db, CancellationToken ct) =>
+        g.MapPatch("/{id:guid}/status", async (Guid id, OrderStatusUpdate req, HttpContext http, AppDbContext db,
+            PaymentSync sync, MonoPartsClient parts, CancellationToken ct) =>
         {
             if (!Enum.TryParse<OrderStatus>(req.Status, true, out var st)) throw ProblemException.BadRequest("Невідомий статус");
             var o = await LoadAsync(db, id, ct);
+            if (o.Status != st && o.PaymentMethod == PaymentMethod.MonoParts && o.PaymentRef is not null
+                && st is OrderStatus.Shipped or OrderStatus.Cancelled)
+                await ApplyBankStepAsync(o, st, http, db, sync, parts, ct);
             if (o.Status != st)
             {
                 Log(db, o, http, $"Статус: {StatusUk[o.Status]} → {StatusUk[st]}");
@@ -121,8 +131,11 @@ public static class AdminOrdersEndpoints
                 }
             }
             if (o.Items.Count == 0) throw ProblemException.BadRequest("У замовленні має лишитися хоча б одна позиція");
+            var oldTotal = o.Total;
             o.Subtotal = o.Items.Sum(i => i.LineTotal);
             o.Total = o.Subtotal + o.DeliveryCost;
+            if (o.Total != oldTotal && AdminPaymentRules.TotalLocked(o))
+                throw ProblemException.BadRequest("Суму вже передано в банк. Скасуйте замовлення й оформіть нове");
 
             if (changes.Count > 0)
             {
@@ -141,6 +154,30 @@ public static class AdminOrdersEndpoints
             await db.SaveChangesAsync(ct);
             return Results.Ok(ToDto(await LoadAsync(db, id, ct, track: false)));
         });
+    }
+
+    /// Shipping confirms the hand-over in monobank (the bank then pays the store), cancelling withdraws the
+    /// application. The bank state is re-read first; on any refusal the status stays as it was.
+    private static async Task ApplyBankStepAsync(
+        Order o, OrderStatus to, HttpContext http, AppDbContext db, PaymentSync sync, MonoPartsClient parts, CancellationToken ct)
+    {
+        try
+        {
+            var before = o.Status;
+            await sync.RefreshAsync(o, ct);
+            if (o.Status != before)
+                throw ProblemException.BadRequest($"monobank щойно змінив стан заявки ({o.PaymentStatus}), статус тепер «{StatusUk[o.Status]}». Перевірте замовлення");
+            var (step, message) = AdminPaymentRules.ForStatus(o, to);
+            if (step == BankStep.Block) throw ProblemException.BadRequest(message!);
+            if (step is not (BankStep.Confirm or BankStep.Reject)) return;
+            var state = step == BankStep.Confirm ? await parts.ConfirmAsync(o.PaymentRef!, ct) : await parts.RejectAsync(o.PaymentRef!, ct);
+            o.PaymentStatus = state.Text;
+            Log(db, o, http, step == BankStep.Confirm ? $"monobank: видачу підтверджено ({state.Text})" : $"monobank: заявку відкликано ({state.Text})");
+        }
+        catch (Exception ex) when (ex is MonoPartsException or MonobankException)
+        {
+            throw ProblemException.BadRequest($"Монобанк не прийняв зміну: {ex.Message}");
+        }
     }
 
     private static string Show<T>(T v) => v switch
