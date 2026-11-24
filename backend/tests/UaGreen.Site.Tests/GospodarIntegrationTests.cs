@@ -87,7 +87,7 @@ public class GospodarIntegrationTests
                 System.Text.Encoding.UTF8, "application/json"),
         });
         var booking = new GospodarAuditBooking("ext-1", "Олена", "+380501112233", null, "с. Хроли", null,
-            new DateOnly(2026, 12, 8), 15000m, new DateTime(2026, 11, 23, 10, 0, 0, DateTimeKind.Utc), "liqpay:123",
+            new DateOnly(2026, 12, 8), 15000m, new DateTime(2026, 11, 23, 10, 0, 0, DateTimeKind.Utc), "mono:inv_1",
             new DateTime(2026, 11, 23, 9, 58, 0, DateTimeKind.Utc));
 
         var r = await client.BookAuditAsync(booking, CancellationToken.None);
@@ -100,7 +100,7 @@ public class GospodarIntegrationTests
         using var json = JsonDocument.Parse(body!);
         Assert.Equal("ext-1", json.RootElement.GetProperty("externalId").GetString());
         Assert.Equal("2026-12-08", json.RootElement.GetProperty("date").GetString());
-        Assert.Equal("liqpay:123", json.RootElement.GetProperty("paymentRef").GetString());
+        Assert.Equal("mono:inv_1", json.RootElement.GetProperty("paymentRef").GetString());
         Assert.Equal(15000m, json.RootElement.GetProperty("amount").GetDecimal());
     }
 

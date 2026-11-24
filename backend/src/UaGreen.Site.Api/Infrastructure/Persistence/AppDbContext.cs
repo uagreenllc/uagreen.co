@@ -93,6 +93,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             e.Property(x => x.DeliveryCost).HasPrecision(12, 2);
             e.Property(x => x.Total).HasPrecision(12, 2);
             e.Property(x => x.AuditAddress).HasMaxLength(300);
+            e.Property(x => x.PaymentStatus).HasMaxLength(64);
+            e.Property(x => x.PaymentRef).HasMaxLength(64);
+            e.HasIndex(x => x.PaymentRef);
+            e.Property(x => x.PayUrl).HasMaxLength(500);
             e.HasMany(x => x.Items).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Events).WithOne().HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Cascade);
             e.Property(x => x.AdminNote).HasMaxLength(4000);

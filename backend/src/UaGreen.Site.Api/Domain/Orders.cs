@@ -11,7 +11,8 @@ public enum OrderStatus
     Cancelled,
 }
 
-public enum PaymentMethod { LiqPay, Invoice, Credit }
+/// Card = monobank internet acquiring; Credit = the manual state 0 % energy credit; MonoParts = monobank «Покупка частинами».
+public enum PaymentMethod { Card, Invoice, Credit, MonoParts }
 
 public enum DeliveryMethod { NovaPoshta, Ukrposhta, Pickup }
 
@@ -56,7 +57,14 @@ public sealed class Order : ICrmLinked
     /// Gospodar's answer: false = the day was taken meanwhile and a manager will reschedule.
     public bool? AuditDateWasFree { get; set; }
 
-    public string? LiqPayStatus { get; set; }
+    /// Bank-side state: acquiring invoice status (`success`, …) or pay-in-parts `STATE/SUB_STATE`.
+    public string? PaymentStatus { get; set; }
+    /// monobank invoiceId (Card) or pay-in-parts order_id (MonoParts); webhooks find the order by it.
+    public string? PaymentRef { get; set; }
+    /// Hosted payment page of the current Card invoice.
+    public string? PayUrl { get; set; }
+    /// Last time the status was read from the bank (throttles refresh-on-read).
+    public DateTime? PaymentCheckedAt { get; set; }
     public DateTime? PaidAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

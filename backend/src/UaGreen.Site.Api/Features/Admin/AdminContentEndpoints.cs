@@ -117,7 +117,9 @@ public static class AdminContentEndpoints
         p.MapGet("", async (AppDbContext db, CancellationToken ct) => await SettingsAsync(db, PaymentSettings.Prefix, ct));
         p.MapPut("", async (Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
         {
-            PaymentSettings.Validate(req);
+            var current = await db.Settings.AsNoTracking().Where(s => s.Key.StartsWith(PaymentSettings.Prefix))
+                .ToDictionaryAsync(s => s.Key, s => s.Value, ct);
+            PaymentSettings.Validate(req, current);
             await UpsertAsync(req, db, cache, ct);
             return Results.Ok(await SettingsAsync(db, PaymentSettings.Prefix, ct));
         });

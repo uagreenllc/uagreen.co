@@ -63,7 +63,7 @@ public static class AuditEndpoints
     }
 
     private static async Task<IResult> CreateBookingAsync(
-        AuditBookingRequest req, AppDbContext db, GospodarClient gospodar, LiqPayService liqpay, Notifier notifier, Turnstile captcha,
+        AuditBookingRequest req, AppDbContext db, GospodarClient gospodar, Notifier notifier, Turnstile captcha,
         CancellationToken ct)
     {
         if (!string.IsNullOrEmpty(req.Website)) // bot: pretend it worked, store nothing
@@ -97,7 +97,7 @@ public static class AuditEndpoints
             Email = string.IsNullOrWhiteSpace(req.Email) ? null : req.Email.Trim(),
             DeliveryMethod = DeliveryMethod.Pickup, // nothing ships; never shown for an audit
             Comment = comment,
-            PaymentMethod = PaymentMethod.LiqPay,
+            PaymentMethod = PaymentMethod.Card,
             Subtotal = product.Price,
             Total = product.Price,
             AuditDate = req.Date,
@@ -117,11 +117,10 @@ public static class AuditEndpoints
         db.Orders.Add(order);
         await db.SaveChangesAsync(ct);
 
-        var (data, signature) = liqpay.BuildCheckout(order, lang);
         await notifier.NotifyManagersAsync($"Аудит очікує оплати №{order.Number} — {req.Date:dd.MM.yyyy}",
             $"{name}, {phone}{(order.Email is null ? "" : ", " + order.Email)}\nАдреса: {address}\nДата: {req.Date:dd.MM.yyyy}\n" +
             $"{(comment is null ? "" : $"Коментар: {comment}\n")}Сума: {order.Total:N0} грн", ct);
-        return Results.Ok(OrdersEndpoints.ToDto(order, new LiqPayCheckoutDto(LiqPayService.CheckoutUrl, data, signature)));
+        return Results.Ok(OrdersEndpoints.ToDto(order));
     }
 
     private static async Task<Product> AuditProductAsync(AppDbContext db, CancellationToken ct) =>

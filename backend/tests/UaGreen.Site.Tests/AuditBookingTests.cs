@@ -37,11 +37,11 @@ public class AuditBookingTests
     {
         var o = Audit(OrderStatus.Paid);
 
-        var r = AuditBooking.ToRequest(o, 123);
+        var r = AuditBooking.ToRequest(o, "mono:inv_1");
 
         Assert.Equal(o.Id.ToString(), r.ExternalId);
         Assert.Equal(15000m, r.Amount);
-        Assert.Equal("liqpay:123", r.PaymentRef);
+        Assert.Equal("mono:inv_1", r.PaymentRef);
         Assert.Equal(new DateOnly(2026, 12, 8), r.Date);
         Assert.Equal(o.PaidAt, r.PaidAt);
         Assert.Equal(o.OfferAcceptedAt, r.OfferAcceptedAt);

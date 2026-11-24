@@ -31,7 +31,8 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
 builder.Services.Configure<NotificationOptions>(builder.Configuration.GetSection("Notifications"));
-builder.Services.Configure<LiqPayOptions>(builder.Configuration.GetSection("LiqPay"));
+builder.Services.Configure<MonobankOptions>(builder.Configuration.GetSection("Monobank"));
+builder.Services.Configure<MonoPartsOptions>(builder.Configuration.GetSection("MonoParts"));
 builder.Services.Configure<FileStorageOptions>(builder.Configuration.GetSection("Storage"));
 builder.Services.AddOptions<GospodarOptions>()
     .Bind(builder.Configuration.GetSection("Gospodar"))
@@ -112,7 +113,17 @@ builder.Services.AddHttpClient<Turnstile>(http => http.Timeout = TimeSpan.FromSe
 
 builder.Services.AddSingleton<FileStorage>();
 builder.Services.AddScoped<Notifier>();
-builder.Services.AddSingleton<LiqPayService>();
+// No resilience retries: an acquiring invoice/create is not idempotent.
+builder.Services.AddHttpClient<MonobankAcquiring>(http =>
+{
+    http.BaseAddress = new Uri(MonobankAcquiring.BaseUrl);
+    http.Timeout = TimeSpan.FromSeconds(20);
+});
+builder.Services.AddHttpClient<MonoPartsClient>((sp, http) =>
+{
+    http.BaseAddress = new Uri(sp.GetRequiredService<IOptions<MonoPartsOptions>>().Value.BaseUrl);
+    http.Timeout = TimeSpan.FromSeconds(20);
+});
 builder.Services.AddHostedService<ImportRunner>();
 builder.Services.AddSingleton<GeoIp>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<GeoIp>());
@@ -127,7 +138,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 // Behind the stack nginx (and the shared TLS nginx): restore the client IP / scheme
-// so per-IP rate limits and LiqPay URLs see the real values.
+// so per-IP rate limits and payment callback URLs see the real values.
 var fwd = new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto };
 fwd.KnownNetworks.Clear();
 fwd.KnownProxies.Clear();

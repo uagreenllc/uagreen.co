@@ -460,10 +460,6 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("gospodar_booked_at");
 
-                    b.Property<string>("LiqPayStatus")
-                        .HasColumnType("text")
-                        .HasColumnName("liq_pay_status");
-
                     b.Property<int>("Number")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -479,11 +475,30 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("paid_at");
 
+                    b.Property<string>("PayUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("pay_url");
+
+                    b.Property<DateTime?>("PaymentCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("payment_checked_at");
+
                     b.Property<string>("PaymentMethod")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
                         .HasColumnName("payment_method");
+
+                    b.Property<string>("PaymentRef")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("payment_ref");
+
+                    b.Property<string>("PaymentStatus")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("payment_status");
 
                     b.Property<string>("Phone")
                         .IsRequired()
@@ -516,6 +531,9 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.HasIndex("Number")
                         .IsUnique()
                         .HasDatabaseName("ix_orders_number");
+
+                    b.HasIndex("PaymentRef")
+                        .HasDatabaseName("ix_orders_payment_ref");
 
                     b.ToTable("orders", (string)null);
                 });

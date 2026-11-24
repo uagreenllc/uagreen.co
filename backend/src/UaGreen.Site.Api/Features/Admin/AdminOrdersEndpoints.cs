@@ -14,7 +14,7 @@ public sealed record CrmStateDto(Guid? DealId, DateTime? SyncedAt, string? Error
 public sealed record OrderAdminDto(
     Guid Id, int Number, string Status, string CustomerName, string Phone, string? Email,
     string DeliveryMethod, string? DeliveryCity, string? DeliveryWarehouse, string? Comment, string PaymentMethod,
-    decimal Subtotal, decimal DeliveryCost, decimal Total, string? LiqPayStatus, DateTime? PaidAt, DateTime CreatedAt, DateTime UpdatedAt,
+    decimal Subtotal, decimal DeliveryCost, decimal Total, string? PaymentStatus, DateTime? PaidAt, DateTime CreatedAt, DateTime UpdatedAt,
     IReadOnlyList<OrderItemAdminDto> Items, string? AdminNote, CrmStateDto Crm, IReadOnlyList<OrderEventDto>? Events);
 public sealed record OrderStatusUpdate(string Status);
 public sealed record OrderItemEdit(Guid Id, int Qty, decimal UnitPrice);
@@ -166,7 +166,7 @@ public static class AdminOrdersEndpoints
     private static OrderAdminDto ToDto(Order o, IReadOnlyList<OrderEventDto>? events) => new(
         o.Id, o.Number, o.Status.ToString(), o.CustomerName, o.Phone, o.Email,
         o.DeliveryMethod.ToString(), o.DeliveryCity, o.DeliveryWarehouse, o.Comment, o.PaymentMethod.ToString(),
-        o.Subtotal, o.DeliveryCost, o.Total, o.LiqPayStatus, o.PaidAt, o.CreatedAt, o.UpdatedAt,
+        o.Subtotal, o.DeliveryCost, o.Total, o.PaymentStatus, o.PaidAt, o.CreatedAt, o.UpdatedAt,
         o.Items.Select(i => new OrderItemAdminDto(i.Id, i.ProductId, i.ProductName, i.OptionsText, i.Qty, i.UnitPrice, i.LineTotal)).ToList(),
         o.AdminNote, new CrmStateDto(o.CrmDealId, o.CrmSyncedAt, o.CrmError, o.CrmAttempts), events);
 }

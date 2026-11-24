@@ -20,10 +20,9 @@ public sealed record CreateOrderRequest(
     CustomerDto Customer, DeliveryDto Delivery, string PaymentMethod, string? Comment,
     List<OrderLineRequest> Items, string? Lang, string? Website, string? Captcha);
 
-public sealed record LiqPayCheckoutDto(string CheckoutUrl, string Data, string Signature);
 public sealed record OrderItemDto(string ProductName, string? OptionsText, int Qty, decimal UnitPrice, decimal LineTotal);
 public sealed record OrderDto(Guid Id, int Number, string Status, string PaymentMethod, decimal Subtotal, decimal DeliveryCost,
-    decimal Total, DateTime CreatedAt, IReadOnlyList<OrderItemDto> Items, LiqPayCheckoutDto? LiqPay,
+    decimal Total, DateTime CreatedAt, IReadOnlyList<OrderItemDto> Items, string? PayUrl, string? PaymentStatus,
     DateOnly? AuditDate, string? AuditAddress, bool? AuditConfirmed);
 
 public static class OrdersEndpoints
@@ -37,14 +36,12 @@ public static class OrdersEndpoints
         {
             var o = await db.Orders.AsNoTracking().Include(x => x.Items).FirstOrDefaultAsync(x => x.Id == id, ct)
                 ?? throw ProblemException.NotFound("Order not found");
-            return ToDto(o, null);
+            return ToDto(o);
         }).AllowAnonymous();
-
-        app.MapPost("/api/payments/liqpay/callback", LiqPayCallbackAsync).AllowAnonymous().DisableAntiforgery();
     }
 
     private static async Task<IResult> CreateAsync(
-        CreateOrderRequest req, AppDbContext db, LiqPayService liqpay, Notifier notifier, Turnstile captcha, CancellationToken ct)
+        CreateOrderRequest req, AppDbContext db, Notifier notifier, Turnstile captcha, CancellationToken ct)
     {
         if (!string.IsNullOrEmpty(req.Website)) // bot: pretend it worked, store nothing
             return Results.Ok(new { id = Guid.NewGuid(), number = 0, status = "New" });
@@ -79,7 +76,7 @@ public static class OrdersEndpoints
             Id = Guid.NewGuid(),
             Status = payment switch
             {
-                PaymentMethod.LiqPay => OrderStatus.AwaitingPayment,
+                PaymentMethod.Card or PaymentMethod.MonoParts => OrderStatus.AwaitingPayment,
                 PaymentMethod.Credit => OrderStatus.Credit,
                 _ => OrderStatus.New,
             },
@@ -101,67 +98,13 @@ public static class OrdersEndpoints
         db.Orders.Add(order);
         await db.SaveChangesAsync(ct);
 
-        LiqPayCheckoutDto? checkout = null;
-        if (payment == PaymentMethod.LiqPay)
-        {
-            var (data, signature) = liqpay.BuildCheckout(order, lang);
-            checkout = new LiqPayCheckoutDto(LiqPayService.CheckoutUrl, data, signature);
-        }
-
         await notifier.NotifyManagersAsync($"Нове замовлення №{order.Number} — {order.Total:N0} грн", Describe(order), ct);
-        return Results.Ok(ToDto(order, checkout));
+        return Results.Ok(ToDto(order));
     }
 
-    private static async Task<IResult> LiqPayCallbackAsync(
-        HttpRequest request, AppDbContext db, LiqPayService liqpay, GospodarClient gospodar, Notifier notifier, ILoggerFactory lf, CancellationToken ct)
-    {
-        var log = lf.CreateLogger("LiqPay");
-        var form = await request.ReadFormAsync(ct);
-        string data = form["data"]!, signature = form["signature"]!;
-        if (string.IsNullOrEmpty(data) || !liqpay.VerifySignature(data, signature))
-            throw ProblemException.BadRequest("Invalid signature", ErrorCodes.InvalidSignature);
-
-        var cb = LiqPayService.Decode(data) ?? throw ProblemException.BadRequest("Malformed data");
-        if (!Guid.TryParse(cb.OrderId, out var orderId)) throw ProblemException.BadRequest("Unknown order");
-        var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == orderId, ct) ?? throw ProblemException.NotFound("Order not found");
-
-        order.LiqPayStatus = cb.Status;
-        order.UpdatedAt = DateTime.UtcNow;
-        if (LiqPayService.IsPaid(cb.Status) && order.Status != OrderStatus.Paid)
-        {
-            if (cb.Amount != order.Total || !string.Equals(cb.Currency, "UAH", StringComparison.OrdinalIgnoreCase))
-            {
-                // Signed, but not for what we charged — never auto-mark paid, let a human look.
-                log.LogWarning("LiqPay amount mismatch for order {Number}: got {Amount} {Currency}, expected {Total}",
-                    order.Number, cb.Amount, cb.Currency, order.Total);
-            }
-            else
-            {
-                order.Status = OrderStatus.Paid;
-                order.PaidAt = DateTime.UtcNow;
-                await notifier.NotifyManagersAsync($"Оплачено замовлення №{order.Number} — {order.Total:N0} грн",
-                    $"LiqPay payment_id {cb.PaymentId}, status {cb.Status}.", ct);
-            }
-        }
-        await db.SaveChangesAsync(ct);
-
-        // After the save: a Gospodar failure must never lose the paid status. Only a valid paid callback books
-        // (a refund or mismatched-amount callback must not), and on its own token: LiqPay hanging up must not
-        // cancel the booking or the manager email.
-        var paidCallback = LiqPayService.IsPaid(cb.Status) && cb.Amount == order.Total
-            && string.Equals(cb.Currency, "UAH", StringComparison.OrdinalIgnoreCase);
-        if (paidCallback && AuditBooking.ShouldBook(order))
-        {
-            using var bookCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-            await AuditBooking.SendAsync(order, cb.PaymentId, gospodar, notifier, bookCts.Token);
-            await db.SaveChangesAsync(bookCts.Token);
-        }
-        return Results.Ok();
-    }
-
-    public static OrderDto ToDto(Order o, LiqPayCheckoutDto? liqpay) => new(
+    public static OrderDto ToDto(Order o) => new(
         o.Id, o.Number, o.Status.ToString(), o.PaymentMethod.ToString(), o.Subtotal, o.DeliveryCost, o.Total, o.CreatedAt,
-        o.Items.Select(i => new OrderItemDto(i.ProductName, i.OptionsText, i.Qty, i.UnitPrice, i.LineTotal)).ToList(), liqpay,
+        o.Items.Select(i => new OrderItemDto(i.ProductName, i.OptionsText, i.Qty, i.UnitPrice, i.LineTotal)).ToList(), o.PayUrl, o.PaymentStatus,
         o.AuditDate, o.AuditAddress, o.AuditDate is null ? null : o.AuditDateWasFree == true);
 
     private static string Describe(Order o)

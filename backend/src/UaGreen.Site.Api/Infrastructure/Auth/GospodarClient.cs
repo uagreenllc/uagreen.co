@@ -138,7 +138,7 @@ public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IO
 
     /// The response on 2xx, null (logged) on anything else — the visitor's request never fails because of Gospodar.
     /// `timeout` caps the whole call including the resilience retries; null = the HttpClient's own limits
-    /// (the paid-audit booking runs in the LiqPay callback, where waiting is fine and giving up early is not).
+    /// (the paid-audit booking runs in the payment sync, where waiting is fine and giving up early is not).
     private async Task<HttpResponseMessage?> SendAsync(HttpRequestMessage req, string what, CancellationToken ct, TimeSpan? timeout = null)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);

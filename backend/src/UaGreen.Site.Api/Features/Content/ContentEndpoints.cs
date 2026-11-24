@@ -1,5 +1,8 @@
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using UaGreen.Site.Api.Common;
+using UaGreen.Site.Api.Features.Orders;
+using UaGreen.Site.Api.Infrastructure.Payments;
 using UaGreen.Site.Api.Infrastructure.Persistence;
 using UaGreen.Site.Api.Infrastructure.Storage;
 
@@ -47,8 +50,13 @@ public static class ContentEndpoints
         });
 
         // `admin.*` keys are back-office switches (CRM feeds) — not for the public site.
-        g.MapGet("/settings/public", async (AppDbContext db, CancellationToken ct) =>
-            await db.Settings.AsNoTracking().Where(s => !s.Key.StartsWith("admin.")).ToDictionaryAsync(s => s.Key, s => s.Value, ct));
+        // A payment method without its bank keys on the server reads as switched off.
+        g.MapGet("/settings/public", async (AppDbContext db, IOptions<MonobankOptions> card, IOptions<MonoPartsOptions> parts, CancellationToken ct) =>
+        {
+            var s = await db.Settings.AsNoTracking().Where(s => !s.Key.StartsWith("admin.")).ToDictionaryAsync(s => s.Key, s => s.Value, ct);
+            foreach (var m in PaymentSettings.Unconfigured(card.Value, parts.Value)) s[PaymentSettings.OffKey(m)] = PaymentSettings.Off;
+            return s;
+        });
 
         g.MapGet("/redirects", async (AppDbContext db, CancellationToken ct) =>
             await db.Redirects.AsNoTracking().Select(r => new RedirectDto(r.FromPath, r.ToPath)).ToListAsync(ct));

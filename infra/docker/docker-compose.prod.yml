@@ -44,9 +44,10 @@ services:
       Smtp__Password: ${SMTP_PASSWORD}
       Smtp__From: ${SMTP_FROM}
       Notifications__OrderEmail: ${ORDER_EMAIL}
-      LiqPay__PublicKey: ${LIQPAY_PUBLIC_KEY}
-      LiqPay__PrivateKey: ${LIQPAY_PRIVATE_KEY}
-      LiqPay__Sandbox: ${LIQPAY_SANDBOX:-true}
+      Monobank__Token: ${MONOBANK_TOKEN:-}
+      MonoParts__BaseUrl: ${MONOPARTS_BASE_URL:-https://u2.monobank.com.ua}
+      MonoParts__StoreId: ${MONOPARTS_STORE_ID:-}
+      MonoParts__Secret: ${MONOPARTS_SECRET:-}
       Turnstile__SecretKey: ${TURNSTILE_SECRET_KEY:-}
       # Media are plain files on two volumes: public (served by nginx as /media/)
       # and private (job-application CVs, streamed through the API).

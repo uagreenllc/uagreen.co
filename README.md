@@ -4,7 +4,7 @@ Public site + back office for UA GREEN, replacing the Weblium build.
 Plan and architecture: [docs/PLAN.md](docs/PLAN.md).
 
 ```
-backend/    .NET 9 API (UaGreen.Site.Api) — catalog, blog, vacancies, orders, LiqPay, admin API
+backend/    .NET 9 API (UaGreen.Site.Api) — catalog, blog, vacancies, orders, monobank payments, admin API
 frontend/   Nuxt 3 SSR public site
 admin/      Flutter web back office (login via Gospodar / erp.uagreen.co)
 tools/      scrape_weblium.py — one-off export of the old site
@@ -31,7 +31,11 @@ Old-URL audit (every Weblium URL must answer 200 or 301→200): `python tools/ch
 
 - API listens on `:8080`; config keys are the `Xxx__Yyy` env vars in
   `infra/docker/docker-compose.prod.yml` (`ConnectionStrings__Postgres`, `Jwt__*`,
-  `Gospodar__BaseUrl`, `Gospodar__IntegrationKey` (site key for `/api/integration/*`; empty = skip), `Storage__*`, `Smtp__*`, `LiqPay__*`, `Import__Dir`, …).
+  `Gospodar__BaseUrl`, `Gospodar__IntegrationKey` (site key for `/api/integration/*`; empty = skip), `Storage__*`, `Smtp__*`,
+  `Monobank__Token` (card: internet acquiring), `MonoParts__BaseUrl/StoreId/Secret` (pay in parts; empty = method hidden), `Import__Dir`, …).
+- Payments: the bank's webhook/callback only wakes the API (`/api/payments/monobank/webhook`,
+  `/api/payments/monoparts/callback`); the status is always re-read from monobank with our own key, and
+  opening an order that waits for the bank re-reads it too (so it also works where the bank cannot call back).
 - Nuxt reads `NUXT_API_BASE` (API origin for SSR, `http://api:8080`), `NUXT_PUBLIC_API_BASE`
   (origin for the browser, empty = same origin), `NUXT_PUBLIC_SITE_URL` and
   `NUXT_PUBLIC_I18N_BASE_URL` (both the public origin; the second one is what hreflang,
@@ -57,6 +61,7 @@ bash infra/scripts/deploy.sh --ssl    # first deploy of a domain (vhost + certbo
 DOMAIN=new.uagreen.co ADMIN_DOMAIN=admin-new.uagreen.co bash infra/scripts/deploy.sh --ssl   # staging
 ```
 
-Before a prod deploy: `LIQPAY_SANDBOX=false` — LiqPay's `sandbox` status counts as paid, so a sandbox
-payment for a site audit would book a real trip in Gospodar. Staging uses the Gospodar test company's
+Before a prod deploy: a live `MONOBANK_TOKEN` (a test token from api.monobank.ua accepts any card as paid,
+so a test payment for a site audit would book a real trip in Gospodar) and `MONOPARTS_BASE_URL=https://u2.monobank.com.ua`
+with the store-id/secret monobank issued. Staging uses the Gospodar test company's
 `GOSPODAR_INTEGRATION_KEY`, prod the UA GREEN one.
