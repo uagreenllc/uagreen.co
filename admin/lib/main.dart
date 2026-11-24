@@ -63,8 +63,8 @@ final sections = [
   Section('analytics', 'Аналітика', Icons.insights_outlined, const ['Editor'], () => const AnalyticsPage(), group: _shop),
   Section('code', 'Сторонній код', Icons.code, const ['Admin'], () => const CodePage(), group: _shop),
   Section('vacancies', 'Вакансії', Icons.work_outline, const ['Hr'], () => const VacanciesPage(), group: _hr),
-  Section('applications', 'Відгуки на вакансії', Icons.badge_outlined, const ['Hr'], () => const ApplicationsPage(),
-      badge: (s) => _n(s['applications']?['unread']), group: _hr),
+  Section('applications', 'Не доставлені відгуки', Icons.sync_problem_outlined, const ['Hr'], () => const ApplicationsPage(),
+      badge: (s) => _n(s['applications']?['undelivered']), group: _hr),
   Section('users', 'Користувачі', Icons.manage_accounts_outlined, const ['Admin'], () => const UsersPage(), group: _access),
 ];
 

@@ -4,13 +4,20 @@ import 'package:uagreen_ui/uagreen_ui.dart';
 import 'api.dart';
 import 'form.dart';
 import 'list.dart';
-import 'main.dart' show nav;
 
 // ── Vacancies (HR) ──
 
 const _vac = '/admin/vacancies';
 
-const _vacancyFields = [
+/// Open Gospodar vacancies; a linked one that is closed there now stays selectable, so saving
+/// the form doesn't silently unlink it.
+Future<List<(Object?, String)>> _gospodarChoices(Object? current) async {
+  final list = [for (final v in await api.get('$_vac/gospodar') as List) (v['id'] as Object?, '${v['name']}')];
+  if (current != null && !list.any((x) => x.$1 == current)) list.add((current, 'Закрита або недоступна вакансія Господаря'));
+  return list;
+}
+
+List<F> _vacancyFields(J? row) => [
   F.section('Основне'),
   F('titleUk', 'Назва (UK)', required: true),
   F('titleEn', 'Назва (EN)'),
@@ -27,6 +34,10 @@ const _vacancyFields = [
   F('experienceCs', 'Досвід (CS)'),
   F('languageCs', 'Мова (CS)'),
   F('isActive', 'Активна (видно на сайті)', t: T.bool),
+  F('gospodarVacancyId', 'Вакансія в Господарі',
+      t: T.select,
+      choices: () => _gospodarChoices(row?['gospodarVacancyId']),
+      hint: 'Сюди в Господарі потрапляють відгуки на цю вакансію. «—» — у «Відгуки з сайту».'),
   F('sort', 'Порядок', t: T.int),
   F('publishedAt', 'Дата публікації', t: T.date),
   F.section('Опис'),
@@ -51,23 +62,17 @@ class _VacanciesPageState extends State<VacanciesPage> {
   final _list = GlobalKey<PagedListState>();
   String? _filter;
 
-  static String _warn(J r) {
-    final n = (r['applications'] as num? ?? 0).toInt();
-    return n == 0 ? '' : '$n відгук(ів) залишаться, але без прив\'язки до вакансії. ';
-  }
-
   Future<void> _edit(J? row) async {
     if (await editResource(
           context,
           path: _vac,
           noun: 'вакансія',
-          fields: _vacancyFields,
+          fields: _vacancyFields(row),
           row: row,
           blank: () => {'isActive': true, 'sort': 0, 'city': 'Львів', 'department': '', 'employmentType': ''},
           title: (d) => d['titleUk'] ?? 'Вакансія',
           sitePath: (d) => '/vacancies/${d['slug']}',
           published: (d) => d['isActive'] == true,
-          deleteWarning: _warn,
         ) ==
         true) {
       _list.currentState?.reload();
@@ -106,16 +111,11 @@ class _VacanciesPageState extends State<VacanciesPage> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          MetaChip(
-            label: '${r['applications']} відгуків',
-            icon: Icons.badge_outlined,
-            onTap: () => nav.go('applications', {'vacancyId': '${r['id']}'}),
-          ),
           IconButton(
             tooltip: 'Видалити',
             icon: const Icon(Icons.delete_outline),
             onPressed: () async {
-              if (await confirmDelete(context, '${r['titleUk']}', '$_vac/${r['id']}', warning: _warn(r))) {
+              if (await confirmDelete(context, '${r['titleUk']}', '$_vac/${r['id']}')) {
                 list.removeWhere((x) => x['id'] == r['id']);
               }
             },

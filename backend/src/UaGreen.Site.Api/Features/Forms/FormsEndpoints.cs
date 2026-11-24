@@ -51,6 +51,11 @@ public static class FormsEndpoints
             {
                 if (cv.Length > MaxCvBytes) throw ProblemException.BadRequest("CV must be under 10 MB");
                 if (!FileStorage.DocumentTypes.Contains(cv.ContentType)) throw ProblemException.BadRequest("CV must be PDF or Word");
+                // The browser's type comes from the file name; Gospodar checks the bytes, so check them here too.
+                var head = new byte[1024];
+                int read;
+                await using (var peek = cv.OpenReadStream()) read = await peek.ReadAtLeastAsync(head, head.Length, throwOnEndOfStream: false, ct);
+                if (!FileStorage.ContentMatches(cv.ContentType, head.AsSpan(0, read))) throw ProblemException.BadRequest("CV must be PDF or Word");
                 a.CvFileName = Path.GetFileName(cv.FileName);
                 await using var s = cv.OpenReadStream();
                 a.CvKey = await storage.SavePrivateAsync("cv", cv.ContentType, s, ct);

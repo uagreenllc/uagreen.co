@@ -54,8 +54,7 @@ public static class AdminDashboardEndpoints
             if (Has(SiteRole.Hr))
                 applications = new
                 {
-                    Unread = await db.Applications.CountAsync(a => !a.IsRead, ct),
-                    New = await db.Applications.CountAsync(a => a.Status == ApplicationStatus.New, ct),
+                    Undelivered = await db.Applications.CountAsync(a => a.GospodarCandidateId == null, ct),
                 };
 
             var oberig = await db.Settings.AsNoTracking().Where(s => s.Key == "oberig.url").Select(s => s.Value).FirstOrDefaultAsync(ct);

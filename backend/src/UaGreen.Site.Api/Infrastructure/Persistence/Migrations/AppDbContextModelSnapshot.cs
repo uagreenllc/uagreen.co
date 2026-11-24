@@ -45,9 +45,26 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("email");
 
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_read");
+                    b.Property<int>("GospodarAttempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("gospodar_attempts");
+
+                    b.Property<Guid?>("GospodarCandidateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gospodar_candidate_id");
+
+                    b.Property<string>("GospodarError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("gospodar_error");
+
+                    b.Property<DateTime?>("GospodarLastAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("gospodar_last_attempt_at");
+
+                    b.Property<DateTime?>("GospodarSyncedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("gospodar_synced_at");
 
                     b.Property<string>("Message")
                         .HasColumnType("text")
@@ -58,21 +75,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<string>("Note")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("note");
-
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("phone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)")
-                        .HasColumnName("status");
 
                     b.Property<Guid?>("VacancyId")
                         .HasColumnType("uuid")
@@ -1126,6 +1132,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<string>("ExperienceCs")
                         .HasColumnType("text")
                         .HasColumnName("experience_cs");
+
+                    b.Property<Guid?>("GospodarVacancyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("gospodar_vacancy_id");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")

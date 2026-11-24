@@ -9,15 +9,6 @@ import 'main.dart' show nav;
 
 const _contacts = '/admin/contact-requests', _applications = '/admin/applications';
 
-const applicationStatuses = {
-  'New': 'Новий',
-  'Reviewed': 'Розглянуто',
-  'Interview': 'Співбесіда',
-  'Rejected': 'Відмова',
-  'Hired': 'Найнято',
-};
-const _appTone = {'New': 'info', 'Reviewed': 'neutral', 'Interview': 'warning', 'Rejected': 'error', 'Hired': 'success'};
-
 Widget _unreadDot(BuildContext context, J r) => r['isRead'] == true
     ? const SizedBox(width: AppSizes.iconXs)
     : Tooltip(
@@ -254,6 +245,8 @@ class _ContactsPageState extends State<ContactsPage> {
   );
 }
 
+/// Applications that never reached Gospodar HR. Delivered ones are worked there; in the normal
+/// case this list is empty.
 class ApplicationsPage extends StatefulWidget {
   const ApplicationsPage({super.key});
   @override
@@ -261,73 +254,47 @@ class ApplicationsPage extends StatefulWidget {
 }
 
 class _ApplicationsPageState extends State<ApplicationsPage> {
-  bool _unread = nav.take('unread') == '1';
-  String? _status = nav.take('status'), _vacancy = nav.take('vacancyId');
-  Map<String, String> _vacancies = {};
-
-  @override
-  void initState() {
-    super.initState();
-    api.get('/admin/vacancies', {'pageSize': 200}).then((r) {
-      if (mounted) {
-        setState(() => _vacancies = {for (final v in (r as J)['items'] as List) v['id'] as String: v['titleUk'] as String});
-      }
-    }).ignore();
-  }
+  /// Rows being sent right now — their button is off, so a double click sends once.
+  final _sending = <Object?>{};
 
   Future<void> _downloadCv(BuildContext context, J r) => attempt(
     context,
     () async => browser.saveBytes(await api.bytes('$_applications/${r['id']}/cv'), r['cvFileName'] ?? 'cv'),
   );
 
+  Future<void> _resend(BuildContext context, PagedListState list, J r) async {
+    J? x;
+    setState(() => _sending.add(r['id']));
+    final ok = await attempt(context, () async => x = await api.post('$_applications/${r['id']}/resend', null) as J);
+    if (mounted) setState(() => _sending.remove(r['id']));
+    if (!ok) return;
+    // No error after a send = Gospodar has it.
+    if (x!['gospodarError'] == null) {
+      list.removeWhere((y) => y['id'] == r['id']);
+      if (context.mounted) AppFeedback.showSuccess(context, 'Відгук доставлено в Господар');
+    } else {
+      list.replace(x!);
+      if (context.mounted) AppFeedback.showError(context, '${x!['gospodarError']}');
+    }
+    summary.refresh();
+  }
+
   @override
   Widget build(BuildContext context) => PagedList(
-    load: pagedGet(_applications, {'unread': _unread ? true : null, 'status': _status, 'vacancyId': _vacancy}),
-    query: {'unread': _unread, 'status': _status, 'vacancyId': _vacancy},
+    load: pagedGet(_applications, const {}),
     searchHint: "Ім'я, телефон або email",
-    emptyIcon: Icons.badge_outlined,
-    emptyText: 'Відгуків немає',
-    filters: [
-      FilterChip(label: const Text('Непрочитані'), selected: _unread, onSelected: (v) => setState(() => _unread = v)),
-      filterChip(
-        icon: Icons.flag_outlined,
-        tooltip: 'Статус',
-        allLabel: 'Усі статуси',
-        options: applicationStatuses,
-        value: _status,
-        onSelected: (v) => setState(() => _status = v),
-      ),
-      if (_vacancies.isNotEmpty)
-        filterChip(
-          icon: Icons.work_outline,
-          tooltip: 'Вакансія',
-          allLabel: 'Усі вакансії',
-          options: _vacancies,
-          value: _vacancy,
-          onSelected: (v) => setState(() => _vacancy = v),
-        ),
-    ],
+    emptyIcon: Icons.task_alt,
+    emptyText: 'Усі відгуки доставлені в Господар',
     item: (context, r, list) => AppListCard(
       leading: AppAvatar(name: '${r['name']}'),
-      title: Row(
-        children: [
-          _unreadDot(context, r),
-          AppSpacing.hGapSm,
-          Expanded(
-            child: Text('${r['name']} · ${r['phone']}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: r['isRead'] == true ? null : const TextStyle(fontWeight: AppFontWeights.semibold)),
-          ),
-        ],
-      ),
+      title: Text('${r['name']} · ${r['phone']}', maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Wrap(
         spacing: AppSpacing.sm,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(r['vacancyTitle'] ?? 'Без вакансії (загальний)'),
-          chip(context, applicationStatuses[r['status']] ?? '${r['status']}', _appTone[r['status']] ?? 'neutral'),
-          if (r['note'] != null) const Tooltip(message: 'Є нотатка', child: Icon(Icons.sticky_note_2_outlined, size: AppSizes.iconSm)),
+          if (r['gospodarError'] != null)
+            Text('${r['gospodarError']}', style: TextStyle(color: Theme.of(context).colorScheme.error)),
         ],
       ),
       trailing: Row(
@@ -336,43 +303,22 @@ class _ApplicationsPageState extends State<ApplicationsPage> {
           Text(fmtDate(r['createdAt'])),
           if (r['hasCv'] == true)
             IconButton(tooltip: 'Завантажити CV', icon: const Icon(Icons.download_outlined), onPressed: () => _downloadCv(context, r)),
+          IconButton(
+            tooltip: 'Надіслати ще раз',
+            icon: const Icon(Icons.send_outlined),
+            onPressed: _sending.contains(r['id']) ? null : () => _resend(context, list, r),
+          ),
+          IconButton(
+            tooltip: 'Видалити',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () async {
+              if (await confirmDelete(context, '${r['name']}', '$_applications/${r['id']}')) {
+                list.removeWhere((x) => x['id'] == r['id']);
+                summary.refresh();
+              }
+            },
+          ),
         ],
-      ),
-      onTap: () => _openInbox(
-        context,
-        list,
-        r,
-        InboxDialog(
-          path: _applications,
-          row: r,
-          title: 'Відгук: ${r['vacancyTitle'] ?? 'без вакансії'}',
-          extra: (context, r, update) => [
-            AppSpacing.gapMd,
-            DropdownButtonFormField<String>(
-              initialValue: r['status'],
-              decoration: const InputDecoration(labelText: 'Статус кандидата'),
-              items: [for (final s in applicationStatuses.entries) DropdownMenuItem(value: s.key, child: Text(s.value))],
-              onChanged: (v) async {
-                try {
-                  update(await api.patch('$_applications/${r['id']}', {'status': v}) as J);
-                } catch (e) {
-                  if (context.mounted) AppFeedback.showError(context, '$e');
-                }
-              },
-            ),
-            if (r['hasCv'] == true) ...[
-              AppSpacing.gapMd,
-              Align(
-                alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.download_outlined),
-                  label: Text('CV: ${r['cvFileName'] ?? 'файл'}'),
-                  onPressed: () => _downloadCv(context, r),
-                ),
-              ),
-            ],
-          ],
-        ),
       ),
     ),
   );
