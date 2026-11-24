@@ -1,13 +1,75 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
 {
     /// Replaces the audit-only offer with one general offer (goods, audit, installation, foundation)
-    /// and drops the "draft" note from both legal pages. Owner's decision: overwrites the offer text.
+    /// in uk/en/cs and drops the "draft" note from both legal pages. Owner's decision: overwrites the offer text.
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20261123151122_GeneralOffer")]
     public partial class GeneralOffer : Migration
     {
+        private const string SellerCs = """
+            <p>PRODÁVAJÍCÍ (ZHOTOVITEL):</p><h3>UA Green LLC (ТОВ «ЮА Грін»)</h3><p>Kód EDRPOU 45033277</p><p>Adresa: ul. Sadova 1, byt 117, obec Chroly, Charkovská oblast, Ukrajina</p><p>E-mail: hello@uagreen.co</p><p>Telefon: +38 (066) 869 60 72</p>
+            """;
+
+        private const string OfferCs = $"""
+            <h2>Veřejná nabídka na prodej zboží a poskytování služeb</h2>
+            <p>UA Green LLC, kód EDRPOU 45033277 (dále jen „Prodávající“ nebo „Zhotovitel“), nabízí jakékoli fyzické nebo právnické osobě či fyzické osobě podnikateli (dále jen „Kupující“ nebo „Objednatel“) uzavření kupní smlouvy a/nebo smlouvy o poskytnutí služeb za podmínek této nabídky.</p>
+            <h3>1. Pojmy</h3>
+            <p>1.1. „Web“ — webové stránky https://uagreen.co včetně všech jejich stránek.</p>
+            <p>1.2. „Zboží“ — zařízení a komponenty nabízené na Webu: větrné elektrárny, generátory, lopatky, stožáry, regulátory apod.</p>
+            <p>1.3. „Služby“ — práce a služby Zhotovitele, zejména posouzení větrných podmínek na místě, doprava, montáž zařízení a zhotovení (betonáž) základu stožáru.</p>
+            <p>1.4. „Objednávka“ — požadavek na Zboží nebo Službu zadaný na Webu nebo dohodnutý s manažerem.</p>
+            <h3>2. Předmět smlouvy</h3>
+            <p>2.1. Prodávající převede Zboží do vlastnictví Kupujícího a Kupující je zaplatí a převezme.</p>
+            <p>2.2. Zhotovitel poskytne Objednateli Služby a Objednatel je zaplatí a převezme.</p>
+            <p>2.3. Popis, obsah dodávky a ceny Zboží a Služeb jsou uvedeny na Webu. Rozsah, termíny a cenu prací na místě Objednatele (montáž, základ) si Strany sjednají ve faktuře nebo rozpočtu před zahájením prací.</p>
+            <p>2.4. Obrázky na Webu jsou ilustrační: vzhled Zboží se může mírně lišit, aniž by se změnily jeho parametry.</p>
+            <h3>3. Přijetí nabídky</h3>
+            <p>3.1. Nabídka je přijata zadáním Objednávky na Webu (včetně zaškrtnutí políčka „Souhlasím s podmínkami veřejné nabídky“, je-li zobrazeno) nebo zaplacením faktury Prodávajícího. Tímto okamžikem je smlouva uzavřena.</p>
+            <p>3.2. Smlouva je veřejná (čl. 633 občanského zákoníku Ukrajiny): její podmínky jsou pro všechny stejné.</p>
+            <p>3.3. Prodávající může nabídku měnit zveřejněním nového znění na Webu. Nové znění nemění podmínky již zaplacených Objednávek.</p>
+            <h3>4. Cena a platba</h3>
+            <p>4.1. Ceny jsou na Webu uvedeny v hřivnách. Cena zaplacené Objednávky se nemění.</p>
+            <p>4.2. Způsoby platby: online kartou přes LiqPay, bankovním převodem na základě faktury, na splátky nebo na úvěr prostřednictvím partnerských bank. Podmínky jednotlivých způsobů jsou uvedeny na stránce <a href="/cs/oplata">Platba a doručení</a>.</p>
+            <p>4.3. Posouzení větrných podmínek se platí 100 % předem online. Montáž a základ se platí na základě faktury; výše zálohy a doplatku je uvedena ve faktuře nebo rozpočtu.</p>
+            <p>4.4. Doprava se účtuje podle tarifů dopravce, není-li na Webu nebo ve faktuře uvedeno jinak.</p>
+            <h3>5. Doprava a převzetí Zboží</h3>
+            <p>5.1. Zboží se doručuje po Ukrajině službami Nova Poshta nebo Ukrposhta, dopravou Prodávajícího (pokud ji nabízí), nebo si je Kupující vyzvedne osobně.</p>
+            <p>5.2. Prodávající zpracuje a potvrdí Objednávku do 3 pracovních dnů. Termín odeslání závisí na dostupnosti Zboží; u Zboží vyráběného na zakázku sdělí dodací lhůtu manažer.</p>
+            <p>5.3. Při převzetí Kupující za přítomnosti dopravce nebo zástupce Prodávajícího zkontroluje množství, kompletnost a stav Zboží a zjištěné vady ihned oznámí.</p>
+            <p>5.4. Nebezpečí nahodilého poškození Zboží přechází na Kupujícího okamžikem převzetí, vlastnické právo okamžikem převzetí, nejdříve však po úplném zaplacení.</p>
+            <h3>6. Poskytování služeb</h3>
+            <p>6.1. Posouzení větrných podmínek na místě zahrnuje analýzu modelovaných údajů o větru pro souřadnice lokality, výjezd specialisty a prohlídku místa, referenční měření větru, posouzení příjezdových cest a bodu připojení k síti a výběr místa instalace, typu a výšky turbíny. Termín výjezdu si Objednatel vybere na Webu z volných termínů, Zhotovitel jej potvrdí telefonicky. Písemná zpráva je zaslána elektronicky do 10 pracovních dnů po výjezdu.</p>
+            <p>6.2. Zpráva je předběžným odhadem; skutečná výroba závisí na počasí a provozních podmínkách.</p>
+            <p>6.3. Montáž zařízení a zhotovení (betonáž) základu se provádějí na místě Objednatele podle dohodnutého rozpočtu. Stožár se na základ osazuje poté, co beton dosáhne potřebné pevnosti; tato doba je součástí lhůty plnění.</p>
+            <p>6.4. Objednatel v dohodnuté dny zajistí přístup na pozemek a příjezd techniky, poskytne přesné údaje o pozemku a odpovídá za případná povolení k umístění zařízení, nedohodnou-li se Strany jinak.</p>
+            <p>6.5. Pokud se dohodnutý termín stane pro některou ze Stran nedostupným, dohodnou se Strany na novém termínu.</p>
+            <p>6.6. Dokončené práce na montáži a základu Strany stvrdí předávacím protokolem. Připomínky k pracím Objednatel uvede v protokolu nebo je Zhotoviteli zašle písemně.</p>
+            <h3>7. Záruka</h3>
+            <p>7.1. Záruční doba činí 12 měsíců od převzetí u Zboží a 12 měsíců od podpisu předávacího protokolu u prací, není-li v dokumentech ke Zboží nebo v rozpočtu uvedeno jinak.</p>
+            <p>7.2. Záruka platí při montáži a provozu podle návodu. Nevztahuje se na spotřební materiál, poškození nesprávným používáním, opravy či úpravy bez souhlasu Prodávajícího ani na následky přírodních jevů nad rámec, na který je zařízení dimenzováno.</p>
+            <p>7.3. Kupující oznámí poruchu Prodávajícímu co nejdříve. Prodávající zajistí prověření a v případě záruční vady na vlastní náklady Zboží opraví nebo vymění, případně odstraní vady prací.</p>
+            <h3>8. Vrácení a odstoupení od smlouvy</h3>
+            <p>8.1. Kupující-spotřebitel může vrátit Zboží v bezvadném stavu do 14 dnů od převzetí, pokud nebylo použito a je zachován jeho vzhled, kompletnost, obal a dokumenty. Náklady na zpětnou dopravu nese Kupující. Zboží vyrobené nebo sestavené na individuální objednávku vrátit nelze.</p>
+            <p>8.2. Má-li Zboží vady, má Kupující práva podle zákona Ukrajiny „O ochraně práv spotřebitelů“.</p>
+            <p>8.3. Od posouzení větrných podmínek může Objednatel odstoupit před termínem výjezdu — peníze mu budou vráceny v plné výši. Po výjezdu se peníze nevracejí, ledaže služba nebyla poskytnuta z viny Zhotovitele.</p>
+            <p>8.4. Od montáže nebo základu může Objednatel odstoupit před dokončením prací, zaplatí-li již provedenou část a materiál pořízený pro jeho stavbu; zbytek zálohy mu bude vrácen.</p>
+            <p>8.5. Peníze se vracejí stejným způsobem, jakým byla provedena platba, do 7 pracovních dnů od odsouhlasení vrácení.</p>
+            <h3>9. Odpovědnost</h3>
+            <p>9.1. Strany odpovídají za neplnění smlouvy podle právních předpisů Ukrajiny.</p>
+            <p>9.2. Prodávající neodpovídá za následky nepravdivých údajů poskytnutých Kupujícím.</p>
+            <p>9.3. Strany se zprošťují odpovědnosti, pokud plnění smlouvy znemožní vyšší moc: válečné operace, přírodní katastrofy, rozhodnutí orgánů veřejné moci apod. Dotčená Strana o tom informuje druhou Stranu.</p>
+            <h3>10. Osobní údaje</h3>
+            <p>10.1. Zadáním Objednávky Kupující souhlasí se zpracováním osobních údajů v souladu se <a href="/cs/polityka-konfidentsiynosti">Zásadami ochrany osobních údajů</a>.</p>
+            <h3>11. Ostatní ustanovení</h3>
+            <p>11.1. Záležitosti, které tato nabídka neupravuje, se řídí právními předpisy Ukrajiny. Spory se řeší jednáním, a nedojde-li k dohodě, soudní cestou.</p>
+            {SellerCs}
+            """;
+
         private const string OfferUk = $"""
             <h2>Публічна оферта на продаж товарів і надання послуг</h2>
             <p>Товариство з обмеженою відповідальністю «ЮА Грін», ЄДРПОУ 45033277 (далі — «Продавець» або «Виконавець»), пропонує будь-якій фізичній або юридичній особі, фізичній особі — підприємцю (далі — «Покупець» або «Замовник») укласти договір купівлі-продажу товарів і/або надання послуг на умовах цієї оферти.</p>
@@ -123,9 +185,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
             // Dollar quoting: the HTML needs no escaping. The texts contain no "$b$".
             migrationBuilder.Sql($"UPDATE content SET body_html = $b${OfferUk}$b$, updated_at = now() WHERE key = 'page.offer' AND lang = 'uk';");
             migrationBuilder.Sql($"UPDATE content SET body_html = $b${OfferEn}$b$, updated_at = now() WHERE key = 'page.offer' AND lang = 'en';");
+            migrationBuilder.Sql($"UPDATE content SET body_html = $b${OfferCs}$b$, updated_at = now() WHERE key = 'page.offer' AND lang = 'cs';");
             migrationBuilder.Sql("""
                 UPDATE content SET body_html = regexp_replace(body_html,
-                    '<p>\s*<em>\s*(Чернетка\. Текст має перевірити юрист\.|Draft\. To be reviewed by a lawyer\.)\s*</em>\s*</p>\s*', ''),
+                    '<p>\s*<em>\s*(Чернетка\. Текст має перевірити юрист\.|Draft\. To be reviewed by a lawyer\.|Návrh\. Bude zkontrolován právníkem\.)\s*</em>\s*</p>\s*', ''),
                     updated_at = now()
                 WHERE key = 'page.privacy';
                 """);

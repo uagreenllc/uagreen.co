@@ -12,8 +12,8 @@ using UaGreen.Site.Api.Infrastructure.Persistence;
 namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261123151122_GeneralOffer")]
-    partial class GeneralOffer
+    [Migration("20261123145812_CzechColumns")]
+    partial class CzechColumns
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -98,6 +98,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("author");
 
+                    b.Property<string>("BodyHtmlCs")
+                        .HasColumnType("text")
+                        .HasColumnName("body_html_cs");
+
                     b.Property<string>("BodyHtmlEn")
                         .HasColumnType("text")
                         .HasColumnName("body_html_en");
@@ -110,6 +114,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<string>("CoverKey")
                         .HasColumnType("text")
                         .HasColumnName("cover_key");
+
+                    b.Property<string>("ExcerptCs")
+                        .HasColumnType("text")
+                        .HasColumnName("excerpt_cs");
 
                     b.Property<string>("ExcerptEn")
                         .HasColumnType("text")
@@ -135,6 +143,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("published_at");
 
+                    b.Property<string>("SeoDescCs")
+                        .HasColumnType("text")
+                        .HasColumnName("seo_desc_cs");
+
                     b.Property<string>("SeoDescEn")
                         .HasColumnType("text")
                         .HasColumnName("seo_desc_en");
@@ -143,6 +155,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("seo_desc_uk");
 
+                    b.Property<string>("SeoKeywordsCs")
+                        .HasColumnType("text")
+                        .HasColumnName("seo_keywords_cs");
+
                     b.Property<string>("SeoKeywordsEn")
                         .HasColumnType("text")
                         .HasColumnName("seo_keywords_en");
@@ -150,6 +166,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<string>("SeoKeywordsUk")
                         .HasColumnType("text")
                         .HasColumnName("seo_keywords_uk");
+
+                    b.Property<string>("SeoTitleCs")
+                        .HasColumnType("text")
+                        .HasColumnName("seo_title_cs");
 
                     b.Property<string>("SeoTitleEn")
                         .HasColumnType("text")
@@ -164,6 +184,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)")
                         .HasColumnName("slug");
+
+                    b.Property<string>("TitleCs")
+                        .HasColumnType("text")
+                        .HasColumnName("title_cs");
 
                     b.Property<string>("TitleEn")
                         .HasColumnType("text")
@@ -644,6 +668,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("DescriptionHtmlCs")
+                        .HasColumnType("text")
+                        .HasColumnName("description_html_cs");
+
                     b.Property<string>("DescriptionHtmlEn")
                         .HasColumnType("text")
                         .HasColumnName("description_html_en");
@@ -651,6 +679,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<string>("DescriptionHtmlUk")
                         .HasColumnType("text")
                         .HasColumnName("description_html_uk");
+
+                    b.Property<string>("FaqHtmlCs")
+                        .HasColumnType("text")
+                        .HasColumnName("faq_html_cs");
 
                     b.Property<string>("FaqHtmlEn")
                         .HasColumnType("text")
@@ -667,6 +699,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsFeatured")
                         .HasColumnType("boolean")
                         .HasColumnName("is_featured");
+
+                    b.Property<string>("NameCs")
+                        .HasColumnType("text")
+                        .HasColumnName("name_cs");
 
                     b.Property<string>("NameEn")
                         .HasColumnType("text")
@@ -695,6 +731,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("published");
 
+                    b.Property<string>("SeoDescCs")
+                        .HasColumnType("text")
+                        .HasColumnName("seo_desc_cs");
+
                     b.Property<string>("SeoDescEn")
                         .HasColumnType("text")
                         .HasColumnName("seo_desc_en");
@@ -703,6 +743,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("seo_desc_uk");
 
+                    b.Property<string>("SeoTitleCs")
+                        .HasColumnType("text")
+                        .HasColumnName("seo_title_cs");
+
                     b.Property<string>("SeoTitleEn")
                         .HasColumnType("text")
                         .HasColumnName("seo_title_en");
@@ -710,6 +754,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<string>("SeoTitleUk")
                         .HasColumnType("text")
                         .HasColumnName("seo_title_uk");
+
+                    b.Property<string>("ShortDescCs")
+                        .HasColumnType("text")
+                        .HasColumnName("short_desc_cs");
 
                     b.Property<string>("ShortDescEn")
                         .HasColumnType("text")
@@ -732,6 +780,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<int>("Sort")
                         .HasColumnType("integer")
                         .HasColumnName("sort");
+
+                    b.Property<string>("SpecsHtmlCs")
+                        .HasColumnType("text")
+                        .HasColumnName("specs_html_cs");
 
                     b.Property<string>("SpecsHtmlEn")
                         .HasColumnType("text")
@@ -828,6 +880,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("NameCs")
+                        .HasColumnType("text")
+                        .HasColumnName("name_cs");
+
                     b.Property<string>("NameEn")
                         .HasColumnType("text")
                         .HasColumnName("name_en");
@@ -874,6 +930,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("sort");
 
+                    b.Property<string>("ValueCs")
+                        .HasColumnType("text")
+                        .HasColumnName("value_cs");
+
                     b.Property<string>("ValueEn")
                         .HasColumnType("text")
                         .HasColumnName("value_en");
@@ -917,6 +977,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("AuthorCs")
+                        .HasColumnType("text")
+                        .HasColumnName("author_cs");
+
                     b.Property<string>("AuthorEn")
                         .HasColumnType("text")
                         .HasColumnName("author_en");
@@ -937,6 +1001,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<int>("Sort")
                         .HasColumnType("integer")
                         .HasColumnName("sort");
+
+                    b.Property<string>("TextCs")
+                        .HasColumnType("text")
+                        .HasColumnName("text_cs");
 
                     b.Property<string>("TextEn")
                         .HasColumnType("text")
@@ -1020,6 +1088,14 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("city");
 
+                    b.Property<string>("CityCs")
+                        .HasColumnType("text")
+                        .HasColumnName("city_cs");
+
+                    b.Property<string>("ConditionsHtmlCs")
+                        .HasColumnType("text")
+                        .HasColumnName("conditions_html_cs");
+
                     b.Property<string>("ConditionsHtmlEn")
                         .HasColumnType("text")
                         .HasColumnName("conditions_html_en");
@@ -1033,14 +1109,26 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("department");
 
+                    b.Property<string>("DepartmentCs")
+                        .HasColumnType("text")
+                        .HasColumnName("department_cs");
+
                     b.Property<string>("EmploymentType")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("employment_type");
 
+                    b.Property<string>("EmploymentTypeCs")
+                        .HasColumnType("text")
+                        .HasColumnName("employment_type_cs");
+
                     b.Property<string>("Experience")
                         .HasColumnType("text")
                         .HasColumnName("experience");
+
+                    b.Property<string>("ExperienceCs")
+                        .HasColumnType("text")
+                        .HasColumnName("experience_cs");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
@@ -1049,6 +1137,14 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<string>("Language")
                         .HasColumnType("text")
                         .HasColumnName("language");
+
+                    b.Property<string>("LanguageCs")
+                        .HasColumnType("text")
+                        .HasColumnName("language_cs");
+
+                    b.Property<string>("NiceToHaveHtmlCs")
+                        .HasColumnType("text")
+                        .HasColumnName("nice_to_have_html_cs");
 
                     b.Property<string>("NiceToHaveHtmlEn")
                         .HasColumnType("text")
@@ -1061,6 +1157,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("PublishedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("published_at");
+
+                    b.Property<string>("RequirementsHtmlCs")
+                        .HasColumnType("text")
+                        .HasColumnName("requirements_html_cs");
 
                     b.Property<string>("RequirementsHtmlEn")
                         .HasColumnType("text")
@@ -1079,6 +1179,10 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
                     b.Property<int>("Sort")
                         .HasColumnType("integer")
                         .HasColumnName("sort");
+
+                    b.Property<string>("TitleCs")
+                        .HasColumnType("text")
+                        .HasColumnName("title_cs");
 
                     b.Property<string>("TitleEn")
                         .HasColumnType("text")

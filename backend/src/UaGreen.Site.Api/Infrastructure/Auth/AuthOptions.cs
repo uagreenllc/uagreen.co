@@ -17,7 +17,7 @@ public sealed class GospodarOptions
     /// Company integration key (Компанії → ключ інтеграції in Gospodar) for pushing
     /// contact-form requests to the CRM. Empty = CRM push is off.
     public string IntegrationKey { get; set; } = "";
-    /// Cap for integration calls a visitor waits on (free audit days). Without it the HttpClient's
+    /// Cap for Gospodar calls a visitor waits on (free audit days, the site chat). Without it the HttpClient's
     /// resilience retries keep a page waiting ~25 s when Gospodar is down.
     public TimeSpan IntegrationTimeout { get; set; } = TimeSpan.FromSeconds(5);
     /// Browser origin of the ERP for deal links in the admin; defaults to BaseUrl.

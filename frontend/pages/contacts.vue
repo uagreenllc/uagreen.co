@@ -2,6 +2,7 @@
 const { t } = useI18n()
 const block = await useContentPage('page.contacts', t('pages.contactsTitle'))
 const settings = useSettings()
+const address = useLocalSetting('address')
 const phones = computed(() => splitList(settings.value?.phones))
 const emails = computed(() => splitList(settings.value?.emails))
 </script>
@@ -10,9 +11,9 @@ const emails = computed(() => splitList(settings.value?.emails))
   <ContentPage :block="block" :title="$t('pages.contactsTitle')">
     <div class="ways">
       <dl>
-        <template v-if="settings?.address">
+        <template v-if="address">
           <dt>{{ $t('footer.address') }}</dt>
-          <dd>{{ settings.address }}</dd>
+          <dd>{{ address }}</dd>
         </template>
         <template v-if="phones.length">
           <dt>{{ $t('footer.phones') }}</dt>

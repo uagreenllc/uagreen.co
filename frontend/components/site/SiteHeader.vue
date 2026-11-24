@@ -1,7 +1,5 @@
 <script setup lang="ts">
 const localePath = useLocalePath()
-const switchLocalePath = useSwitchLocalePath()
-const { locale, locales } = useI18n()
 const settings = useSettings()
 
 const links = [
@@ -11,7 +9,6 @@ const links = [
   ['vacancies', '/vacancies'],
   ['contacts', '/contacts'],
 ] as const
-const others = computed(() => locales.value.map(l => l.code).filter(c => c !== locale.value))
 const phone = computed(() => splitList(settings.value?.phones)[0] ?? '')
 </script>
 
@@ -19,22 +16,24 @@ const phone = computed(() => splitList(settings.value?.phones)[0] ?? '')
   <header class="site-header">
     <NuxtLink :to="localePath('/')" class="logo">UA GREEN</NuxtLink>
 
-    <nav class="nav-desktop" aria-label="Main">
-      <NuxtLink v-for="[key, to] in links" :key="key" :to="localePath(to)">{{ $t(`nav.${key}`) }}</NuxtLink>
-      <CartBadge />
-      <NuxtLink v-for="c in others" :key="c" :to="switchLocalePath(c)" class="lang">{{ $t(`lang.${c}`) }}</NuxtLink>
-      <a v-if="phone" :href="`tel:${phone}`" class="pill">{{ formatPhone(phone) }}</a>
-    </nav>
+    <div class="right">
+      <nav class="nav-desktop" aria-label="Main">
+        <NuxtLink v-for="[key, to] in links" :key="key" :to="localePath(to)">{{ $t(`nav.${key}`) }}</NuxtLink>
+        <CartBadge />
+        <a v-if="phone" :href="`tel:${phone}`" class="pill">{{ formatPhone(phone) }}</a>
+      </nav>
 
-    <details class="nav-mobile">
-      <summary>{{ $t('nav.menu') }}</summary>
-      <ul>
-        <li v-for="[key, to] in links" :key="key"><NuxtLink :to="localePath(to)">{{ $t(`nav.${key}`) }}</NuxtLink></li>
-        <li><CartBadge /></li>
-        <li v-for="c in others" :key="c"><NuxtLink :to="switchLocalePath(c)">{{ $t(`lang.${c}`) }}</NuxtLink></li>
-        <li v-if="phone"><a :href="`tel:${phone}`">{{ formatPhone(phone) }}</a></li>
-      </ul>
-    </details>
+      <LangSwitch />
+
+      <details class="nav-mobile">
+        <summary>{{ $t('nav.menu') }}</summary>
+        <ul>
+          <li v-for="[key, to] in links" :key="key"><NuxtLink :to="localePath(to)">{{ $t(`nav.${key}`) }}</NuxtLink></li>
+          <li><CartBadge /></li>
+          <li v-if="phone"><a :href="`tel:${phone}`">{{ formatPhone(phone) }}</a></li>
+        </ul>
+      </details>
+    </div>
   </header>
 </template>
 
@@ -50,10 +49,10 @@ const phone = computed(() => splitList(settings.value?.phones)[0] ?? '')
   background: var(--bg);
 }
 .logo { font-weight: 700; letter-spacing: 0.04em; color: var(--green); text-decoration: none; font-size: 18px; }
+.right { display: flex; align-items: center; gap: 20px; }
 .nav-desktop { display: flex; align-items: center; gap: 26px; }
 .nav-desktop a { color: var(--ink); text-decoration: none; font-size: 15px; }
 .nav-desktop a.router-link-active:not(.pill) { color: var(--green); }
-.lang { color: var(--ink-2) !important; }
 .pill { background: var(--green); color: #fff !important; padding: 9px 16px; border-radius: 999px; font-weight: 500; }
 .pill:hover { background: var(--green-2); }
 
