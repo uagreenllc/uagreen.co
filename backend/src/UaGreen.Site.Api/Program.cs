@@ -113,6 +113,7 @@ builder.Services.AddHttpClient<Turnstile>(http => http.Timeout = TimeSpan.FromSe
 
 builder.Services.AddSingleton<FileStorage>();
 builder.Services.AddScoped<Notifier>();
+builder.Services.AddScoped<UaGreen.Site.Api.Features.Orders.PaymentSync>();
 // No resilience retries: an acquiring invoice/create is not idempotent.
 builder.Services.AddHttpClient<MonobankAcquiring>(http =>
 {
