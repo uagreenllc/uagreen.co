@@ -260,5 +260,19 @@
     "dateTaken": "Tento termín byl právě obsazen — vyberte jiný.",
     "booked": "Audit je naplánován na {date}. Adresa: {address}.",
     "paidPending": "Platba přijata. Manažer zavolá, aby potvrdil termín {date}."
+  },
+  "chat": {
+    "open": "Napište nám",
+    "greeting": "Dobrý den! Jak vám můžeme pomoci?",
+    "placeholder": "Napište zprávu…",
+    "send": "Odeslat",
+    "close": "Zavřít",
+    "contactPrompt": "Zanechte telefon a zavoláme vám zpět",
+    "contactName": "Jméno (nepovinné)",
+    "contactPhone": "Telefon",
+    "contactSave": "Uložit",
+    "contactSaved": "Děkujeme, zavoláme vám!",
+    "unavailable": "Chat je teď nedostupný. Zanechte kontakt a ozveme se vám.",
+    "failed": "Odeslání se nezdařilo. Zkuste to znovu."
   }
 }
