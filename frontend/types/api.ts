@@ -109,7 +109,7 @@ export interface Redirect { from: string; to: string }
 export interface ApiError { code: string; message: string }
 
 export type DeliveryMethod = 'NovaPoshta' | 'Ukrposhta' | 'Pickup'
-export type PaymentMethod = 'LiqPay' | 'Invoice' | 'Credit'
+export type PaymentMethod = 'Card' | 'Invoice' | 'Credit' | 'MonoParts'
 
 export interface CreateOrder {
   customer: { name: string; phone: string; email: string | null }
@@ -134,7 +134,10 @@ export interface Order {
   total: number
   createdAt: string
   items: OrderItem[]
-  liqPay: { checkoutUrl: string; data: string; signature: string } | null
+  /** monobank hosted payment page of a Card order (null = none yet; POST /orders/{id}/pay makes one). */
+  payUrl: string | null
+  /** Bank-side state: acquiring status or pay-in-parts `STATE/SUB_STATE`. */
+  paymentStatus: string | null
   /** Site audit orders only (ISO date); null on shop orders. */
   auditDate: string | null
   auditAddress: string | null
