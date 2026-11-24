@@ -1,6 +1,8 @@
 <script setup lang="ts">
+// initialMessage: the chat's unsent text when the chat falls back to this form
+const props = defineProps<{ initialMessage?: string }>()
 const { t } = useI18n()
-const f = reactive({ name: '', phone: '', email: '', message: '', website: '', captcha: '' })
+const f = reactive({ name: '', phone: '', email: '', message: props.initialMessage ?? '', website: '', captcha: '' })
 const errors = reactive<Record<string, string>>({})
 const captchaEl = ref<{ reset(): void }>()
 

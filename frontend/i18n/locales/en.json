@@ -20,7 +20,7 @@
     "privacy": "Privacy policy",
     "oberig": "Oberig customer portal"
   },
-  "lang": { "uk": "Укр", "en": "Eng", "cs": "Čes" },
+  "lang": { "uk": "Укр", "en": "Eng", "cs": "Čes", "choose": "Language" },
   "site": {
     "title": "UA GREEN | Wind turbines and equipment",
     "description": "Ukrainian manufacturer of vertical-axis wind turbines and the equipment around them."
@@ -282,5 +282,19 @@
     "dateTaken": "This date was just taken — please pick another one.",
     "booked": "Your audit is scheduled for {date}. Address: {address}.",
     "paidPending": "Payment received. A manager will call to confirm the date {date}."
+  },
+  "chat": {
+    "open": "Chat with us",
+    "greeting": "Hi! How can we help?",
+    "placeholder": "Type a message…",
+    "send": "Send",
+    "close": "Close",
+    "contactPrompt": "Leave your phone number and we'll call you back",
+    "contactName": "Name (optional)",
+    "contactPhone": "Phone",
+    "contactSave": "Save",
+    "contactSaved": "Thanks, we'll call you back!",
+    "unavailable": "Chat is unavailable right now. Leave your details and we'll get back to you.",
+    "failed": "Couldn't send. Please try again."
   }
 }

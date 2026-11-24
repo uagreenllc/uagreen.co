@@ -14,6 +14,9 @@ public static class RateLimitingExtensions
     public const string Uploads = "uploads";
     /// Page-view beacons from the site.
     public const string Stats = "stats";
+    /// Starting a chat conversation (stricter than the rest of the chat API).
+    public const string ChatStart = "chat-start";
+    public const string Chat = "chat";
 
     public static IServiceCollection AddAppRateLimiting(this IServiceCollection s, IConfiguration cfg)
     {
@@ -56,6 +59,22 @@ public static class RateLimitingExtensions
             {
                 PermitLimit = cfg.GetValue("RateLimiting:Stats:PermitLimit", 120),
                 Window = cfg.GetValue("RateLimiting:Stats:Window", TimeSpan.FromMinutes(1)),
+                QueueLimit = 0,
+            }));
+
+            o.AddPolicy(ChatStart, ctx => RateLimitPartition.GetFixedWindowLimiter(Ip(ctx), _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = cfg.GetValue("RateLimiting:ChatStart:PermitLimit", 5),
+                Window = cfg.GetValue("RateLimiting:ChatStart:Window", TimeSpan.FromHours(1)),
+                QueueLimit = 0,
+            }));
+
+            o.AddPolicy(Chat, ctx => RateLimitPartition.GetTokenBucketLimiter(Ip(ctx), _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = cfg.GetValue("RateLimiting:Chat:PermitLimit", 60),
+                TokensPerPeriod = cfg.GetValue("RateLimiting:Chat:PermitLimit", 60),
+                ReplenishmentPeriod = cfg.GetValue("RateLimiting:Chat:Window", TimeSpan.FromMinutes(1)),
+                AutoReplenishment = true,
                 QueueLimit = 0,
             }));
 

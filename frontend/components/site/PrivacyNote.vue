@@ -10,5 +10,7 @@ const localePath = useLocalePath()
 
 <style scoped>
 .privacy-note { font-size: 13px; color: var(--ink-2); margin: 0 0 16px; }
-.privacy-note a { color: inherit; }
+/* Tailwind preflight strips underlines from every <a>; put it back so the link reads as one. */
+.privacy-note a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.privacy-note a:hover { color: var(--green); }
 </style>
