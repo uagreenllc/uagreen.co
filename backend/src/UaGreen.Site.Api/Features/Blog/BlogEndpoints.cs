@@ -24,7 +24,7 @@ public static class BlogEndpoints
             var total = await q.CountAsync(ct);
             var rows = await q.OrderByDescending(p => p.PublishedAt).Skip((pn - 1) * ps).Take(ps).ToListAsync(ct);
             return new Page<PostCardDto>(rows.Select(p => new PostCardDto(
-                p.Slug, Lang.PickReq(p.TitleUk, p.TitleEn, l), Lang.Pick(p.ExcerptUk, p.ExcerptEn, l),
+                p.Slug, Lang.PickReq(p.TitleUk, p.TitleEn, l, p.TitleCs), Lang.Pick(p.ExcerptUk, p.ExcerptEn, l, p.ExcerptCs),
                 p.CoverKey is null ? null : FileStorage.Url(p.CoverKey), p.Author, p.PublishedAt, p.NoIndex)).ToList(), total, pn, ps);
         });
 
@@ -33,11 +33,11 @@ public static class BlogEndpoints
             var l = Lang.Norm(lang);
             var p = await db.BlogPosts.AsNoTracking().FirstOrDefaultAsync(x => x.Slug == slug && x.Published, ct)
                 ?? throw ProblemException.NotFound("Post not found");
-            return new PostDto(p.Slug, Lang.PickReq(p.TitleUk, p.TitleEn, l), Lang.Pick(p.ExcerptUk, p.ExcerptEn, l),
+            return new PostDto(p.Slug, Lang.PickReq(p.TitleUk, p.TitleEn, l, p.TitleCs), Lang.Pick(p.ExcerptUk, p.ExcerptEn, l, p.ExcerptCs),
                 p.CoverKey is null ? null : FileStorage.Url(p.CoverKey), p.Author, p.PublishedAt,
-                Lang.PickReq(p.BodyHtmlUk, p.BodyHtmlEn, l),
-                Lang.Pick(p.SeoTitleUk, p.SeoTitleEn, l), Lang.Pick(p.SeoDescUk, p.SeoDescEn, l),
-                Lang.Pick(p.SeoKeywordsUk, p.SeoKeywordsEn, l), p.NoIndex, p.NoFollow, p.UpdatedAt);
+                Lang.PickReq(p.BodyHtmlUk, p.BodyHtmlEn, l, p.BodyHtmlCs),
+                Lang.Pick(p.SeoTitleUk, p.SeoTitleEn, l, p.SeoTitleCs), Lang.Pick(p.SeoDescUk, p.SeoDescEn, l, p.SeoDescCs),
+                Lang.Pick(p.SeoKeywordsUk, p.SeoKeywordsEn, l, p.SeoKeywordsCs), p.NoIndex, p.NoFollow, p.UpdatedAt);
         });
     }
 }

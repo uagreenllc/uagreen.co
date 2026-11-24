@@ -5,5 +5,6 @@
       <slot />
     </main>
     <SiteFooter />
+    <ClientOnly><LazySiteChat /></ClientOnly>
   </div>
 </template>

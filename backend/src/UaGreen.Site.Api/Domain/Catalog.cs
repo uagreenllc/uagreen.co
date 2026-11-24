@@ -48,6 +48,14 @@ public sealed class Product
     public string? SeoTitleEn { get; set; }
     public string? SeoDescUk { get; set; }
     public string? SeoDescEn { get; set; }
+    /// Czech; empty → EN, then UK (Lang.Pick).
+    public string? NameCs { get; set; }
+    public string? ShortDescCs { get; set; }
+    public string? DescriptionHtmlCs { get; set; }
+    public string? SpecsHtmlCs { get; set; }
+    public string? FaqHtmlCs { get; set; }
+    public string? SeoTitleCs { get; set; }
+    public string? SeoDescCs { get; set; }
 
     public bool Published { get; set; } = true;
     /// Shows the "Oberig monitoring" block on the product page (turbines, not spare parts).
@@ -84,6 +92,7 @@ public sealed class ProductOption
     public Guid ProductId { get; set; }
     public string NameUk { get; set; } = "";
     public string? NameEn { get; set; }
+    public string? NameCs { get; set; }
     public int Sort { get; set; }
     public List<ProductOptionValue> Values { get; set; } = [];
 }
@@ -95,6 +104,7 @@ public sealed class ProductOptionValue
     public ProductOption? Option { get; set; }
     public string ValueUk { get; set; } = "";
     public string? ValueEn { get; set; }
+    public string? ValueCs { get; set; }
     public decimal PriceDelta { get; set; }
     public int Sort { get; set; }
 }

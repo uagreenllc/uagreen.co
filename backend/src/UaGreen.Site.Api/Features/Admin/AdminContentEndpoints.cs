@@ -12,7 +12,8 @@ namespace UaGreen.Site.Api.Features.Admin;
 
 public sealed record ContentUpsert(string? Title, string BodyHtml);
 public sealed record RedirectUpsert(string From, string To, string? Original);
-public sealed record ReviewUpsert(string? PhotoKey, string TextUk, string? TextEn, string AuthorUk, string? AuthorEn, bool Published, int Sort);
+public sealed record ReviewUpsert(string? PhotoKey, string TextUk, string? TextEn, string AuthorUk, string? AuthorEn, bool Published, int Sort,
+    string? TextCs = null, string? AuthorCs = null);
 
 /// Text blocks, testimonials, public settings and the redirect table — Editor.
 public static class AdminContentEndpoints
@@ -179,6 +180,7 @@ public static class AdminContentEndpoints
         r.PhotoKey = Clean(req.PhotoKey);
         r.TextUk = req.TextUk.Trim(); r.TextEn = Clean(req.TextEn);
         r.AuthorUk = req.AuthorUk.Trim(); r.AuthorEn = Clean(req.AuthorEn);
+        r.TextCs = Clean(req.TextCs); r.AuthorCs = Clean(req.AuthorCs);
         r.Published = req.Published; r.Sort = req.Sort;
         r.UpdatedAt = DateTime.UtcNow;
     }

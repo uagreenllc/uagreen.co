@@ -47,9 +47,9 @@ public static class OrderPricing
             {
                 Id = Guid.NewGuid(),
                 ProductId = p.Id,
-                ProductName = Lang.PickReq(p.NameUk, p.NameEn, lang),
+                ProductName = Lang.PickReq(p.NameUk, p.NameEn, lang, p.NameCs),
                 OptionsText = chosen.Count == 0 ? null
-                    : string.Join("; ", chosen.Select(c => $"{Lang.PickReq(c.Opt.NameUk, c.Opt.NameEn, lang)}: {Lang.PickReq(c.Val.ValueUk, c.Val.ValueEn, lang)}")),
+                    : string.Join("; ", chosen.Select(c => $"{Lang.PickReq(c.Opt.NameUk, c.Opt.NameEn, lang, c.Opt.NameCs)}: {Lang.PickReq(c.Val.ValueUk, c.Val.ValueEn, lang, c.Val.ValueCs)}")),
                 Qty = line.Qty,
                 UnitPrice = unit,
                 LineTotal = lineTotal,

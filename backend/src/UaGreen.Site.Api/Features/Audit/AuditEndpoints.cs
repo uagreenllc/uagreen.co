@@ -109,7 +109,7 @@ public static class AuditEndpoints
             [
                 new OrderItem
                 {
-                    Id = Guid.NewGuid(), ProductId = product.Id, ProductName = Lang.PickReq(product.NameUk, product.NameEn, lang),
+                    Id = Guid.NewGuid(), ProductId = product.Id, ProductName = Lang.PickReq(product.NameUk, product.NameEn, lang, product.NameCs),
                     Qty = 1, UnitPrice = product.Price, LineTotal = product.Price,
                 },
             ],
