@@ -1,7 +1,8 @@
 namespace UaGreen.Site.Api.Domain;
 
 /// Job application from the vacancy form (or the generic "didn't find a vacancy" form).
-public sealed class Application
+/// An outbox row: CrmSync sends it to Gospodar HR as a candidate; HR works it there.
+public sealed class Application : ICrmLinked
 {
     public Guid Id { get; set; }
     public Guid? VacancyId { get; set; }
@@ -9,15 +10,25 @@ public sealed class Application
     public string Phone { get; set; } = "";
     public string? Email { get; set; }
     public string? Message { get; set; }
+    /// Private file until Gospodar has it; deleted (null) once the candidate is created.
     public string? CvKey { get; set; }
     public string? CvFileName { get; set; }
-    public bool IsRead { get; set; }
-    public ApplicationStatus Status { get; set; }
-    public string? Note { get; set; }
     public DateTime CreatedAt { get; set; }
-}
 
-public enum ApplicationStatus { New, Reviewed, Interview, Rejected, Hired }
+    /// The Gospodar HR candidate this application became; null until delivered.
+    public Guid? GospodarCandidateId { get; set; }
+    public DateTime? GospodarSyncedAt { get; set; }
+    public string? GospodarError { get; set; }
+    public int GospodarAttempts { get; set; }
+    public DateTime? GospodarLastAttemptAt { get; set; }
+
+    // Same retry/backoff bookkeeping as CRM leads (CrmSync.Due), under HR-named columns.
+    Guid? ICrmLinked.CrmDealId { get => GospodarCandidateId; set => GospodarCandidateId = value; }
+    DateTime? ICrmLinked.CrmSyncedAt { get => GospodarSyncedAt; set => GospodarSyncedAt = value; }
+    string? ICrmLinked.CrmError { get => GospodarError; set => GospodarError = value; }
+    int ICrmLinked.CrmAttempts { get => GospodarAttempts; set => GospodarAttempts = value; }
+    DateTime? ICrmLinked.CrmLastAttemptAt { get => GospodarLastAttemptAt; set => GospodarLastAttemptAt = value; }
+}
 
 public sealed class ContactRequest : ICrmLinked
 {

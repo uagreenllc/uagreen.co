@@ -6,7 +6,7 @@ import 'package:uagreen_ui/uagreen_ui.dart';
 import 'api.dart';
 import 'browser.dart' as browser;
 import 'form.dart';
-import 'main.dart' show nav;
+import 'main.dart' show nav, sectionsFor;
 
 const _sources = {
   'Direct': 'Прямий',
@@ -160,9 +160,18 @@ class _StatsPageState extends State<StatsPage> {
                         _head(
                           context,
                           'Огляд',
-                          OutlinedButton(
-                            onPressed: () => nav.go('contacts'),
-                            child: const Text('Відкрити відповіді з форм'),
+                          // "Відповіді з форм" counts both inboxes; one button per inbox this user can open.
+                          Flexible(
+                            child: Wrap(
+                              alignment: WrapAlignment.end,
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final s in sectionsFor(api.roles))
+                                  if (s.key == 'contacts' || s.key == 'applications')
+                                    OutlinedButton(onPressed: () => nav.go(s.key), child: Text(s.title)),
+                              ],
+                            ),
                           ),
                         ),
                         DecoratedBox(

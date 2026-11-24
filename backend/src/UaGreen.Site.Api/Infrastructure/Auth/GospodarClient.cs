@@ -32,6 +32,9 @@ public sealed record GospodarAuditBooking(string ExternalId, string Name, string
 /// Gospodar's answer: DateWasFree = false when the day was taken meanwhile (booked anyway, manager reschedules).
 public sealed record GospodarAuditBooked(Guid DealId, Guid OrderId, Guid TripId, bool DateWasFree);
 
+/// Gospodar's GET /api/integration/requisites: the company the site key belongs to.
+public sealed record GospodarRequisites(string? Recipient, string? Edrpou, string? Iban, string? Bank);
+
 /// One user as returned by Gospodar's GET /api/users.
 public sealed record GospodarUserDto(Guid Id, string? Email, string? FullName, bool IsActive, IReadOnlyList<string>? Roles);
 
@@ -103,6 +106,24 @@ public sealed class GospodarClient(HttpClient http, IOptions<JwtOptions> jwt, IO
     }
 
     private sealed record AuditSlotsPayload(List<DateOnly> Dates);
+
+    /// Requisites of the site key's company (Компанії → реквізити) for the IBAN transfer. Null when Gospodar can't tell.
+    public async Task<GospodarRequisites?> GetRequisitesAsync(CancellationToken ct)
+    {
+        using var req = Integration(HttpMethod.Get, "/api/integration/requisites");
+        if (req is null) return null;
+        using var resp = await SendAsync(req, "requisites", ct, _visitorTimeout);
+        if (resp is null) return null;
+        try
+        {
+            return await resp.Content.ReadFromJsonAsync<GospodarRequisites>(ct);
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            log.LogWarning(ex, "Gospodar requisites: malformed response");
+            return null;
+        }
+    }
 
     /// Books a paid audit; null when it didn't happen (no key, Gospodar down or refused) — the caller emails managers.
     public async Task<GospodarAuditBooked?> BookAuditAsync(GospodarAuditBooking booking, CancellationToken ct)

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.Options;
 using UaGreen.Site.Api.Domain;
 using UaGreen.Site.Api.Infrastructure.Auth;
 using UaGreen.Site.Api.Infrastructure.Persistence;
+using UaGreen.Site.Api.Infrastructure.Storage;
 
 namespace UaGreen.Site.Api.Infrastructure.Crm;
 
@@ -15,11 +17,15 @@ public sealed record CrmLead(string ExternalId, string? Name, string? Phone, str
 
 public sealed record CrmResult(Guid? DealId, string? Error);
 
-/// Sends contact requests and orders to Gospodar CRM as leads.
-/// Contact requests: on whenever the key is set (`admin.crm.contacts` = "off" pauses them),
-/// the unsent ones of the last 3 days. Orders: opt-in — `admin.crm.orders` holds the ISO
-/// time the feed was switched on, and only orders since then go (no flood of history).
-public sealed class CrmSync(IHttpClientFactory http, IOptions<GospodarOptions> opts, ILogger<CrmSync> log)
+/// One open Gospodar vacancy, for linking a site vacancy to it in the admin.
+public sealed record GospodarVacancyOption(Guid Id, string Name);
+
+/// Sends contact requests and orders to Gospodar CRM as leads, job applications to Gospodar HR
+/// as candidates. Contact requests: on whenever the key is set (`admin.crm.contacts` = "off"
+/// pauses them), the unsent ones of the last 3 days. Applications: all undelivered ones, no
+/// window — the admin lists those that never arrive. Orders: opt-in — `admin.crm.orders` holds
+/// the ISO time the feed was switched on, and only orders since then go (no flood of history).
+public sealed class CrmSync(IHttpClientFactory http, IOptions<GospodarOptions> opts, FileStorage storage, ILogger<CrmSync> log)
 {
     public const string OrdersKey = "admin.crm.orders", ContactsKey = "admin.crm.contacts";
     public const string Source = "Сайт uagreen.co";
@@ -35,10 +41,26 @@ public sealed class CrmSync(IHttpClientFactory http, IOptions<GospodarOptions> o
     public Task PushAsync(Order o, CancellationToken ct) => PushAsync(o, LeadFor(o), ct);
     public Task PushAsync(ContactRequest c, CancellationToken ct) => PushAsync(c, LeadFor(c), ct);
 
-    private async Task PushAsync(ICrmLinked row, CrmLead lead, CancellationToken ct)
+    /// Gospodar answers 201 (new candidate) or 200 (a retry, or a person already among its
+    /// candidates — same id). The CV leaves the site's disk once Gospodar has it.
+    public async Task PushAsync(Application a, Vacancy? v, CancellationToken ct)
+    {
+        await RecordAsync(a, () => SendAsync("/api/integration/candidates", CandidateForm(a, v), "candidateId", ExternalId(a), ct));
+        if (a.GospodarCandidateId is null || a.CvKey is not { } key) return;
+        storage.DeletePrivate(key);
+        a.CvKey = null;
+        a.CvFileName = null;
+    }
+
+    public static string ExternalId(Application a) => $"site-app-{a.Id:N}";
+
+    private Task PushAsync(ICrmLinked row, CrmLead lead, CancellationToken ct)
+        => RecordAsync(row, () => SendAsync("/api/integration/leads", JsonContent.Create(lead), "dealId", lead.ExternalId, ct));
+
+    private async Task RecordAsync(ICrmLinked row, Func<Task<CrmResult>> send)
     {
         if (row.CrmDealId is not null) return;
-        var r = Configured ? await SendAsync(lead, ct) : new CrmResult(null, "Не задано ключ інтеграції Господаря (Gospodar__IntegrationKey)");
+        var r = Configured ? await send() : new CrmResult(null, "Не задано ключ інтеграції Господаря (Gospodar__IntegrationKey)");
         row.CrmAttempts++;
         row.CrmLastAttemptAt = DateTime.UtcNow;
         row.CrmDealId = r.DealId;
@@ -46,20 +68,45 @@ public sealed class CrmSync(IHttpClientFactory http, IOptions<GospodarOptions> o
         if (r.DealId is not null) row.CrmSyncedAt = DateTime.UtcNow;
     }
 
-    private async Task<CrmResult> SendAsync(CrmLead lead, CancellationToken ct)
+    /// Multipart body of Gospodar's POST /api/integration/candidates. A CV whose file is gone
+    /// from disk is skipped rather than failing the application forever.
+    private MultipartFormDataContent CandidateForm(Application a, Vacancy? v)
     {
+        var form = new MultipartFormDataContent();
+        void Add(string name, string? value)
+        {
+            if (!string.IsNullOrWhiteSpace(value)) form.Add(new StringContent(value), name);
+        }
+        Add("externalId", ExternalId(a));
+        Add("fullName", a.Name);
+        Add("phone", a.Phone);
+        Add("email", a.Email);
+        Add("message", a.Message);
+        Add("vacancyId", v?.GospodarVacancyId?.ToString());
+        Add("siteVacancyTitle", v?.TitleUk);
+        if (a.CvKey is { } key && storage.OpenPrivate(key) is { } cv)
+        {
+            var file = new StreamContent(cv);
+            file.Headers.ContentType = new MediaTypeHeaderValue(FileStorage.ContentTypeFor(key));
+            form.Add(file, "cv", a.CvFileName ?? "cv" + Path.GetExtension(key));
+        }
+        return form;
+    }
+
+    private async Task<CrmResult> SendAsync(string path, HttpContent content, string idField, string externalId, CancellationToken ct)
+    {
+        using var _ = content; // may hold the CV stream; the request may never be built
         try
         {
-            var body0 = JsonContent.Create(lead);
-            await body0.LoadIntoBufferAsync(ct); // Content-Length instead of chunked: proxies in front of Gospodar
-            using var req = new HttpRequestMessage(HttpMethod.Post, "/api/integration/leads") { Content = body0 };
+            await content.LoadIntoBufferAsync(ct); // Content-Length instead of chunked: proxies in front of Gospodar
+            using var req = new HttpRequestMessage(HttpMethod.Post, path) { Content = content };
             req.Headers.Add("X-Api-Key", _o.IntegrationKey);
             using var resp = await Client().SendAsync(req, ct);
             var body = await resp.Content.ReadAsStringAsync(ct);
             if (resp.IsSuccessStatusCode)
             {
                 using var doc = JsonDocument.Parse(body);
-                return new CrmResult(doc.RootElement.GetProperty("dealId").GetGuid(), null);
+                return new CrmResult(doc.RootElement.GetProperty(idField).GetGuid(), null);
             }
             return new CrmResult(null, resp.StatusCode switch
             {
@@ -70,8 +117,26 @@ public sealed class CrmSync(IHttpClientFactory http, IOptions<GospodarOptions> o
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or KeyNotFoundException)
         {
-            log.LogWarning(ex, "CRM push {Id} failed", lead.ExternalId);
+            log.LogWarning(ex, "Gospodar push {Id} failed", externalId);
             return new CrmResult(null, "Господар недоступний: " + ex.Message);
+        }
+    }
+
+    /// Open Gospodar vacancies for the admin's dropdown; null when there is no key or Gospodar can't tell.
+    public async Task<IReadOnlyList<GospodarVacancyOption>?> GetVacanciesAsync(CancellationToken ct)
+    {
+        if (!Configured) return null;
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Get, "/api/integration/vacancies");
+            req.Headers.Add("X-Api-Key", _o.IntegrationKey);
+            using var resp = await Client().SendAsync(req, ct);
+            return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<List<GospodarVacancyOption>>(ct) : null;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            log.LogWarning(ex, "Gospodar vacancies failed");
+            return null;
         }
     }
 
@@ -177,6 +242,16 @@ public sealed class CrmSyncWorker(IServiceScopeFactory scopes, ILogger<CrmSyncWo
                          .Where(x => x.CrmDealId == null && x.CrmAttempts < CrmSync.MaxAttempts && x.CreatedAt > contactsFrom)
                          .OrderBy(x => x.CreatedAt).Take(50).ToListAsync(ct)).Where(x => CrmSync.Due(x, now)))
                 await sync.PushAsync(c, ct);
+
+        // Applications: every undelivered one, never-tried first so a stuck batch can't starve new ones.
+        var apps = (await db.Applications
+                .Where(x => x.GospodarCandidateId == null && x.GospodarAttempts < CrmSync.MaxAttempts)
+                .OrderBy(x => x.GospodarAttempts).ThenBy(x => x.CreatedAt).Take(50).ToListAsync(ct))
+            .Where(x => CrmSync.Due(x, now)).ToList();
+        var vacancyIds = apps.Where(x => x.VacancyId != null).Select(x => x.VacancyId!.Value).Distinct().ToList();
+        var vacancies = await db.Vacancies.AsNoTracking().Where(v => vacancyIds.Contains(v.Id)).ToDictionaryAsync(v => v.Id, ct);
+        foreach (var a in apps)
+            await sync.PushAsync(a, a.VacancyId is { } id ? vacancies.GetValueOrDefault(id) : null, ct);
 
         await db.SaveChangesAsync(ct);
     }

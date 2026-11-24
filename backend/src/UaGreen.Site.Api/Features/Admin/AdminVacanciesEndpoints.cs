@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
 using UaGreen.Site.Api.Infrastructure.Auth;
+using UaGreen.Site.Api.Infrastructure.Crm;
 using UaGreen.Site.Api.Infrastructure.Persistence;
 using static UaGreen.Site.Api.Features.Admin.AdminCommon;
 
@@ -12,13 +13,15 @@ public sealed record VacancyUpsert(
     string Slug, string TitleUk, string? TitleEn, string Department, string EmploymentType, string City, string? Experience, string? Language,
     string? RequirementsHtmlUk, string? RequirementsHtmlEn, string? NiceToHaveHtmlUk, string? NiceToHaveHtmlEn,
     string? ConditionsHtmlUk, string? ConditionsHtmlEn, bool IsActive, int Sort, DateTime? PublishedAt,
-    string? TitleCs = null, string? DepartmentCs = null, string? EmploymentTypeCs = null, string? CityCs = null, string? ExperienceCs = null, string? LanguageCs = null, string? RequirementsHtmlCs = null, string? NiceToHaveHtmlCs = null, string? ConditionsHtmlCs = null);
+    string? TitleCs = null, string? DepartmentCs = null, string? EmploymentTypeCs = null, string? CityCs = null, string? ExperienceCs = null, string? LanguageCs = null, string? RequirementsHtmlCs = null, string? NiceToHaveHtmlCs = null, string? ConditionsHtmlCs = null,
+    Guid? GospodarVacancyId = null);
 
 public sealed record VacancyAdminDto(
     Guid Id, string Slug, string TitleUk, string? TitleEn, string Department, string EmploymentType, string City, string? Experience, string? Language,
     string? RequirementsHtmlUk, string? RequirementsHtmlEn, string? NiceToHaveHtmlUk, string? NiceToHaveHtmlEn,
-    string? ConditionsHtmlUk, string? ConditionsHtmlEn, bool IsActive, int Sort, DateTime PublishedAt, DateTime UpdatedAt, int Applications,
-    string? TitleCs, string? DepartmentCs, string? EmploymentTypeCs, string? CityCs, string? ExperienceCs, string? LanguageCs, string? RequirementsHtmlCs, string? NiceToHaveHtmlCs, string? ConditionsHtmlCs);
+    string? ConditionsHtmlUk, string? ConditionsHtmlEn, bool IsActive, int Sort, DateTime PublishedAt, DateTime UpdatedAt,
+    string? TitleCs, string? DepartmentCs, string? EmploymentTypeCs, string? CityCs, string? ExperienceCs, string? LanguageCs, string? RequirementsHtmlCs, string? NiceToHaveHtmlCs, string? ConditionsHtmlCs,
+    Guid? GospodarVacancyId);
 
 public static class AdminVacanciesEndpoints
 {
@@ -34,16 +37,16 @@ public static class AdminVacanciesEndpoints
                 query = query.Where(v => EF.Functions.ILike(v.TitleUk, Like(q)) || EF.Functions.ILike(v.Department, Like(q)) || EF.Functions.ILike(v.City, Like(q)));
             if (filter == "active") query = query.Where(v => v.IsActive);
             if (filter == "inactive") query = query.Where(v => !v.IsActive);
-            return await PageAsync(
-                query.OrderBy(v => v.Sort).ThenByDescending(v => v.PublishedAt)
-                    .Select(v => new { v, N = db.Applications.Count(a => a.VacancyId == v.Id) }),
-                page, pageSize, x => ToDto(x.v, x.N), ct);
+            return await PageAsync(query.OrderBy(v => v.Sort).ThenByDescending(v => v.PublishedAt), page, pageSize, ToDto, ct);
         });
+
+        // Open Gospodar vacancies for the «Вакансія в Господарі» dropdown; empty when Gospodar can't tell.
+        g.MapGet("/gospodar", async (CrmSync sync, CancellationToken ct) => await sync.GetVacanciesAsync(ct) ?? []);
 
         g.MapGet("/{id:guid}", async (Guid id, AppDbContext db, CancellationToken ct) =>
         {
             var v = await db.Vacancies.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw ProblemException.NotFound("Вакансію не знайдено");
-            return ToDto(v, await db.Applications.CountAsync(a => a.VacancyId == id, ct));
+            return ToDto(v);
         });
 
         g.MapPost("/", async (VacancyUpsert req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
@@ -53,7 +56,7 @@ public static class AdminVacanciesEndpoints
             db.Vacancies.Add(v);
             await db.SaveChangesAsync(ct);
             await EvictPublicAsync(cache, ct);
-            return Results.Created($"/api/admin/vacancies/{v.Id}", ToDto(v, 0));
+            return Results.Created($"/api/admin/vacancies/{v.Id}", ToDto(v));
         });
 
         g.MapPut("/{id:guid}", async (Guid id, VacancyUpsert req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
@@ -64,7 +67,7 @@ public static class AdminVacanciesEndpoints
             await RedirectSlugAsync(db, "/vacancies", oldSlug, v.Slug, ct);
             await db.SaveChangesAsync(ct);
             await EvictPublicAsync(cache, ct);
-            return Results.Ok(ToDto(v, await db.Applications.CountAsync(a => a.VacancyId == id, ct)));
+            return Results.Ok(ToDto(v));
         });
 
         g.MapDelete("/{id:guid}", async (Guid id, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
@@ -101,11 +104,13 @@ public static class AdminVacanciesEndpoints
         v.IsActive = req.IsActive; v.Sort = req.Sort;
         v.PublishedAt = req.PublishedAt ?? (v.PublishedAt == default ? DateTime.UtcNow : v.PublishedAt);
         v.UpdatedAt = DateTime.UtcNow;
+        v.GospodarVacancyId = req.GospodarVacancyId;
     }
 
-    private static VacancyAdminDto ToDto(Vacancy v, int applications) => new(
+    private static VacancyAdminDto ToDto(Vacancy v) => new(
         v.Id, v.Slug, v.TitleUk, v.TitleEn, v.Department, v.EmploymentType, v.City, v.Experience, v.Language,
         v.RequirementsHtmlUk, v.RequirementsHtmlEn, v.NiceToHaveHtmlUk, v.NiceToHaveHtmlEn, v.ConditionsHtmlUk, v.ConditionsHtmlEn,
-        v.IsActive, v.Sort, v.PublishedAt, v.UpdatedAt, applications,
-        v.TitleCs, v.DepartmentCs, v.EmploymentTypeCs, v.CityCs, v.ExperienceCs, v.LanguageCs, v.RequirementsHtmlCs, v.NiceToHaveHtmlCs, v.ConditionsHtmlCs);
+        v.IsActive, v.Sort, v.PublishedAt, v.UpdatedAt,
+        v.TitleCs, v.DepartmentCs, v.EmploymentTypeCs, v.CityCs, v.ExperienceCs, v.LanguageCs, v.RequirementsHtmlCs, v.NiceToHaveHtmlCs, v.ConditionsHtmlCs,
+        v.GospodarVacancyId);
 }

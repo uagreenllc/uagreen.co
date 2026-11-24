@@ -1,5 +1,6 @@
 <script setup lang="ts">
-const props = defineProps<{ slug: string }>()
+// No slug = the free "didn't find a vacancy" form on /vacancies.
+const props = defineProps<{ slug?: string }>()
 const { t } = useI18n()
 const f = reactive({ name: '', phone: '', email: '', message: '', website: '', captcha: '' })
 const cv = ref<File | null>(null)
@@ -9,7 +10,7 @@ const captchaEl = ref<{ reset(): void }>()
 const { pending, error, done, run } = useForm<typeof f>(async (v) => {
   const body = new FormData()
   for (const [k, val] of Object.entries(v)) body.append(k, val)
-  body.append('vacancySlug', props.slug)
+  if (props.slug) body.append('vacancySlug', props.slug)
   if (cv.value) body.append('cv', cv.value)
   await $fetch(apiUrl('/applications'), { method: 'POST', body })
 })

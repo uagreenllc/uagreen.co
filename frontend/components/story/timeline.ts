@@ -308,6 +308,39 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
         snap: { snapTo: stops, inertia: false, duration: { min: 0.2, max: 1 } }, // ponytail: tune max by feel; drop `snap` to scrub freely
       })
 
+  // Autoplay: when the scroll has rested inside the story for IDLE ms, play on to the next snap stop at
+  // about real-time speed (a scroll tween, so the scrub, snap and rail all stay in sync). Any wheel, touch,
+  // key or click hands control straight back; our own scroll events don't reset the timer.
+  const IDLE = 6000 // ponytail: tune by feel
+  const SEC_PER_UNIT = 1.5 // playback speed, seconds per timeline unit
+  let idle: ReturnType<typeof setTimeout> | undefined
+  let auto: gsap.core.Tween | undefined
+  const arm = () => { clearTimeout(idle); idle = setTimeout(advance, IDLE) }
+  const advance = () => {
+    if (!st) return
+    if (document.hidden) return arm()
+    const y = st.scroll()
+    if (y < st.start - 2 || y > st.end - 2) return // above, past or at the end of the story: the next scroll re-arms
+    const p = st.progress
+    const next = stops.find(s => s > p + 1e-3)!
+    const pos = { y }
+    auto = g.to(pos, {
+      y: st.start + next * (st.end - st.start),
+      duration: (next - p) * tl.duration() * SEC_PER_UNIT,
+      ease: 'power1.inOut',
+      onUpdate: () => window.scrollTo({ top: pos.y, behavior: 'instant' }),
+      onComplete: () => { auto = undefined; arm() },
+    })
+  }
+  const onScroll = () => { if (!auto) arm() }
+  const takeOver = () => { auto?.kill(); auto = undefined; arm() }
+  const userEvents = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const
+  if (st) {
+    window.addEventListener('scroll', onScroll, { passive: true })
+    userEvents.forEach(e => window.addEventListener(e, takeOver, { passive: true }))
+    arm()
+  }
+
   drawCrane()
   const SPIN = 0.09 // °/ms at full speed
   const tick = (_t: number, dt: number) => {
@@ -340,6 +373,10 @@ export function buildTimeline(r: SceneRefs, g: GsapLib, ScrollTrigger: ScrollTri
       if (st) window.scrollTo({ top: st.start + stops[i]! * (st.end - st.start), behavior: 'smooth' })
     },
     destroy() {
+      clearTimeout(idle)
+      auto?.kill()
+      window.removeEventListener('scroll', onScroll)
+      userEvents.forEach(e => window.removeEventListener(e, takeOver))
       g.ticker.remove(tick)
       io?.disconnect()
       st?.kill()

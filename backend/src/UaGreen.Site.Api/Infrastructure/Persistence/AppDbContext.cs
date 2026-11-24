@@ -115,8 +115,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         });
         b.Entity<Application>(e =>
         {
-            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
-            e.Property(x => x.Note).HasMaxLength(4000);
+            e.Property(x => x.GospodarError).HasMaxLength(500);
         });
         b.Entity<OrderItem>(e =>
         {

@@ -9,11 +9,11 @@ namespace UaGreen.Site.Api.Infrastructure.Persistence.Migrations
     /// on purpose — the importer upserts and would overwrite those edits on every run.
     public partial class AddLegalPages : Migration
     {
-        private const string Seller = """
+        internal const string Seller = """
             <p>ПРОДАВЕЦЬ (ВИКОНАВЕЦЬ):</p><h3>Товариство з обмеженою відповідальністю «ЮА Грін»</h3><p>ЄДРПОУ 45033277</p><p>Адреса: Харківська область, с. Хроли, вул. Садова, буд. 1, кв. 117</p><p>Електронна пошта: hello@uagreen.co</p><p>Телефон: +38 (066) 869 60 72</p>
             """;
 
-        private const string SellerEn = """
+        internal const string SellerEn = """
             <p>SELLER (CONTRACTOR):</p><h3>UA Green LLC (ТОВ «ЮА Грін»)</h3><p>EDRPOU code 45033277</p><p>Address: Apt. 117, 1 Sadova St., Khroly village, Kharkiv Oblast, Ukraine</p><p>Email: hello@uagreen.co</p><p>Phone: +38 (066) 869 60 72</p>
             """;
 

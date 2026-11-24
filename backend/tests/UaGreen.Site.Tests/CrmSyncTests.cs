@@ -7,6 +7,8 @@ using UaGreen.Site.Api.Domain;
 using UaGreen.Site.Api.Infrastructure.Auth;
 using UaGreen.Site.Api.Infrastructure.Crm;
 using UaGreen.Site.Api.Infrastructure.Persistence;
+using UaGreen.Site.Api.Infrastructure.Storage;
+using Microsoft.Extensions.Hosting.Internal;
 
 namespace UaGreen.Site.Tests;
 
@@ -91,8 +93,7 @@ public class CrmSyncTests
         var fake = new FakeGospodar(body => body.GetProperty("name").GetString() == "Збій"
             ? new HttpResponseMessage(HttpStatusCode.ServiceUnavailable) { Content = new StringContent("{\"error\":\"no_responsible_user\"}") }
             : new HttpResponseMessage(HttpStatusCode.Created) { Content = new StringContent($"{{\"dealId\":\"{dealId}\"}}") });
-        var sync = new CrmSync(new Factory(fake), Options.Create(new GospodarOptions { BaseUrl = "http://gospodar", IntegrationKey = "company-key" }),
-            NullLogger<CrmSync>.Instance);
+        var sync = Sync(fake, Storage());
 
         await CrmSyncWorker.TickAsync(db, sync, CancellationToken.None);
 
@@ -114,6 +115,143 @@ public class CrmSyncTests
         await CrmSyncWorker.TickAsync(db, sync, CancellationToken.None);
         Assert.Equal(3, fake.Calls.Count);
         Assert.Equal("site-order-7", fake.Calls[2].Body.GetProperty("externalId").GetString());
+    }
+
+    private static FileStorage Storage()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "crm-tests-" + Guid.NewGuid().ToString("N"));
+        return new FileStorage(
+            Options.Create(new FileStorageOptions { Root = Path.Combine(root, "media"), PrivateRoot = Path.Combine(root, "private") }),
+            new HostingEnvironment { ContentRootPath = root });
+    }
+
+    private static CrmSync Sync(HttpMessageHandler h, FileStorage storage, string? key = "company-key") =>
+        new(new Factory(h), Options.Create(new GospodarOptions { BaseUrl = "http://gospodar", IntegrationKey = key ?? "" }),
+            storage, NullLogger<CrmSync>.Instance);
+
+    /// Gospodar HR as the site sees it: records each multipart field and the CV part.
+    private sealed class FakeHr(Func<Dictionary<string, string>, HttpResponseMessage> respond) : HttpMessageHandler
+    {
+        public List<(Dictionary<string, string> Fields, string? CvName, byte[]? Cv)> Calls { get; } = [];
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, CancellationToken ct)
+        {
+            var fields = new Dictionary<string, string>();
+            string? cvName = null;
+            byte[]? cv = null;
+            foreach (var part in (MultipartFormDataContent)req.Content!)
+            {
+                var d = part.Headers.ContentDisposition!;
+                if (d.Name?.Trim('"') == "cv")
+                {
+                    cvName = d.FileNameStar ?? d.FileName?.Trim('"');
+                    cv = await part.ReadAsByteArrayAsync(ct);
+                }
+                else fields[d.Name!.Trim('"')] = await part.ReadAsStringAsync(ct);
+            }
+            Calls.Add((fields, cvName, cv));
+            return respond(fields);
+        }
+    }
+
+    private static HttpResponseMessage Created(Guid id) =>
+        new(HttpStatusCode.Created) { Content = new StringContent($"{{\"candidateId\":\"{id}\"}}") };
+
+    private static AppDbContext Db() =>
+        new(new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase("hr-" + Guid.NewGuid()).Options);
+
+    [Fact]
+    public async Task Tick_sends_old_and_new_applications_with_cv_and_deletes_the_cv_only_after_success()
+    {
+        await using var db = Db();
+        var storage = Storage();
+        var gospodarVacancy = Guid.NewGuid();
+        var vacancy = new Vacancy { Id = Guid.NewGuid(), Slug = "lathe-operator", TitleUk = "Токар", GospodarVacancyId = gospodarVacancy };
+        var pdf = "%PDF-1.4"u8.ToArray();
+        var cvKey = await storage.SavePrivateAsync("cv", "application/pdf", new MemoryStream(pdf), CancellationToken.None);
+        var old = new Application
+        {
+            Id = Guid.NewGuid(), VacancyId = vacancy.Id, Name = "Іван", Phone = "0501112233", Message = "Хочу до вас",
+            CvKey = cvKey, CvFileName = "Резюме Іван.pdf", CreatedAt = DateTime.UtcNow.AddDays(-7),
+        };
+        var fresh = new Application { Id = Guid.NewGuid(), Name = "Оля", Phone = "0502223344", CreatedAt = DateTime.UtcNow };
+        db.Vacancies.Add(vacancy);
+        db.Applications.AddRange(old, fresh);
+        await db.SaveChangesAsync();
+
+        var candidateId = Guid.NewGuid();
+        var fake = new FakeHr(_ => Created(candidateId));
+        await CrmSyncWorker.TickAsync(db, Sync(fake, storage), CancellationToken.None);
+
+        Assert.Equal(2, fake.Calls.Count); // no 3-day window for applications
+        var a = fake.Calls.Single(c => c.Fields["fullName"] == "Іван");
+        Assert.Equal($"site-app-{old.Id:N}", a.Fields["externalId"]);
+        Assert.Equal(gospodarVacancy.ToString(), a.Fields["vacancyId"]);
+        Assert.Equal("Токар", a.Fields["siteVacancyTitle"]);
+        Assert.Equal("Хочу до вас", a.Fields["message"]);
+        Assert.Equal("Резюме Іван.pdf", a.CvName);
+        Assert.Equal(pdf, a.Cv);
+        var b = fake.Calls.Single(c => c.Fields["fullName"] == "Оля");
+        Assert.False(b.Fields.ContainsKey("vacancyId"));
+        Assert.Null(b.Cv);
+
+        var sentOld = await db.Applications.SingleAsync(x => x.Id == old.Id);
+        Assert.Equal(candidateId, sentOld.GospodarCandidateId);
+        Assert.NotNull(sentOld.GospodarSyncedAt);
+        Assert.Null(sentOld.CvKey);
+        Assert.Null(storage.OpenPrivate(cvKey));
+        Assert.NotNull((await db.Applications.SingleAsync(x => x.Id == fresh.Id)).GospodarCandidateId);
+    }
+
+    [Fact]
+    public async Task Rejected_application_keeps_its_cv_and_error()
+    {
+        await using var db = Db();
+        var storage = Storage();
+        var cvKey = await storage.SavePrivateAsync("cv", "application/pdf", new MemoryStream("%PDF-1.4"u8.ToArray()), CancellationToken.None);
+        db.Applications.Add(new Application
+        {
+            Id = Guid.NewGuid(), Name = "Іван", Phone = "0501112233", CvKey = cvKey, CvFileName = "cv.pdf", CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var fake = new FakeHr(_ => new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent("{\"error\":\"phone_or_email_required\"}"),
+        });
+        await CrmSyncWorker.TickAsync(db, Sync(fake, storage), CancellationToken.None);
+
+        var x = await db.Applications.SingleAsync();
+        Assert.Null(x.GospodarCandidateId);
+        Assert.Equal(1, x.GospodarAttempts);
+        Assert.Contains("400", x.GospodarError);
+        Assert.Equal(cvKey, x.CvKey);
+        using var still = storage.OpenPrivate(cvKey);
+        Assert.NotNull(still);
+    }
+
+    [Fact]
+    public async Task Missing_cv_file_does_not_block_the_application()
+    {
+        await using var db = Db();
+        db.Applications.Add(new Application
+        {
+            Id = Guid.NewGuid(), Name = "Іван", Phone = "0501112233", CvKey = "cv/gone.pdf", CvFileName = "cv.pdf", CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var fake = new FakeHr(_ => Created(Guid.NewGuid()));
+        await CrmSyncWorker.TickAsync(db, Sync(fake, Storage()), CancellationToken.None);
+
+        Assert.Null(Assert.Single(fake.Calls).Cv);
+        Assert.NotNull((await db.Applications.SingleAsync()).GospodarCandidateId);
+    }
+
+    [Fact]
+    public async Task GetVacancies_returns_null_without_key()
+    {
+        var fake = new FakeHr(_ => throw new InvalidOperationException("must not call Gospodar"));
+        Assert.Null(await Sync(fake, Storage(), key: null).GetVacanciesAsync(CancellationToken.None));
     }
 
     [Fact]

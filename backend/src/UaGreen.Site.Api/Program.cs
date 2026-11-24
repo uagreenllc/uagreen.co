@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Features.Admin;
+using UaGreen.Site.Api.Features.Orders;
 using UaGreen.Site.Api.Infrastructure.Auth;
 using UaGreen.Site.Api.Infrastructure.Crm;
 using UaGreen.Site.Api.Infrastructure.Captcha;
@@ -48,6 +49,7 @@ builder.Services.AddHttpClient<GospodarClient>((sp, http) =>
 builder.Services.AddHttpClient(nameof(CrmSync), http => http.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddScoped<CrmSync>();
 builder.Services.AddHostedService<CrmSyncWorker>();
+builder.Services.AddHostedService<PaymentRequisitesSync>();
 builder.Services.Configure<SiteChatOptions>(builder.Configuration.GetSection("SiteChat"));
 builder.Services.AddHttpClient<GospodarChatClient>((sp, http) =>
 {
