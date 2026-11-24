@@ -83,6 +83,8 @@ infra/scripts/deploy.sh
 Адмін (`/api/admin/*`, JWT + policy per role): CRUD для всіх таблиць вище, `POST /api/admin/media` (multipart upload), `GET/PUT /api/admin/users/{id}/roles`, список замовлень зі зміною статусу.
 
 ### LiqPay
+> Замінено на monobank (еквайринг + «Покупка частинами»), 2026-11-24 — див. `docs/superpowers/specs/2026-11-24-monobank-payments-design.md`.
+
 Checkout API v3: `data = base64(json{version:3, public_key, action:"pay", amount, currency:"UAH", description, order_id, result_url, server_url, language})`, `signature = base64(sha1(private_key + data + private_key))`. Фронт робить form-POST на `https://www.liqpay.ua/api/3/checkout`. `server_url` → наш callback: перевірити підпис, `status in (success, sandbox)` → `orders.status = paid`. Ключі — `LiqPay__PublicKey/PrivateKey` в env, sandbox-ключі для тесту.
 `ponytail:` кредит 0% і «безготівка» = замовлення зі статусом credit/invoice_sent, менеджер веде вручну; доставка — «за тарифом перевізника при отриманні», без API Нової пошти.
 
@@ -128,4 +130,4 @@ Checkout API v3: `data = base64(json{version:3, public_key, action:"pay", amount
 - Gospodar як IdP: якщо ERP лежить — в адмінку не зайти (сайт і покупки працюють).
 - Weblium зберігає тексти в SSR-HTML — скрейпер працює без браузера.
 - EN-контент частковий — фолбек на UK; переклади додати в адмінці пізніше.
-- Оплата частинами (моно/Приват) — підключаємо після запуску, якщо потрібно.
+- Оплата частинами monobank — підключено (2026-11-24), ПриватБанк — за потреби.
