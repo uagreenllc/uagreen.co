@@ -191,12 +191,12 @@ class PaymentsPage extends StatelessWidget {
     ('Credit', Icons.event_repeat, 'Кредит 0 % / оплата частинами',
         "Менеджер зв'язується з клієнтом і оформлює розстрочку в банку-партнері."),
   ];
+  // A copy of Gospodar's Компанії → реквізити, pulled by the API (on open and every 15 min); read-only here.
   static const _requisites = [
-    ('pay_recipient', 'Отримувач', 'ТОВ «…» або ФОП …'),
-    ('pay_edrpou', 'ЄДРПОУ (або РНОКПП для ФОП)', null),
-    ('pay_iban', 'IBAN', 'UA + 27 цифр'),
-    ('pay_bank', 'Банк', null),
-    ('pay_purpose', 'Призначення платежу', '{n} — номер замовлення; порожньо: «Оплата за замовлення №{n}»'),
+    ('pay_recipient', 'Отримувач'),
+    ('pay_edrpou', 'ЄДРПОУ (або РНОКПП для ФОП)'),
+    ('pay_iban', 'IBAN'),
+    ('pay_bank', 'Банк'),
   ];
 
   @override
@@ -234,13 +234,27 @@ class PaymentsPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text('Реквізити компанії', style: theme.textTheme.titleSmall),
-                      for (final (k, label, hint) in _requisites) ...[
+                      Text(
+                        p.get('pay_iban') == null
+                            ? 'Беруться з Господаря (Компанії → реквізити), але IBAN там не заповнено — '
+                                'клієнт не побачить реквізитів для оплати.'
+                            : 'Беруться з Господаря (Компанії → реквізити) й оновлюються самі. Змінюйте їх там.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                            color: p.get('pay_iban') == null ? context.semantic.warning : context.palette.textSecondary),
+                      ),
+                      for (final (k, label) in _requisites) ...[
                         AppSpacing.gapMd,
-                        kvField(p, k, label, helper: hint, enabled: p.get('pay_Invoice') != 'off',
-                            validate: k == 'pay_iban'
-                                ? (v) => RegExp(r'^UA\d{27}$').hasMatch(v.replaceAll(' ', '').toUpperCase()) ? null : 'IBAN: UA і 27 цифр'
-                                : null),
+                        TextFormField(
+                          key: p.fieldKey(k),
+                          initialValue: k == 'pay_iban' ? p.get(k)?.replaceAllMapped(RegExp(r'.{4}(?=.)'), (m) => '${m[0]} ') : p.get(k),
+                          readOnly: true,
+                          decoration: InputDecoration(labelText: label, hintText: '—'),
+                        ),
                       ],
+                      AppSpacing.gapMd,
+                      kvField(p, 'pay_purpose', 'Призначення платежу',
+                          helper: '{n} — номер замовлення; порожньо: «Оплата за замовлення №{n}»',
+                          enabled: p.get('pay_Invoice') != 'off'),
                     ],
                   ),
           ),
