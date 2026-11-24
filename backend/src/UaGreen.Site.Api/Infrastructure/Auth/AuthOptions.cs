@@ -26,6 +26,6 @@ public sealed class GospodarOptions
 
 public sealed class AppOptions
 {
-    /// Public origin of the site (LiqPay result/server URLs, media URLs in emails).
+    /// Public origin of the site (payment redirect/webhook URLs, media URLs in emails).
     public string PublicBaseUrl { get; set; } = "";
 }

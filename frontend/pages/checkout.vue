@@ -15,15 +15,23 @@ const langs = ['cs', 'en', 'uk']
 const deliveryNote = (d: DeliveryMethod) => langs.slice(Math.max(0, langs.indexOf(locale.value)))
   .map(l => settings.value?.[`delivery.${d}.note.${l}`]).find(Boolean)
 // Admin → Платіжні системи: pay_<method> = "off" hides a method (the API refuses it too).
-const payments = (['LiqPay', 'Invoice', 'Credit'] as PaymentMethod[]).filter(p => settings.value?.[`pay_${p}`] !== 'off')
-const hint = (p: PaymentMethod) => t(`checkout.payment_${p}_hint${p === 'Invoice' && settings.value?.pay_iban ? 'Iban' : ''}`)
+const payments = (['Card', 'Invoice', 'Credit', 'MonoParts'] as PaymentMethod[]).filter(p => settings.value?.[`pay_${p}`] !== 'off')
+// monobank «Покупка частинами»: the customer picks the number of payments here (3..pay_parts_max, default 12).
+const partsMax = (() => {
+  const n = Number(settings.value?.pay_parts_max)
+  return Number.isInteger(n) && n >= 3 && n <= 25 ? n : 12
+})()
+const partsOptions = Array.from({ length: partsMax - 2 }, (_, i) => i + 3)
+const perMonth = (n: number) => money(Math.ceil(cart.subtotal / n))
+const hint = (p: PaymentMethod) => t(`checkout.payment_${p}_hint${p === 'Invoice' && settings.value?.pay_iban ? 'Iban' : ''}`,
+  { n: partsMax })
 const f = reactive({
   name: '', phone: '', email: '', delivery: deliveries[0]!, city: '', warehouse: '',
-  payment: payments[0]!, comment: '', website: '', captcha: '',
+  payment: payments[0]!, parts: partsMax, comment: '', website: '', captcha: '',
 })
 const errors = reactive<Record<string, string>>({})
 const needsAddress = computed(() => f.delivery !== 'Pickup')
-const liqPay = ref<Order['liqPay']>(null)
+const redirecting = ref(false)
 const captchaEl = ref<{ reset(): void }>()
 
 const { pending, error, run } = useForm<typeof f>(async (v) => {
@@ -31,6 +39,7 @@ const { pending, error, run } = useForm<typeof f>(async (v) => {
     customer: { name: v.name, phone: v.phone, email: v.email || null },
     delivery: { method: v.delivery, city: needsAddress.value ? v.city : null, warehouse: needsAddress.value ? v.warehouse : null },
     paymentMethod: v.payment,
+    parts: v.payment === 'MonoParts' ? v.parts : null,
     comment: v.comment || null,
     items: cart.items.map(l => ({ productId: l.productId, qty: l.qty, optionValueIds: l.optionValueIds })),
     lang: locale.value,
@@ -39,7 +48,11 @@ const { pending, error, run } = useForm<typeof f>(async (v) => {
   }
   const order = await $fetch<Order>(apiUrl('/orders'), { method: 'POST', body })
   cart.clear()
-  if (order.liqPay) liqPay.value = order.liqPay
+  // Card: straight to monobank's payment page; without one (bank hiccup) the order page offers «Оплатити».
+  if (order.payUrl) {
+    redirecting.value = true
+    window.location.href = order.payUrl
+  }
   else await navigateTo(localePath(`/order/${order.id}`))
 })
 watch(error, e => e && captchaEl.value?.reset())
@@ -58,7 +71,7 @@ function submit() {
   <div class="page section-inner checkout">
     <h1>{{ $t('checkout.title') }}</h1>
 
-    <LiqPayForm v-if="liqPay" v-bind="liqPay" />
+    <p v-if="redirecting" class="redirecting">{{ $t('checkout.redirecting') }}</p>
 
     <template v-else-if="cart.ready">
       <p v-if="!cart.items.length" class="empty">
@@ -112,6 +125,12 @@ function submit() {
               <span>{{ $t(`checkout.payment_${pm}`) }}<small>{{ hint(pm) }}</small></span>
             </label>
           </div>
+          <label v-if="f.payment === 'MonoParts'" class="field">
+            <span>{{ $t('checkout.partsCount') }}</span>
+            <select v-model.number="f.parts" name="parts">
+              <option v-for="n in partsOptions" :key="n" :value="n">{{ n }} — {{ perMonth(n) }} {{ $t('checkout.perMonth') }}</option>
+            </select>
+          </label>
 
           <label class="field">
             <span>{{ $t('checkout.comment') }}</span>
@@ -144,6 +163,7 @@ function submit() {
 
 <style scoped>
 .empty { color: var(--ink-2); font-size: 18px; line-height: 1.8; }
+.redirecting { color: var(--ink-2); }
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 64px; align-items: start; }
 h2 { font-size: 22px; margin: 32px 0 16px; }
 form h2:first-child { margin-top: 0; }

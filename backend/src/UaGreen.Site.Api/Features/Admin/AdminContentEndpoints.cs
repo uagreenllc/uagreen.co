@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
 using UaGreen.Site.Api.Features.Content;
 using UaGreen.Site.Api.Features.Orders;
 using UaGreen.Site.Api.Infrastructure.Auth;
+using UaGreen.Site.Api.Infrastructure.Payments;
 using UaGreen.Site.Api.Infrastructure.Persistence;
 using static UaGreen.Site.Api.Features.Admin.AdminCommon;
 
@@ -119,6 +121,16 @@ public static class AdminContentEndpoints
         {
             await PaymentSettings.SyncAsync(db, gospodar, cache, log, ct);
             return await SettingsAsync(db, PaymentSettings.Prefix, ct);
+        });
+        // Which methods have their bank keys on the server (the page warns about the ones that don't).
+        p.MapGet("/configured", (IOptions<MonobankOptions> card, IOptions<MonoPartsOptions> parts) =>
+        {
+            var missing = PaymentSettings.Unconfigured(card.Value, parts.Value);
+            return new Dictionary<string, bool>
+            {
+                [nameof(PaymentMethod.Card)] = !missing.Contains(PaymentMethod.Card),
+                [nameof(PaymentMethod.MonoParts)] = !missing.Contains(PaymentMethod.MonoParts),
+            };
         });
         p.MapPut("", async (Dictionary<string, string?> req, AppDbContext db, IOutputCacheStore cache, CancellationToken ct) =>
         {

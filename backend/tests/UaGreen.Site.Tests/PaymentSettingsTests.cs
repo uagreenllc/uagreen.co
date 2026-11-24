@@ -7,6 +7,7 @@ using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
 using UaGreen.Site.Api.Features.Orders;
 using UaGreen.Site.Api.Infrastructure.Auth;
+using UaGreen.Site.Api.Infrastructure.Payments;
 using UaGreen.Site.Api.Infrastructure.Persistence;
 
 namespace UaGreen.Site.Tests;
@@ -21,7 +22,7 @@ public class PaymentSettingsTests
     [InlineData("ua213223130000026007233566001", false)] // normalised by FromGospodar, not here
     public void IsValidIban(string iban, bool ok) => Assert.Equal(ok, PaymentSettings.IsValidIban(iban));
 
-    private static readonly Dictionary<string, string> Stored = new() { ["pay_LiqPay"] = "off", ["pay_iban"] = "UA213223130000026007233566001" };
+    private static readonly Dictionary<string, string> Stored = new() { ["pay_Card"] = "off", ["pay_iban"] = "UA213223130000026007233566001" };
 
     [Fact]
     public void Validate_takes_a_partial_change()
@@ -36,10 +37,30 @@ public class PaymentSettingsTests
     {
         void Bad(Dictionary<string, string?> req) => Assert.Throws<ProblemException>(() => PaymentSettings.Validate(req, Stored));
         Bad(new() { ["pay_iban"] = "UA213223130000026007233566001" }); // Gospodar's, not the admin's
-        Bad(new() { ["pay_LiqPay"] = "on" });
+        Bad(new() { ["pay_Card"] = "on" });
         Bad(new() { ["code_head"] = "<script>" });
-        Bad(new() { ["pay_Invoice"] = "off", ["pay_Credit"] = "off" }); // LiqPay is already off
+        Bad(new() { ["pay_Invoice"] = "off", ["pay_Credit"] = "off", ["pay_MonoParts"] = "off" }); // Card is already off
+        Bad(new() { ["pay_parts_max"] = "2" });
+        Bad(new() { ["pay_parts_max"] = "26" });
+        Bad(new() { ["pay_parts_max"] = "abc" });
     }
+
+    [Fact]
+    public void Parts_max_is_trimmed()
+    {
+        var req = new Dictionary<string, string?> { ["pay_parts_max"] = " 10 " };
+        PaymentSettings.Validate(req, Stored);
+        Assert.Equal("10", req["pay_parts_max"]);
+    }
+
+    [Fact]
+    public void Unconfigured_lists_methods_without_keys() =>
+        Assert.Equal([PaymentMethod.Card, PaymentMethod.MonoParts],
+            PaymentSettings.Unconfigured(new MonobankOptions(), new MonoPartsOptions()));
+
+    [Fact]
+    public void Unconfigured_empty_when_keys_set() =>
+        Assert.Empty(PaymentSettings.Unconfigured(new MonobankOptions { Token = "t" }, new MonoPartsOptions { StoreId = "s", Secret = "x" }));
 
     [Fact]
     public void FromGospodar_normalises_and_refuses_a_broken_iban()

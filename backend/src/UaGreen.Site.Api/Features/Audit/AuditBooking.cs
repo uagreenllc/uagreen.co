@@ -4,24 +4,23 @@ using UaGreen.Site.Api.Infrastructure.Email;
 
 namespace UaGreen.Site.Api.Features.Audit;
 
-/// After LiqPay confirms an audit order: book it in Gospodar (customer, deal, order, trip, payment there).
+/// After monobank confirms an audit order: book it in Gospodar (customer, deal, order, trip, payment there).
 public static class AuditBooking
 {
-    /// Paid audit not yet accepted by Gospodar. Because it checks GospodarBookedAt, every later LiqPay
-    /// callback for the order retries a failed booking; Gospodar dedupes by ExternalId.
-    /// ponytail: no retry queue — LiqPay's repeated callbacks + the manager email are the retry; add a
-    /// background retry if failures show up.
+    /// Paid audit not yet accepted by Gospodar. Because it checks GospodarBookedAt, a later payment sync
+    /// for the order retries a failed booking; Gospodar dedupes by ExternalId.
+    /// ponytail: no retry queue — the manager email is the retry; add a background retry if failures show up.
     public static bool ShouldBook(Order o) =>
         o.Status == OrderStatus.Paid && o.AuditDate is not null && o.GospodarBookedAt is null;
 
-    public static GospodarAuditBooking ToRequest(Order o, long? paymentId) => new(
+    public static GospodarAuditBooking ToRequest(Order o, string paymentRef) => new(
         o.Id.ToString(), o.CustomerName, o.Phone, o.Email, o.AuditAddress ?? "", o.Comment,
-        o.AuditDate!.Value, o.Total, o.PaidAt ?? DateTime.UtcNow, $"liqpay:{paymentId}", o.OfferAcceptedAt ?? o.CreatedAt);
+        o.AuditDate!.Value, o.Total, o.PaidAt ?? DateTime.UtcNow, paymentRef, o.OfferAcceptedAt ?? o.CreatedAt);
 
     /// Sets the booking result on the order (the caller saves) and tells managers when a human has to step in.
-    public static async Task SendAsync(Order o, long? paymentId, GospodarClient gospodar, Notifier notifier, CancellationToken ct)
+    public static async Task SendAsync(Order o, string paymentRef, GospodarClient gospodar, Notifier notifier, CancellationToken ct)
     {
-        var req = ToRequest(o, paymentId);
+        var req = ToRequest(o, paymentRef);
         var booked = await gospodar.BookAuditAsync(req, ct);
         if (booked is null)
         {

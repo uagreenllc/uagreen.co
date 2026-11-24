@@ -12,7 +12,7 @@ const hasDates = computed(() => !!slots.value && !slots.value.unavailable && slo
 const f = reactive({ date: null as string | null, name: '', phone: '', email: '', address: '', comment: '', offer: false, website: '', captcha: '' })
 const errors = reactive<Record<string, string>>({})
 watch(() => f.date, () => { errors.date = '' })
-const liqPay = ref<Order['liqPay']>(null)
+const redirecting = ref(false)
 const captchaEl = ref<{ reset(): void }>()
 const picked = computed(() => f.date && new Intl.DateTimeFormat(intlLocale(locale.value),
   { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(f.date)))
@@ -24,7 +24,11 @@ const { pending, error, run } = useForm<typeof f>(async (v) => {
   }
   try {
     const order = await $fetch<Order>(apiUrl('/audit/bookings'), { method: 'POST', body })
-    liqPay.value = order.liqPay
+    if (order.payUrl) {
+      redirecting.value = true
+      window.location.href = order.payUrl
+    }
+    else await navigateTo(localePath(`/order/${order.id}`)) // bank hiccup: «Оплатити» there retries
   } catch (e) {
     // Someone took the day while this visitor was typing: fresh calendar, their own words in the error.
     if ((e as { data?: { code?: string } }).data?.code === 'DATE_UNAVAILABLE') {
@@ -53,7 +57,7 @@ function submit() {
   <div class="page section-inner book">
     <h1>{{ $t('audit.bookTitle') }}</h1>
 
-    <LiqPayForm v-if="liqPay" v-bind="liqPay" />
+    <p v-if="redirecting" class="redirecting">{{ $t('checkout.redirecting') }}</p>
 
     <div v-else-if="!hasDates" class="none">
       <p>{{ $t('audit.noDates') }}</p>
@@ -114,6 +118,7 @@ function submit() {
 </template>
 
 <style scoped>
+.redirecting { color: var(--ink-2); }
 .cols { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: 64px; align-items: start; }
 h2 { font-size: 22px; margin: 0 0 18px; }
 .picked { margin: 16px 0 0; font-weight: 600; color: var(--green); }

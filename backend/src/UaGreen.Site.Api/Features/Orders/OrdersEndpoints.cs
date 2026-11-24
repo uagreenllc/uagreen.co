@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
 using UaGreen.Site.Api.Features.Audit;
@@ -18,12 +19,11 @@ public sealed record DeliveryDto(string Method, string? City, string? Warehouse)
 /// `Website` is a honeypot: humans never see the field, bots fill it.
 public sealed record CreateOrderRequest(
     CustomerDto Customer, DeliveryDto Delivery, string PaymentMethod, string? Comment,
-    List<OrderLineRequest> Items, string? Lang, string? Website, string? Captcha);
+    List<OrderLineRequest> Items, string? Lang, string? Website, string? Captcha, int? Parts = null);
 
-public sealed record LiqPayCheckoutDto(string CheckoutUrl, string Data, string Signature);
 public sealed record OrderItemDto(string ProductName, string? OptionsText, int Qty, decimal UnitPrice, decimal LineTotal);
 public sealed record OrderDto(Guid Id, int Number, string Status, string PaymentMethod, decimal Subtotal, decimal DeliveryCost,
-    decimal Total, DateTime CreatedAt, IReadOnlyList<OrderItemDto> Items, LiqPayCheckoutDto? LiqPay,
+    decimal Total, DateTime CreatedAt, IReadOnlyList<OrderItemDto> Items, string? PayUrl, string? PaymentStatus,
     DateOnly? AuditDate, string? AuditAddress, bool? AuditConfirmed);
 
 public static class OrdersEndpoints
@@ -32,19 +32,20 @@ public static class OrdersEndpoints
     {
         app.MapPost("/api/orders", CreateAsync).AllowAnonymous().RequireRateLimiting(RateLimitingExtensions.Forms);
 
-        // Public status page (result_url). The Guid is the only secret; no customer data is returned.
-        app.MapGet("/api/orders/{id:guid}", async (Guid id, AppDbContext db, CancellationToken ct) =>
+        // Public status page (redirectUrl). The Guid is the only secret; no customer data is returned.
+        // Re-reads the bank state while the order waits for it (the bank cannot call back to every environment).
+        app.MapGet("/api/orders/{id:guid}", async (Guid id, AppDbContext db, PaymentSync sync, CancellationToken ct) =>
         {
-            var o = await db.Orders.AsNoTracking().Include(x => x.Items).FirstOrDefaultAsync(x => x.Id == id, ct)
+            var o = await db.Orders.Include(x => x.Items).FirstOrDefaultAsync(x => x.Id == id, ct)
                 ?? throw ProblemException.NotFound("Order not found");
-            return ToDto(o, null);
+            await sync.RefreshIfStaleAsync(o, ct);
+            return ToDto(o);
         }).AllowAnonymous();
-
-        app.MapPost("/api/payments/liqpay/callback", LiqPayCallbackAsync).AllowAnonymous().DisableAntiforgery();
     }
 
     private static async Task<IResult> CreateAsync(
-        CreateOrderRequest req, AppDbContext db, LiqPayService liqpay, Notifier notifier, Turnstile captcha, CancellationToken ct)
+        CreateOrderRequest req, AppDbContext db, Notifier notifier, Turnstile captcha, MonobankAcquiring card, MonoPartsClient parts,
+        IOptions<MonobankOptions> cardOpts, IOptions<MonoPartsOptions> partsOpts, ILoggerFactory lf, CancellationToken ct)
     {
         if (!string.IsNullOrEmpty(req.Website)) // bot: pretend it worked, store nothing
             return Results.Ok(new { id = Guid.NewGuid(), number = 0, status = "New" });
@@ -55,9 +56,19 @@ public static class OrdersEndpoints
         if (phone.Length is < 7 or > 30) throw ProblemException.BadRequest("Phone is required");
         if (!Enum.TryParse<PaymentMethod>(req.PaymentMethod, true, out var payment))
             throw ProblemException.BadRequest("Unknown payment method");
-        var payOffKey = PaymentSettings.OffKey(payment); // set in admin → Платіжні системи
-        if (await db.Settings.AnyAsync(s => s.Key == payOffKey && s.Value == PaymentSettings.Off, ct))
+        if (await MethodOffAsync(db, payment, cardOpts.Value, partsOpts.Value, ct))
             throw ProblemException.BadRequest("Payment method is turned off");
+        string? partsPhone = null;
+        int[]? partsCounts = null;
+        if (payment == PaymentMethod.MonoParts)
+        {
+            partsPhone = MonoPartsClient.NormalizePhone(phone)
+                ?? throw ProblemException.BadRequest("Для покупки частинами потрібен український номер +380…");
+            var max = MonoPartsClient.MaxParts(
+                await db.Settings.Where(s => s.Key == PaymentSettings.PartsMax).Select(s => s.Value).FirstOrDefaultAsync(ct));
+            partsCounts = MonoPartsClient.PartsFor(req.Parts, max)
+                ?? throw ProblemException.BadRequest($"Кількість платежів — від 3 до {max}");
+        }
         if (!Enum.TryParse<DeliveryMethod>(req.Delivery?.Method, true, out var delivery))
             throw ProblemException.BadRequest("Unknown delivery method");
         var offKey = $"delivery.{delivery}.off"; // set in admin → Доставка
@@ -79,7 +90,7 @@ public static class OrdersEndpoints
             Id = Guid.NewGuid(),
             Status = payment switch
             {
-                PaymentMethod.LiqPay => OrderStatus.AwaitingPayment,
+                PaymentMethod.Card or PaymentMethod.MonoParts => OrderStatus.AwaitingPayment,
                 PaymentMethod.Credit => OrderStatus.Credit,
                 _ => OrderStatus.New,
             },
@@ -101,67 +112,68 @@ public static class OrdersEndpoints
         db.Orders.Add(order);
         await db.SaveChangesAsync(ct);
 
-        LiqPayCheckoutDto? checkout = null;
-        if (payment == PaymentMethod.LiqPay)
+        // The order is saved before the bank is asked: a bank failure never loses it.
+        string? bankNote = null;
+        if (payment == PaymentMethod.Card)
+            bankNote = await TryNewInvoiceAsync(order, card, lf, ct);
+        else if (payment == PaymentMethod.MonoParts)
         {
-            var (data, signature) = liqpay.BuildCheckout(order, lang);
-            checkout = new LiqPayCheckoutDto(LiqPayService.CheckoutUrl, data, signature);
+            bankNote = req.Parts is { } n ? $"Покупка частинами, кількість платежів — {n}" : null;
+            try
+            {
+                order.PaymentRef = await parts.CreateAsync(order, partsPhone!, partsCounts!, ct);
+                order.PaymentStatus = "IN_PROCESS/WAITING_FOR_CLIENT";
+            }
+            catch (MonoPartsException ex)
+            {
+                order.Status = OrderStatus.New; // the manual path: a manager calls the customer
+                order.PaymentStatus = "FAIL/CREATE_ERROR";
+                bankNote = $"{bankNote}\nmonobank не прийняв заявку на покупку частинами: {ex.Message}".Trim();
+            }
         }
+        if (payment is PaymentMethod.Card or PaymentMethod.MonoParts) await db.SaveChangesAsync(ct);
 
-        await notifier.NotifyManagersAsync($"Нове замовлення №{order.Number} — {order.Total:N0} грн", Describe(order), ct);
-        return Results.Ok(ToDto(order, checkout));
+        await notifier.NotifyManagersAsync($"Нове замовлення №{order.Number} — {order.Total:N0} грн",
+            Describe(order) + (bankNote is null ? "" : $"\n{bankNote}\n"), ct);
+        return Results.Ok(ToDto(order));
     }
 
-    private static async Task<IResult> LiqPayCallbackAsync(
-        HttpRequest request, AppDbContext db, LiqPayService liqpay, GospodarClient gospodar, Notifier notifier, ILoggerFactory lf, CancellationToken ct)
+    /// Off in the admin, or its bank keys are missing on the server.
+    public static async Task<bool> MethodOffAsync(
+        AppDbContext db, PaymentMethod m, MonobankOptions card, MonoPartsOptions parts, CancellationToken ct)
     {
-        var log = lf.CreateLogger("LiqPay");
-        var form = await request.ReadFormAsync(ct);
-        string data = form["data"]!, signature = form["signature"]!;
-        if (string.IsNullOrEmpty(data) || !liqpay.VerifySignature(data, signature))
-            throw ProblemException.BadRequest("Invalid signature", ErrorCodes.InvalidSignature);
-
-        var cb = LiqPayService.Decode(data) ?? throw ProblemException.BadRequest("Malformed data");
-        if (!Guid.TryParse(cb.OrderId, out var orderId)) throw ProblemException.BadRequest("Unknown order");
-        var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == orderId, ct) ?? throw ProblemException.NotFound("Order not found");
-
-        order.LiqPayStatus = cb.Status;
-        order.UpdatedAt = DateTime.UtcNow;
-        if (LiqPayService.IsPaid(cb.Status) && order.Status != OrderStatus.Paid)
-        {
-            if (cb.Amount != order.Total || !string.Equals(cb.Currency, "UAH", StringComparison.OrdinalIgnoreCase))
-            {
-                // Signed, but not for what we charged — never auto-mark paid, let a human look.
-                log.LogWarning("LiqPay amount mismatch for order {Number}: got {Amount} {Currency}, expected {Total}",
-                    order.Number, cb.Amount, cb.Currency, order.Total);
-            }
-            else
-            {
-                order.Status = OrderStatus.Paid;
-                order.PaidAt = DateTime.UtcNow;
-                await notifier.NotifyManagersAsync($"Оплачено замовлення №{order.Number} — {order.Total:N0} грн",
-                    $"LiqPay payment_id {cb.PaymentId}, status {cb.Status}.", ct);
-            }
-        }
-        await db.SaveChangesAsync(ct);
-
-        // After the save: a Gospodar failure must never lose the paid status. Only a valid paid callback books
-        // (a refund or mismatched-amount callback must not), and on its own token: LiqPay hanging up must not
-        // cancel the booking or the manager email.
-        var paidCallback = LiqPayService.IsPaid(cb.Status) && cb.Amount == order.Total
-            && string.Equals(cb.Currency, "UAH", StringComparison.OrdinalIgnoreCase);
-        if (paidCallback && AuditBooking.ShouldBook(order))
-        {
-            using var bookCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-            await AuditBooking.SendAsync(order, cb.PaymentId, gospodar, notifier, bookCts.Token);
-            await db.SaveChangesAsync(bookCts.Token);
-        }
-        return Results.Ok();
+        if (PaymentSettings.Unconfigured(card, parts).Contains(m)) return true;
+        var key = PaymentSettings.OffKey(m);
+        return await db.Settings.AnyAsync(s => s.Key == key && s.Value == PaymentSettings.Off, ct);
     }
 
-    public static OrderDto ToDto(Order o, LiqPayCheckoutDto? liqpay) => new(
+    /// Points the order at a fresh hosted payment page. Throws MonobankException.
+    public static async Task NewInvoiceAsync(Order o, MonobankAcquiring card, CancellationToken ct)
+    {
+        var inv = await card.CreateInvoiceAsync(o, ct);
+        o.PaymentRef = inv.InvoiceId;
+        o.PayUrl = inv.PageUrl;
+        o.PaymentStatus = null;
+    }
+
+    /// At checkout: a bank failure leaves the order without a page; "Оплатити" on the order page retries.
+    public static async Task<string?> TryNewInvoiceAsync(Order o, MonobankAcquiring card, ILoggerFactory lf, CancellationToken ct)
+    {
+        try
+        {
+            await NewInvoiceAsync(o, card, ct);
+            return null;
+        }
+        catch (MonobankException ex)
+        {
+            lf.CreateLogger("monobank").LogWarning("invoice/create for order {Number} failed: {Error}", o.Number, ex.Message);
+            return $"monobank не створив рахунок: {ex.Message} (клієнт може натиснути «Оплатити» на сторінці замовлення)";
+        }
+    }
+
+    public static OrderDto ToDto(Order o) => new(
         o.Id, o.Number, o.Status.ToString(), o.PaymentMethod.ToString(), o.Subtotal, o.DeliveryCost, o.Total, o.CreatedAt,
-        o.Items.Select(i => new OrderItemDto(i.ProductName, i.OptionsText, i.Qty, i.UnitPrice, i.LineTotal)).ToList(), liqpay,
+        o.Items.Select(i => new OrderItemDto(i.ProductName, i.OptionsText, i.Qty, i.UnitPrice, i.LineTotal)).ToList(), o.PayUrl, o.PaymentStatus,
         o.AuditDate, o.AuditAddress, o.AuditDate is null ? null : o.AuditDateWasFree == true);
 
     private static string Describe(Order o)

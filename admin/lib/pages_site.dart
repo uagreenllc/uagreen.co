@@ -183,13 +183,17 @@ class PaymentsPage extends StatelessWidget {
   const PaymentsPage({super.key});
 
   static const _methods = [
-    ('LiqPay', Icons.credit_card, 'LiqPay — онлайн карткою',
-        'Visa / Mastercard, Apple Pay, Google Pay. Оплата підтверджується автоматично; ключі LiqPay задаються на сервері.'),
+    ('Card', Icons.credit_card, 'Онлайн карткою — monobank',
+        'Visa / Mastercard, Apple Pay, Google Pay через інтернет-еквайринг monobank. '
+            'Оплата підтверджується автоматично; токен задається на сервері.'),
     ('Invoice', Icons.account_balance, 'Вручну — переказ на IBAN',
         'Після замовлення клієнт бачить реквізити компанії й суму та платить переказом з будь-якого банку. '
             'Надходження перевіряє менеджер і ставить статус «Оплачено».'),
-    ('Credit', Icons.event_repeat, 'Кредит 0 % / оплата частинами',
-        "Менеджер зв'язується з клієнтом і оформлює розстрочку в банку-партнері."),
+    ('Credit', Icons.savings_outlined, 'Кредит 0 % (державна програма)',
+        "Менеджер зв'язується з клієнтом і оформлює кредит у банку-партнері."),
+    ('MonoParts', Icons.event_repeat, 'Покупка частинами monobank',
+        'Клієнт підтверджує заявку в застосунку monobank. Коли ставите «Відправлено», сайт підтверджує видачу '
+            'в банку — після цього банк перераховує гроші.'),
   ];
   // A copy of Gospodar's Компанії → реквізити, pulled by the API (on open and every 15 min); read-only here.
   static const _requisites = [
@@ -199,10 +203,23 @@ class PaymentsPage extends StatelessWidget {
     ('pay_bank', 'Банк'),
   ];
 
+  /// Adds `_cfg_<method>` = '0' for methods without bank keys on the server. Display only: the values never
+  /// change, so KeyValuePage never sends them back.
+  static Future<J> _withConfigured(J values) async {
+    final cfg = await api.get('/admin/payments/configured') as J;
+    return {...values, for (final e in cfg.entries) '_cfg_${e.key}': e.value == true ? '1' : '0'};
+  }
+
+  static Widget _notConfigured(ThemeData theme) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Text('Не налаштовано на сервері — сайт цей спосіб не показує.',
+        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error)),
+  );
+
   @override
   Widget build(BuildContext context) => KeyValuePage(
     intro: 'Способи оплати на сторінці оформлення замовлення. Вимкнений спосіб клієнт не бачить, і сайт його не прийме.',
-    load: () async => await api.get('/admin/payments') as J,
+    load: () async => _withConfigured(await api.get('/admin/payments') as J),
     save: (changes) async {
       final turningOff = changes.entries.where((e) => e.key.startsWith('pay_') && e.value == 'off');
       if (turningOff.isNotEmpty &&
@@ -214,7 +231,7 @@ class PaymentsPage extends StatelessWidget {
               destructive: false)) {
         throw const SaveCancelled();
       }
-      return await api.put('/admin/payments', changes) as J;
+      return _withConfigured(await api.put('/admin/payments', changes) as J);
     },
     build: (context, p) {
       final theme = Theme.of(context);
@@ -228,7 +245,19 @@ class PaymentsPage extends StatelessWidget {
               value: p.get('pay_$key') != 'off',
               onChanged: (on) => p.set('pay_$key', on ? null : 'off'),
             ),
-            child: key != 'Invoice'
+            child: key == 'MonoParts'
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (p.get('_cfg_MonoParts') == '0') _notConfigured(theme),
+                      kvField(p, 'pay_parts_max', 'Максимум платежів', helper: 'від 3 до 25; порожньо — 12',
+                          enabled: p.get('pay_MonoParts') != 'off',
+                          validate: (v) => (int.tryParse(v) ?? 0) >= 3 && (int.tryParse(v) ?? 0) <= 25 ? null : 'Від 3 до 25'),
+                    ],
+                  )
+                : key == 'Card'
+                ? (p.get('_cfg_Card') == '0' ? _notConfigured(theme) : const SizedBox.shrink())
+                : key != 'Invoice'
                 ? const SizedBox.shrink()
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,

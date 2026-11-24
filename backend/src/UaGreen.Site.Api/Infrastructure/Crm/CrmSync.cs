@@ -179,7 +179,11 @@ public sealed class CrmSync(IHttpClientFactory http, IOptions<GospodarOptions> o
         var lines = new List<string> { $"Замовлення №{o.Number} з сайту uagreen.co" };
         lines.AddRange(o.Items.Select(i => $"• {i.ProductName}{(i.OptionsText is null ? "" : $" ({i.OptionsText})")} — {i.Qty} × {i.UnitPrice:0.##} = {i.LineTotal:0.##} грн"));
         lines.Add($"Разом: {o.Total:0.##} грн");
-        lines.Add("Оплата: " + o.PaymentMethod switch { PaymentMethod.LiqPay => "LiqPay (картка)", PaymentMethod.Invoice => "переказ на IBAN", _ => "кредит 0%" });
+        lines.Add("Оплата: " + o.PaymentMethod switch
+        {
+            PaymentMethod.Card => "картка (monobank)", PaymentMethod.Invoice => "переказ на IBAN",
+            PaymentMethod.MonoParts => "частинами (monobank)", _ => "кредит 0%",
+        });
         lines.Add("Доставка: " + string.Join(", ", new[]
         {
             o.DeliveryMethod switch { DeliveryMethod.NovaPoshta => "Нова пошта", DeliveryMethod.Ukrposhta => "Укрпошта", _ => "самовивіз" },

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
 using UaGreen.Site.Api.Features.Orders;
@@ -50,10 +51,14 @@ public static class AuditEndpoints
         }).AllowAnonymous().RequireRateLimiting(RateLimitingExtensions.Forms);
 
         // ponytail: no cache — Gospodar is asked on every page view; add output cache if it shows up in load.
-        app.MapGet("/api/audit/slots", async (AppDbContext db, GospodarClient gospodar, CancellationToken ct) =>
+        app.MapGet("/api/audit/slots", async (AppDbContext db, GospodarClient gospodar,
+            IOptions<MonobankOptions> card, IOptions<MonoPartsOptions> parts, CancellationToken ct) =>
         {
             var product = await AuditProductAsync(db, ct);
             var (from, to) = AuditWindow.For(DateTime.UtcNow);
+            // No card payment → nothing to book with: the page offers the consultation instead.
+            if (await OrdersEndpoints.MethodOffAsync(db, PaymentMethod.Card, card.Value, parts.Value, ct))
+                return new AuditSlotsDto(from, to, [], product.Price, product.OldPrice, true);
             var dates = await gospodar.GetAuditSlotsAsync(from, to, ct);
             return new AuditSlotsDto(from, to, dates?.Where(d => d >= from && d <= to).ToList() ?? [],
                 product.Price, product.OldPrice, dates is null);
@@ -63,7 +68,8 @@ public static class AuditEndpoints
     }
 
     private static async Task<IResult> CreateBookingAsync(
-        AuditBookingRequest req, AppDbContext db, GospodarClient gospodar, LiqPayService liqpay, Notifier notifier, Turnstile captcha,
+        AuditBookingRequest req, AppDbContext db, GospodarClient gospodar, Notifier notifier, Turnstile captcha,
+        MonobankAcquiring card, IOptions<MonobankOptions> cardOpts, IOptions<MonoPartsOptions> partsOpts, ILoggerFactory lf,
         CancellationToken ct)
     {
         if (!string.IsNullOrEmpty(req.Website)) // bot: pretend it worked, store nothing
@@ -78,6 +84,8 @@ public static class AuditEndpoints
         if (address.Length is < 5 or > 300) throw ProblemException.BadRequest("Address is required");
         if (comment?.Length > 1000) throw ProblemException.BadRequest("Comment is too long");
         if (!req.OfferAccepted) throw ProblemException.BadRequest("Offer must be accepted");
+        if (await OrdersEndpoints.MethodOffAsync(db, PaymentMethod.Card, cardOpts.Value, partsOpts.Value, ct))
+            throw ProblemException.BadRequest("Payment method is turned off");
         await captcha.EnsureHumanAsync(req.Captcha, ct);
 
         var now = DateTime.UtcNow;
@@ -97,7 +105,7 @@ public static class AuditEndpoints
             Email = string.IsNullOrWhiteSpace(req.Email) ? null : req.Email.Trim(),
             DeliveryMethod = DeliveryMethod.Pickup, // nothing ships; never shown for an audit
             Comment = comment,
-            PaymentMethod = PaymentMethod.LiqPay,
+            PaymentMethod = PaymentMethod.Card,
             Subtotal = product.Price,
             Total = product.Price,
             AuditDate = req.Date,
@@ -116,12 +124,14 @@ public static class AuditEndpoints
         };
         db.Orders.Add(order);
         await db.SaveChangesAsync(ct);
+        var bankNote = await OrdersEndpoints.TryNewInvoiceAsync(order, card, lf, ct);
+        await db.SaveChangesAsync(ct);
 
-        var (data, signature) = liqpay.BuildCheckout(order, lang);
         await notifier.NotifyManagersAsync($"Аудит очікує оплати №{order.Number} — {req.Date:dd.MM.yyyy}",
             $"{name}, {phone}{(order.Email is null ? "" : ", " + order.Email)}\nАдреса: {address}\nДата: {req.Date:dd.MM.yyyy}\n" +
-            $"{(comment is null ? "" : $"Коментар: {comment}\n")}Сума: {order.Total:N0} грн", ct);
-        return Results.Ok(OrdersEndpoints.ToDto(order, new LiqPayCheckoutDto(LiqPayService.CheckoutUrl, data, signature)));
+            $"{(comment is null ? "" : $"Коментар: {comment}\n")}Сума: {order.Total:N0} грн" +
+            (bankNote is null ? "" : $"\n{bankNote}"), ct);
+        return Results.Ok(OrdersEndpoints.ToDto(order));
     }
 
     private static async Task<Product> AuditProductAsync(AppDbContext db, CancellationToken ct) =>

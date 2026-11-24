@@ -28,7 +28,12 @@ const _statusTone = {
   'Shipped': 'success',
   'Cancelled': 'neutral',
 };
-const payments = {'LiqPay': 'LiqPay (картка)', 'Invoice': 'Вручну (переказ на IBAN)', 'Credit': 'Кредит 0%'};
+const payments = {
+  'Card': 'Картка (monobank)',
+  'Invoice': 'Вручну (переказ на IBAN)',
+  'Credit': 'Кредит 0%',
+  'MonoParts': 'Частинами (monobank)',
+};
 const deliveries = {'NovaPoshta': 'Нова пошта', 'Ukrposhta': 'Укрпошта', 'Pickup': 'Самовивіз'};
 
 Widget orderStatusChip(BuildContext context, String? s) =>
@@ -181,7 +186,7 @@ class _OrderPageState extends State<OrderPage> with UnsavedChangesGuard {
         !await showConfirmDialog(context,
             title: 'Скасувати замовлення №${o['number']}?',
             message: o['paidAt'] != null
-                ? 'Замовлення вже оплачене — гроші автоматично НЕ повертаються, повернення робиться в LiqPay/банку окремо.'
+                ? 'Замовлення вже оплачене — гроші автоматично НЕ повертаються, повернення робиться в кабінеті monobank або банку окремо.'
                 : 'Клієнт побачить статус «Скасовано» на сторінці замовлення.',
             confirmLabel: 'Скасувати замовлення')) {
       return;
@@ -191,7 +196,7 @@ class _OrderPageState extends State<OrderPage> with UnsavedChangesGuard {
         mounted &&
         !await showConfirmDialog(context,
             title: 'Позначити оплаченим вручну?',
-            message: 'LiqPay не підтверджував оплату. Робіть це, лише якщо гроші надійшли на рахунок.',
+            message: 'Банк не підтверджував оплату. Робіть це, лише якщо гроші надійшли на рахунок.',
             confirmLabel: 'Так, гроші надійшли',
             destructive: false)) {
       return;
@@ -211,7 +216,7 @@ class _OrderPageState extends State<OrderPage> with UnsavedChangesGuard {
   Future<void> _save() async {
     if (_busy || !_form.currentState!.validate()) return;
     final o = _o!;
-    if ((o['paidAt'] != null || o['liqPayStatus'] != null) &&
+    if (o['paidAt'] != null &&
         _subtotal + (_edit!['deliveryCost'] as num? ?? 0) != o['total'] &&
         !await showConfirmDialog(context,
             title: 'Змінити суму оплаченого замовлення?',
@@ -326,7 +331,7 @@ class _OrderPageState extends State<OrderPage> with UnsavedChangesGuard {
           textField(e, 'deliveryWarehouse', 'Відділення / адреса'),
           AppSpacing.gapMd,
           InfoRow(label: 'Оплата', value: payments[o['paymentMethod']] ?? '${o['paymentMethod']}'),
-          if (o['liqPayStatus'] != null) InfoRow(label: 'LiqPay', value: '${o['liqPayStatus']}'),
+          if (o['paymentStatus'] != null) InfoRow(label: 'Банк', value: '${o['paymentStatus']}'),
           InfoRow(label: 'Оплачено', value: o['paidAt'] == null ? '—' : fmtDate(o['paidAt'])),
         ],
       ),

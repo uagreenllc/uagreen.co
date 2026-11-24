@@ -5,6 +5,7 @@ using UaGreen.Site.Api.Common;
 using UaGreen.Site.Api.Domain;
 using UaGreen.Site.Api.Features.Admin;
 using UaGreen.Site.Api.Infrastructure.Auth;
+using UaGreen.Site.Api.Infrastructure.Payments;
 using UaGreen.Site.Api.Infrastructure.Persistence;
 
 namespace UaGreen.Site.Api.Features.Orders;
@@ -15,7 +16,7 @@ public static partial class PaymentSettings
 {
     public const string Prefix = "pay_";
 
-    /// pay_LiqPay = "off" hides the method; no row = on, as before the page existed.
+    /// pay_Card = "off" hides the method; no row = on, as before the page existed.
     public static string OffKey(PaymentMethod m) => Prefix + m;
     public const string Off = "off";
 
@@ -23,8 +24,15 @@ public static partial class PaymentSettings
     /// Компанії → реквізити (SyncAsync), so the IBAN is edited in one place only.
     public static readonly string[] Requisites = ["pay_recipient", "pay_edrpou", "pay_iban", "pay_bank"];
 
-    /// What the admin page writes: methods on/off and the payment purpose.
-    public static readonly string[] Keys = [.. Enum.GetValues<PaymentMethod>().Select(OffKey), "pay_purpose"];
+    /// Max number of monobank pay-in-parts payments offered (3..25, empty = 12).
+    public const string PartsMax = "pay_parts_max";
+
+    /// What the admin page writes: methods on/off, the payment purpose and the pay-in-parts maximum.
+    public static readonly string[] Keys = [.. Enum.GetValues<PaymentMethod>().Select(OffKey), "pay_purpose", PartsMax];
+
+    /// Methods whose bank keys are missing on the server: hidden on the site and refused by the API, whatever the switch says.
+    public static IReadOnlyList<PaymentMethod> Unconfigured(MonobankOptions card, MonoPartsOptions parts) =>
+        [.. card.Configured ? [] : new[] { PaymentMethod.Card }, .. parts.Configured ? [] : new[] { PaymentMethod.MonoParts }];
 
     /// The admin page sends only the changed keys; `stored` holds the rest for the "one method stays on" check.
     public static void Validate(Dictionary<string, string?> req, IReadOnlyDictionary<string, string> stored)
@@ -39,6 +47,12 @@ public static partial class PaymentSettings
         string? Now(string k) => req.TryGetValue(k, out var v) ? v : stored.GetValueOrDefault(k);
         if (methods.All(m => Now(OffKey(m)) == Off))
             throw ProblemException.BadRequest("Залиште увімкненим хоча б один спосіб оплати");
+
+        if (req.GetValueOrDefault(PartsMax)?.Trim() is { Length: > 0 } max)
+        {
+            if (!int.TryParse(max, out var n) || n is < 3 or > 25) throw ProblemException.BadRequest("Максимум платежів — від 3 до 25");
+            req[PartsMax] = n.ToString();
+        }
     }
 
     /// Gospodar's requisites as pay_ rows (null = no row). Null when the IBAN fails its checksum:
